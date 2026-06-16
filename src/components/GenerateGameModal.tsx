@@ -11,6 +11,7 @@ type Status = 'idle' | 'loading' | 'success' | 'error'
 
 export default function GenerateGameModal({ isOpen, onClose }: Props) {
   const [learningObjective, setLearningObjective] = useState('')
+  const [gameType, setGameType] = useState('quiz')
   const [difficulty, setDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner')
   const [topic, setTopic] = useState('')
   const [status, setStatus] = useState<Status>('idle')
@@ -21,6 +22,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
   function handleClose() {
     setStatus('idle')
     setLearningObjective('')
+    setGameType('quiz')
     setDifficulty('beginner')
     setTopic('')
     setErrorMessage('')
@@ -34,7 +36,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ learningObjective, difficulty, topic }),
+        body: JSON.stringify({ learningObjective, difficulty, topic, format: gameType }),
       })
       const data = await res.json()
       if (data.success) {
@@ -192,6 +194,19 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                   onChange={(e) => setLearningObjective(e.target.value)}
                   disabled={status === 'loading'}
                 />
+              </div>
+
+              <div className="ggm-field">
+                <label className="ggm-label">Spieltyp</label>
+                <select
+                  className="ggm-select"
+                  value={gameType}
+                  onChange={(e) => setGameType(e.target.value)}
+                  disabled={status === 'loading'}
+                >
+                  <option value="quiz">Quiz — Multiple Choice</option>
+                  <option value="chat_challenge">Prompt-Challenge — Chatbot</option>
+                </select>
               </div>
 
               <div className="ggm-field">
