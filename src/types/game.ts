@@ -19,6 +19,8 @@ export interface GameJson {
   format?: string
   questions?: Question[]
   challenges?: Challenge[]
+  statements?: HallucinationStatement[]
+  contextIntro?: string
   scoring?: { maxPoints: number; passingScore: number }
   aiContextNote?: string
   [key: string]: unknown
@@ -41,4 +43,11 @@ export interface Question {
   correctAnswer: string
   explanation: string
   points?: number
+}
+
+export interface HallucinationStatement {
+  id: number
+  text: string
+  isHallucination: boolean
+  explanation: string
 }

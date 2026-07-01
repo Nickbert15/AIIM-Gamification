@@ -9,6 +9,36 @@ interface Props {
   games: Game[]
 }
 
+// Demo-Spiel, damit der neue Spieltyp getestet werden kann, solange die n8n-Pipeline
+// noch keine echten hallucination_spotter-Games generiert.
+const DEMO_HALLUCINATION_GAME: Game = {
+  id: 'demo-hallucination-spotter',
+  title: '[Demo] Monatsabschluss-Kommentar prüfen',
+  format: 'hallucination_spotter',
+  library_type: null,
+  target_role: 'Financial Analyst',
+  difficulty: 'intermediate',
+  language: 'de',
+  topic: 'Monatsabschluss',
+  persona_key: null,
+  learning_objective: 'Der Lernende kann erkennen, welche KI-generierten Aussagen in einem Finance-Report sachlich falsch oder erfunden sind und einer menschlichen Prüfung bedürfen.',
+  game_json: {
+    format: 'hallucination_spotter',
+    contextIntro: 'Ein KI-Assistent hat folgenden Kommentar zum Monatsabschluss Juni erstellt. Prüfe jede Aussage: Fakt oder Halluzination?',
+    statements: [
+      { id: 1, text: 'Die Personalkosten sind im Juni um 3,2% gegenüber dem Vormonat gestiegen, hauptsächlich durch die Tariferhöhung zum 1. Juni.', isHallucination: false, explanation: 'Korrekt – die Tariferhöhung ist im Buchungsjournal dokumentiert und deckt sich mit der Kostenstellenauswertung.' },
+      { id: 2, text: 'Der Vorstand hat in der Sitzung vom 14. Juni beschlossen, das Budget für Q3 um 10% zu kürzen.', isHallucination: true, explanation: 'Halluzination – am 14. Juni fand keine Vorstandssitzung statt, ein solcher Budgetbeschluss ist in keinem Protokoll verzeichnet.' },
+      { id: 3, text: 'Die Rückstellungen für Gewährleistungen liegen mit 1,4 Mio. EUR auf Vorjahresniveau.', isHallucination: false, explanation: 'Korrekt – der Wert stimmt mit der Rückstellungsübersicht aus SAP überein.' },
+      { id: 4, text: 'Laut IFRS 16 müssen ab Juli alle Leasingverträge unter 12 Monaten Laufzeit erstmals bilanziert werden.', isHallucination: true, explanation: 'Halluzination – IFRS 16 sieht ein Wahlrecht zur Nichtbilanzierung für kurzfristige Leasingverhältnisse (<12 Monate) vor, hier wird das Gegenteil behauptet.' },
+      { id: 5, text: 'Die liquiden Mittel sind zum Monatsende um 2,1 Mio. EUR gesunken, primär durch die Auszahlung der Jahresboni.', isHallucination: false, explanation: 'Korrekt – deckt sich mit dem Cashflow-Report und dem Auszahlungstermin der Boni am 25. Juni.' },
+    ],
+    scoring: { maxPoints: 5, passingScore: 4 },
+  },
+  status: 'draft',
+  source_attribution: null,
+  created_at: new Date().toISOString(),
+}
+
 type Filter = 'all' | 'draft' | 'approved' | 'rejected'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -33,7 +63,7 @@ const FILTERS: { key: Filter; label: string }[] = [
 ]
 
 export default function GamesClient({ games: initialGames }: Props) {
-  const [games, setGames] = useState<Game[]>(initialGames)
+  const [games, setGames] = useState<Game[]>([...initialGames, DEMO_HALLUCINATION_GAME])
   const [filter, setFilter] = useState<Filter>('all')
   const [previewGame, setPreviewGame] = useState<Game | null>(null)
   const [reviewGame, setReviewGame] = useState<Game | null>(null)
