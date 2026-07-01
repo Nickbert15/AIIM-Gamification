@@ -19,6 +19,8 @@ export interface GameJson {
   format?: string
   questions?: Question[]
   challenges?: Challenge[]
+  cases?: JudgeCase[]
+  contextIntro?: string
   scoring?: { maxPoints: number; passingScore: number }
   aiContextNote?: string
   [key: string]: unknown
@@ -41,4 +43,14 @@ export interface Question {
   correctAnswer: string
   explanation: string
   points?: number
+}
+
+export interface JudgeCase {
+  id: number
+  prompt: string
+  responseA: string
+  responseB: string
+  betterResponse: 'A' | 'B'
+  criteria: string[]
+  explanation: string
 }
