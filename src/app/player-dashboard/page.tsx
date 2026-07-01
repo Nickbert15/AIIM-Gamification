@@ -1,0 +1,272 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+
+type Step = 'email' | 'set-password' | 'login'
+
+type PlayerData = {
+  player: { id: string; email: string; display_name: string; role: string }
+  stats: { games_played: number; total_score: number; avg_score: number; best_score: number }
+  history: { id: string; score: number; completed_at: string; games: { id: string; title: string } | null }[]
+}
+
+export default function PlayerDashboardPage() {
+  const [data, setData] = useState<PlayerData | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  // login form state
+  const [step, setStep] = useState<Step>('email')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { setData(d); setLoading(false) })
+  }, [])
+
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitting(true)
+    setError('')
+
+    const res = await fetch('/api/auth/lookup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+    const body = await res.json()
+    setSubmitting(false)
+
+    if (!body.exists) { setError('Diese E-Mail-Adresse ist nicht registriert.'); return }
+    setStep(body.hasPassword ? 'login' : 'set-password')
+  }
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitting(true)
+    setError('')
+
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    })
+    setSubmitting(false)
+
+    if (!res.ok) { setError('Falsches Passwort. Bitte erneut versuchen.'); return }
+    const me = await fetch('/api/auth/me')
+    setData(await me.json())
+  }
+
+  const handleSetPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (password !== confirm) { setError('Passwörter stimmen nicht überein.'); return }
+    if (password.length < 8) { setError('Passwort muss mindestens 8 Zeichen haben.'); return }
+    setSubmitting(true)
+    setError('')
+
+    const res = await fetch('/api/auth/setup-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    })
+    setSubmitting(false)
+
+    if (!res.ok) { setError('Fehler beim Einrichten des Passworts.'); return }
+    const me = await fetch('/api/auth/me')
+    setData(await me.json())
+  }
+
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    setData(null)
+    setStep('email')
+    setEmail('')
+    setPassword('')
+    setConfirm('')
+    setError('')
+  }
+
+  if (loading) return <div className="loading-spinner">Lade…</div>
+
+  // ── Authenticated dashboard ──────────────────────────────────────────────
+  if (data) {
+    const { player, stats, history } = data
+    const rankLabel = (n: number) => n === 1 ? '🥇 #1' : n === 2 ? '🥈 #2' : n === 3 ? '🥉 #3' : `#${n}`
+
+    return (
+      <>
+        <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <h1 className="page-title">{player.display_name}</h1>
+            <p className="page-subtitle">{player.role} · {player.email}</p>
+          </div>
+          <button className="btn btn-ghost" onClick={handleLogout} style={{ marginTop: 4 }}>
+            Abmelden
+          </button>
+        </div>
+
+        <div className="stats-grid">
+          <div className="stat-card stat-accent">
+            <div className="stat-value">{stats.total_score.toLocaleString('de-DE')}</div>
+            <div className="stat-label">Gesamtpunkte</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-value">{stats.games_played}</div>
+            <div className="stat-label">Games gespielt</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-value">{stats.best_score.toLocaleString('de-DE')}</div>
+            <div className="stat-label">Bestes Ergebnis</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-value">{Math.round(stats.avg_score).toLocaleString('de-DE')}</div>
+            <div className="stat-label">Ø Score</div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-title">Meine Spiele</div>
+          {history.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-state-icon">🎮</div>
+              <div className="empty-state-text">Noch keine Spiele — viel Erfolg beim ersten Game!</div>
+            </div>
+          ) : (
+            <div className="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Spiel</th>
+                    <th>Score</th>
+                    <th>Datum</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.map((s, i) => (
+                    <tr key={s.id}>
+                      <td style={{ color: 'var(--text-muted)', fontWeight: 600 }}>{i + 1}</td>
+                      <td style={{ fontWeight: 500 }}>{s.games?.title ?? '—'}</td>
+                      <td style={{ color: 'var(--accent)', fontWeight: 700 }}>
+                        {s.score.toLocaleString('de-DE')}
+                      </td>
+                      <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+                        {new Date(s.completed_at).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </>
+    )
+  }
+
+  // ── Login / setup flow ───────────────────────────────────────────────────
+  return (
+    <>
+      <div className="page-header">
+        <h1 className="page-title">Player Dashboard</h1>
+        <p className="page-subtitle">
+          {step === 'email' && 'Melde dich mit deiner E-Mail-Adresse an.'}
+          {step === 'login' && 'Gib dein Passwort ein.'}
+          {step === 'set-password' && 'Erstelle ein Passwort für deinen Account.'}
+        </p>
+      </div>
+
+      <div className="card" style={{ maxWidth: 420 }}>
+        {step === 'email' && (
+          <form onSubmit={handleEmailSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className="form-group">
+              <label htmlFor="email">E-Mail-Adresse</label>
+              <input
+                id="email"
+                type="email"
+                placeholder="vorname.nachname@lhg.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoFocus
+              />
+            </div>
+            {error && <div className="alert alert-error">{error}</div>}
+            <button type="submit" className="btn btn-primary" disabled={submitting}>
+              {submitting ? 'Prüfe…' : 'Weiter →'}
+            </button>
+          </form>
+        )}
+
+        {step === 'login' && (
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>{email}</div>
+            <div className="form-group">
+              <label htmlFor="password">Passwort</label>
+              <input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoFocus
+              />
+            </div>
+            {error && <div className="alert alert-error">{error}</div>}
+            <button type="submit" className="btn btn-primary" disabled={submitting}>
+              {submitting ? 'Anmelden…' : 'Anmelden →'}
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={() => { setStep('email'); setError('') }}>
+              ← Andere E-Mail
+            </button>
+          </form>
+        )}
+
+        {step === 'set-password' && (
+          <form onSubmit={handleSetPassword} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>{email}</div>
+            <div className="alert alert-success" style={{ marginBottom: 0 }}>
+              Willkommen! Lege jetzt dein Passwort fest.
+            </div>
+            <div className="form-group">
+              <label htmlFor="password">Passwort (min. 8 Zeichen)</label>
+              <input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoFocus
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="confirm">Passwort bestätigen</label>
+              <input
+                id="confirm"
+                type="password"
+                placeholder="••••••••"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                required
+              />
+            </div>
+            {error && <div className="alert alert-error">{error}</div>}
+            <button type="submit" className="btn btn-primary" disabled={submitting}>
+              {submitting ? 'Speichern…' : 'Passwort festlegen →'}
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={() => { setStep('email'); setError('') }}>
+              ← Zurück
+            </button>
+          </form>
+        )}
+      </div>
+    </>
+  )
+}
