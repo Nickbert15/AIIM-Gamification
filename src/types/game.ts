@@ -20,6 +20,7 @@ export interface GameJson {
   questions?: Question[]
   challenges?: Challenge[]
   statements?: HallucinationStatement[]
+  cases?: JudgeCase[]
   contextIntro?: string
   scoring?: { maxPoints: number; passingScore: number }
   aiContextNote?: string
@@ -49,5 +50,15 @@ export interface HallucinationStatement {
   id: number
   text: string
   isHallucination: boolean
+  explanation: string
+}
+
+export interface JudgeCase {
+  id: number
+  prompt: string
+  responseA: string
+  responseB: string
+  betterResponse: 'A' | 'B'
+  criteria: string[]
   explanation: string
 }

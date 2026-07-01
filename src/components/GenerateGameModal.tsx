@@ -207,6 +207,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                   <option value="quiz">Quiz — Multiple Choice</option>
                   <option value="chat_challenge">Prompt-Challenge — Chatbot</option>
                   <option value="hallucination_spotter">Hallucination Spotter</option>
+                  <option value="ai_output_judge">AI Output Judge</option>
                 </select>
               </div>
 

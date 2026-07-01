@@ -277,6 +277,26 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
               </div>
             )}
 
+            {game.game_json.cases && (
+              <div>
+                <p className="grm-section-title">Fälle ({game.game_json.cases.length})</p>
+                <div className="grm-question-list">
+                  {game.game_json.cases.map((c, i) => (
+                    <div key={c.id} className="grm-question-item">
+                      <div className="grm-q-text">{i + 1}. {c.prompt}</div>
+                      <div className="grm-q-answer">
+                        <span>✓</span>
+                        <span>Bessere Antwort: {c.betterResponse}</span>
+                      </div>
+                      {c.explanation && (
+                        <div className="grm-q-explanation">{c.explanation}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {game.source_attribution && (
               <div>
                 <p className="grm-section-title">Quellennachweis</p>

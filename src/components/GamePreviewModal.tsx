@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Game, Question } from '@/types/game'
 import ChatGamePlayer from './ChatGamePlayer'
 import HallucinationSpotterPlayer from './HallucinationSpotterPlayer'
+import AiOutputJudgePlayer from './AiOutputJudgePlayer'
 
 interface Props {
   game: Game | null
@@ -102,6 +103,51 @@ export default function GamePreviewModal({ game, onClose }: Props) {
               <button className="gpm-close" onClick={onClose}>×</button>
             </div>
             <HallucinationSpotterPlayer game={game} onComplete={(s) => console.log('preview score:', s)} />
+          </div>
+        </div>
+      </>
+    )
+  }
+
+  if (game.game_json.format === 'ai_output_judge') {
+    return (
+      <>
+        <style>{`
+          .gpm-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(4px); display: flex;
+            align-items: center; justify-content: center;
+            z-index: 1000; padding: 16px;
+          }
+          .gpm-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); width: 100%;
+            max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column;
+          }
+          .gpm-header {
+            display: flex; align-items: flex-start; justify-content: space-between;
+            gap: 16px; padding: 20px 24px 16px; border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; background: var(--bg-card); z-index: 1;
+          }
+          .gpm-title { font-size: 16px; font-weight: 700; color: var(--text); margin: 0; line-height: 1.4; }
+          .gpm-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+          .gpm-close {
+            background: none; border: 1px solid var(--border); border-radius: 6px;
+            color: var(--text-muted); cursor: pointer; font-size: 18px; line-height: 1;
+            padding: 4px 10px; flex-shrink: 0; font-family: inherit;
+          }
+          .gpm-close:hover { color: var(--text); border-color: var(--accent); }
+        `}</style>
+        <div className="gpm-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
+          <div className="gpm-card" style={{ maxWidth: 780 }}>
+            <div className="gpm-header">
+              <div>
+                <h2 className="gpm-title">{game.title}</h2>
+                <div className="gpm-subtitle">AI Output Judge · {game.difficulty}</div>
+              </div>
+              <button className="gpm-close" onClick={onClose}>×</button>
+            </div>
+            <AiOutputJudgePlayer game={game} onComplete={(s) => console.log('preview score:', s)} />
           </div>
         </div>
       </>
