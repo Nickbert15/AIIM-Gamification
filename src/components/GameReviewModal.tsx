@@ -234,26 +234,48 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
               </div>
             </div>
 
-            <div>
-              <p className="grm-section-title">Fragen ({game.game_json.questions.length})</p>
-              <div className="grm-question-list">
-                {game.game_json.questions.map((q, i) => {
-                  const correctOption = q.options.find(o => o.id === q.correctAnswer)
-                  return (
-                    <div key={q.id} className="grm-question-item">
-                      <div className="grm-q-text">{i + 1}. {q.question}</div>
-                      <div className="grm-q-answer">
-                        <span>✓</span>
-                        <span>{correctOption?.text ?? q.correctAnswer}</span>
+            {game.game_json.questions && (
+              <div>
+                <p className="grm-section-title">Fragen ({game.game_json.questions.length})</p>
+                <div className="grm-question-list">
+                  {game.game_json.questions.map((q, i) => {
+                    const correctOption = q.options.find(o => o.id === q.correctAnswer)
+                    return (
+                      <div key={q.id} className="grm-question-item">
+                        <div className="grm-q-text">{i + 1}. {q.question}</div>
+                        <div className="grm-q-answer">
+                          <span>✓</span>
+                          <span>{correctOption?.text ?? q.correctAnswer}</span>
+                        </div>
+                        {q.explanation && (
+                          <div className="grm-q-explanation">{q.explanation}</div>
+                        )}
                       </div>
-                      {q.explanation && (
-                        <div className="grm-q-explanation">{q.explanation}</div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {game.game_json.statements && (
+              <div>
+                <p className="grm-section-title">Aussagen ({game.game_json.statements.length})</p>
+                <div className="grm-question-list">
+                  {game.game_json.statements.map((s, i) => (
+                    <div key={s.id} className="grm-question-item">
+                      <div className="grm-q-text">{i + 1}. {s.text}</div>
+                      <div className="grm-q-answer" style={{ color: s.isHallucination ? 'var(--danger)' : 'var(--success)' }}>
+                        <span>{s.isHallucination ? '⚠' : '✓'}</span>
+                        <span>{s.isHallucination ? 'Halluzination' : 'Fakt'}</span>
+                      </div>
+                      {s.explanation && (
+                        <div className="grm-q-explanation">{s.explanation}</div>
                       )}
                     </div>
-                  )
-                })}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {game.source_attribution && (
               <div>
