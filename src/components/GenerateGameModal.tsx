@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import HallucinationWizardV2 from './HallucinationWizardV2'
 
 interface Props {
   isOpen: boolean
@@ -16,6 +17,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
   const [topic, setTopic] = useState('')
   const [status, setStatus] = useState<Status>('idle')
   const [errorMessage, setErrorMessage] = useState('')
+  const [wizardV2Open, setWizardV2Open] = useState(false)
 
   if (!isOpen) return null
 
@@ -26,11 +28,27 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
     setDifficulty('beginner')
     setTopic('')
     setErrorMessage('')
+    setWizardV2Open(false)
     onClose()
+  }
+
+  if (wizardV2Open) {
+    return (
+      <HallucinationWizardV2
+        learningObjective={learningObjective}
+        topic={topic}
+        difficulty={difficulty}
+        onClose={handleClose}
+      />
+    )
   }
 
   async function handleGenerate() {
     if (!learningObjective.trim()) return
+    if (gameType === 'hallucination_spotter_v2') {
+      setWizardV2Open(true)
+      return
+    }
     setStatus('loading')
     try {
       const res = await fetch('/api/generate', {
@@ -206,6 +224,8 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                 >
                   <option value="quiz">Quiz — Multiple Choice</option>
                   <option value="chat_challenge">Prompt-Challenge — Chatbot</option>
+                  <option value="hallucination_spotter_v2">Hallucination Spotter — interaktiv</option>
+                  <option value="prompt_arena">Prompt Arena — Drag &amp; Drop</option>
                 </select>
               </div>
 
@@ -245,7 +265,11 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                   disabled={status === 'loading' || !learningObjective.trim()}
                 >
                   {status === 'loading' && <span className="ggm-spinner" />}
-                  {status === 'loading' ? 'Pipeline läuft…' : 'Generieren'}
+                  {status === 'loading'
+                    ? 'Pipeline läuft…'
+                    : gameType === 'hallucination_spotter_v2'
+                    ? 'Weiter →'
+                    : 'Generieren'}
                 </button>
               </div>
             </>
