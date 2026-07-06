@@ -32,7 +32,7 @@ export async function POST(request: Request) {
         Authorization: `Bearer ${process.env.KICONNECT_API_KEY!}`,
       },
       body: JSON.stringify({
-        model: 'Mistral Small 3.2 24B Instruct 2506',
+        model: 'Mistral Small 3-2-24b Instruct KI:Inferenz.nrw',
         messages: [
           { role: 'system', content: systemPrompt },
           ...history,

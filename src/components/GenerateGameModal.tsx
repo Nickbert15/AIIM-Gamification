@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface Props {
   isOpen: boolean
@@ -16,6 +16,21 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
   const [topic, setTopic] = useState('')
   const [status, setStatus] = useState<Status>('idle')
   const [errorMessage, setErrorMessage] = useState('')
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    if (status === 'loading') {
+      setElapsedSeconds(0)
+      timerRef.current = setInterval(() => setElapsedSeconds(s => s + 1), 1000)
+    } else if (timerRef.current) {
+      clearInterval(timerRef.current)
+      timerRef.current = null
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+    }
+  }, [status])
 
   if (!isOpen) return null
 
@@ -29,11 +44,14 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
     onClose()
   }
 
+  const isNativeGeneration = gameType === 'excel_prompt_challenge'
+
   async function handleGenerate() {
     if (!learningObjective.trim()) return
     setStatus('loading')
     try {
-      const res = await fetch('/api/generate', {
+      const endpoint = isNativeGeneration ? '/api/excel/generate' : '/api/generate'
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ learningObjective, difficulty, topic, format: gameType }),
@@ -156,6 +174,13 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
         .ggm-error-msg {
           margin-bottom: 10px;
         }
+        .ggm-hint {
+          font-size: 12px;
+          color: var(--text-muted);
+          line-height: 1.5;
+          text-align: right;
+          margin-top: -8px;
+        }
       `}</style>
 
       <div className="ggm-overlay" onClick={(e) => { if (e.target === e.currentTarget) handleClose() }}>
@@ -165,7 +190,9 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
           {status === 'success' ? (
             <>
               <div className="ggm-success">
-                Spiel wird generiert. Erscheint bald unter Games.
+                {isNativeGeneration
+                  ? 'Spiel wurde erfolgreich erstellt und als Draft gespeichert.'
+                  : 'Spiel wird generiert. Erscheint bald unter Games.'}
               </div>
               <div className="ggm-actions">
                 <button className="btn btn-ghost" onClick={handleClose}>Schließen</button>
@@ -206,6 +233,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                 >
                   <option value="quiz">Quiz — Multiple Choice</option>
                   <option value="chat_challenge">Prompt-Challenge — Chatbot</option>
+                  <option value="excel_prompt_challenge">Excel-Prompt-Challenge — Copilot-Grid</option>
                 </select>
               </div>
 
@@ -245,9 +273,18 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                   disabled={status === 'loading' || !learningObjective.trim()}
                 >
                   {status === 'loading' && <span className="ggm-spinner" />}
-                  {status === 'loading' ? 'Pipeline läuft…' : 'Generieren'}
+                  {status === 'loading'
+                    ? (isNativeGeneration ? `Generiere… (${elapsedSeconds}s)` : 'Pipeline läuft…')
+                    : 'Generieren'}
                 </button>
               </div>
+              {status === 'loading' && isNativeGeneration && (
+                <div className="ggm-hint">
+                  Die KI prüft ihre eigene Antwort und generiert bei Bedarf einmal neu — das kann bis zu 90
+                  Sekunden dauern. Du kannst das Fenster schließen oder wegnavigieren, das Spiel wird trotzdem
+                  im Hintergrund fertig erstellt und erscheint als Draft unter Games.
+                </div>
+              )}
             </>
           )}
         </div>

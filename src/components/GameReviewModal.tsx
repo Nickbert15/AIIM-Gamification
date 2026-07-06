@@ -234,26 +234,80 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
               </div>
             </div>
 
-            <div>
-              <p className="grm-section-title">Fragen ({game.game_json.questions.length})</p>
-              <div className="grm-question-list">
-                {game.game_json.questions.map((q, i) => {
-                  const correctOption = q.options.find(o => o.id === q.correctAnswer)
-                  return (
-                    <div key={q.id} className="grm-question-item">
-                      <div className="grm-q-text">{i + 1}. {q.question}</div>
-                      <div className="grm-q-answer">
-                        <span>✓</span>
-                        <span>{correctOption?.text ?? q.correctAnswer}</span>
-                      </div>
-                      {q.explanation && (
-                        <div className="grm-q-explanation">{q.explanation}</div>
+            {game.game_json.format === 'chat_challenge' ? (
+              <div>
+                <p className="grm-section-title">Aufgaben ({(game.game_json.challenges ?? []).length})</p>
+                <div className="grm-question-list">
+                  {(game.game_json.challenges ?? []).map((c, i) => (
+                    <div key={c.id} className="grm-question-item">
+                      <div className="grm-q-text">{i + 1}. {c.task}</div>
+                      {c.evaluation_criteria?.length > 0 && (
+                        <div className="grm-q-explanation">
+                          Kriterien: {c.evaluation_criteria.join(', ')}
+                        </div>
+                      )}
+                      {c.example_good_prompt && (
+                        <div className="grm-q-answer">
+                          <span>✓</span>
+                          <span>{c.example_good_prompt}</span>
+                        </div>
                       )}
                     </div>
-                  )
-                })}
+                  ))}
+                </div>
               </div>
-            </div>
+            ) : game.game_json.format === 'excel_prompt_challenge' ? (
+              <div>
+                <p className="grm-section-title">Excel-Prompt-Challenge</p>
+                <div className="grm-question-list">
+                  <div className="grm-question-item">
+                    <div className="grm-q-text">{game.game_json.task}</div>
+                    <div className="grm-q-explanation">
+                      Ausgangsdaten: {game.game_json.initialData?.rows.length ?? 0} Zeilen × {game.game_json.initialData?.headers.length ?? 0} Spalten
+                      {' · '}
+                      Musterlösung: {game.game_json.solutionData?.rows.length ?? 0} Zeilen × {game.game_json.solutionData?.headers.length ?? 0} Spalten
+                      {' · '}
+                      Max. Versuche: {game.game_json.maxAttempts ?? '—'}
+                    </div>
+                  </div>
+                  {(game.game_json.evaluationCriteria ?? []).map(c => (
+                    <div key={c.id} className="grm-question-item">
+                      <div className="grm-q-text">{c.description}</div>
+                      <div className="grm-q-explanation">
+                        Gewicht: {c.weight} · Spalten: {c.columns.join(', ')}
+                      </div>
+                    </div>
+                  ))}
+                  {game.game_json.samplePrompt && (
+                    <div className="grm-question-item">
+                      <div className="grm-q-text">Beispiel-Prompt</div>
+                      <div className="grm-q-explanation">{game.game_json.samplePrompt}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div>
+                <p className="grm-section-title">Fragen ({(game.game_json.questions ?? []).length})</p>
+                <div className="grm-question-list">
+                  {(game.game_json.questions ?? []).map((q, i) => {
+                    const correctOption = q.options.find(o => o.id === q.correctAnswer)
+                    return (
+                      <div key={q.id} className="grm-question-item">
+                        <div className="grm-q-text">{i + 1}. {q.question}</div>
+                        <div className="grm-q-answer">
+                          <span>✓</span>
+                          <span>{correctOption?.text ?? q.correctAnswer}</span>
+                        </div>
+                        {q.explanation && (
+                          <div className="grm-q-explanation">{q.explanation}</div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             {game.source_attribution && (
               <div>
