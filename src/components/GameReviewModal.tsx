@@ -234,26 +234,48 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
               </div>
             </div>
 
-            <div>
-              <p className="grm-section-title">Fragen ({game.game_json.questions.length})</p>
-              <div className="grm-question-list">
-                {game.game_json.questions.map((q, i) => {
-                  const correctOption = q.options.find(o => o.id === q.correctAnswer)
-                  return (
-                    <div key={q.id} className="grm-question-item">
-                      <div className="grm-q-text">{i + 1}. {q.question}</div>
+            {game.game_json.questions && (
+              <div>
+                <p className="grm-section-title">Fragen ({game.game_json.questions.length})</p>
+                <div className="grm-question-list">
+                  {game.game_json.questions.map((q, i) => {
+                    const correctOption = q.options.find(o => o.id === q.correctAnswer)
+                    return (
+                      <div key={q.id} className="grm-question-item">
+                        <div className="grm-q-text">{i + 1}. {q.question}</div>
+                        <div className="grm-q-answer">
+                          <span>✓</span>
+                          <span>{correctOption?.text ?? q.correctAnswer}</span>
+                        </div>
+                        {q.explanation && (
+                          <div className="grm-q-explanation">{q.explanation}</div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {game.game_json.cases && (
+              <div>
+                <p className="grm-section-title">Fälle ({game.game_json.cases.length})</p>
+                <div className="grm-question-list">
+                  {game.game_json.cases.map((c, i) => (
+                    <div key={c.id} className="grm-question-item">
+                      <div className="grm-q-text">{i + 1}. {c.prompt}</div>
                       <div className="grm-q-answer">
                         <span>✓</span>
-                        <span>{correctOption?.text ?? q.correctAnswer}</span>
+                        <span>Bessere Antwort: {c.betterResponse}</span>
                       </div>
-                      {q.explanation && (
-                        <div className="grm-q-explanation">{q.explanation}</div>
+                      {c.explanation && (
+                        <div className="grm-q-explanation">{c.explanation}</div>
                       )}
                     </div>
-                  )
-                })}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {game.source_attribution && (
               <div>

@@ -9,6 +9,58 @@ interface Props {
   games: Game[]
 }
 
+// Demo-Spiel, damit der neue Spieltyp getestet werden kann, solange die n8n-Pipeline
+// noch keine echten ai_output_judge-Games generiert.
+const DEMO_JUDGE_GAME: Game = {
+  id: 'demo-ai-output-judge',
+  title: '[Demo] Welche KI-Antwort ist besser?',
+  format: 'ai_output_judge',
+  library_type: null,
+  target_role: 'Financial Analyst',
+  difficulty: 'intermediate',
+  language: 'de',
+  topic: 'Variance-Analyse',
+  persona_key: null,
+  learning_objective: 'Der Lernende kann zwei KI-generierte Antworten auf dieselbe Finance-Frage anhand fachlicher Kriterien vergleichen und die stärkere Antwort begründet auswählen.',
+  game_json: {
+    format: 'ai_output_judge',
+    contextIntro: 'Zwei KI-Assistenten haben dieselbe Frage zur Monatsauswertung beantwortet. Wähle die fachlich bessere Antwort.',
+    cases: [
+      {
+        id: 1,
+        prompt: 'Warum sind die Materialkosten im Juni um 8% gestiegen?',
+        responseA: 'Die Materialkosten sind gestiegen, weil generell die Preise steigen und die Wirtschaft sich verändert.',
+        responseB: 'Die Materialkosten sind um 8% gestiegen, primär durch den Rohstoffpreis-Anstieg bei Aluminium (+12% ggü. Vormonat) sowie einen einmaligen Sondereffekt aus der Neubewertung des Lagerbestands zum Quartalsende.',
+        betterResponse: 'B',
+        criteria: ['Konkrete, nachvollziehbare Ursachen statt Allgemeinplätze', 'Quantifizierung der Treiber', 'Unterscheidung zwischen strukturellem und einmaligem Effekt'],
+        explanation: 'Antwort B benennt konkrete, prüfbare Treiber mit Zahlen. Antwort A ist inhaltsleer und für einen Finance-Report nicht verwertbar.',
+      },
+      {
+        id: 2,
+        prompt: 'Ist die Liquiditätsreserve aktuell ausreichend für das Q3-Ziel von 5 Mio. EUR?',
+        responseA: 'Aktuell liegt die Liquiditätsreserve bei 5,8 Mio. EUR und damit über dem Q3-Ziel von 5 Mio. EUR. Zu beachten: die Jahresbonizahlung im Juli (ca. 1,2 Mio. EUR) ist in diesem Wert bereits berücksichtigt.',
+        responseB: 'Ja, die Liquidität ist mehr als ausreichend und es gibt keinerlei Risiken für Q3.',
+        betterResponse: 'A',
+        criteria: ['Konkrete Zahlen statt pauschaler Aussagen', 'Nennung relevanter Risiken/Sondereffekte', 'Fachliche Zurückhaltung statt Übergeneralisierung'],
+        explanation: 'Antwort A liefert die Zahl und einen wichtigen Kontextfaktor (Bonizahlung). Antwort B behauptet pauschal "keinerlei Risiken" — das ist in der Finanzplanung eine gefährliche Übertreibung.',
+      },
+      {
+        id: 3,
+        prompt: 'Fasse die Abweichung im Vertriebskosten-Budget für den Bereichsleiter in zwei Sätzen zusammen.',
+        responseA: 'Die Vertriebskosten liegen 4% über Budget (+180 Tsd. EUR), hauptsächlich durch höhere Reisekosten im Rahmen der Kundenoffensive Q2. Ohne Gegenmaßnahmen ist bei gleichem Trend eine Jahresabweichung von ca. 700 Tsd. EUR zu erwarten.',
+        responseB: 'Die Vertriebskosten sind etwas höher als geplant. Das könnte an verschiedenen Faktoren liegen, unter anderem an Reisekosten, aber genaueres lässt sich ohne weitere Daten nicht sagen.',
+        betterResponse: 'A',
+        criteria: ['Konkrete Zahlen für Entscheidungsträger', 'Hochrechnung/Ausblick statt nur Ist-Stand', 'Prägnanz (zwei Sätze wie gefordert)'],
+        explanation: 'Antwort A liefert genau das, was ein Bereichsleiter braucht: Zahl, Ursache, Ausblick — in der geforderten Kürze. Antwort B ist vage und liefert keine Entscheidungsgrundlage.',
+      },
+    ],
+    scoring: { maxPoints: 3, passingScore: 2 },
+  },
+  status: 'draft',
+  source_attribution: null,
+  created_at: new Date().toISOString(),
+}
+
 type Filter = 'all' | 'draft' | 'approved' | 'rejected'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -33,7 +85,7 @@ const FILTERS: { key: Filter; label: string }[] = [
 ]
 
 export default function GamesClient({ games: initialGames }: Props) {
-  const [games, setGames] = useState<Game[]>(initialGames)
+  const [games, setGames] = useState<Game[]>([...initialGames, DEMO_JUDGE_GAME])
   const [filter, setFilter] = useState<Filter>('all')
   const [previewGame, setPreviewGame] = useState<Game | null>(null)
   const [reviewGame, setReviewGame] = useState<Game | null>(null)
