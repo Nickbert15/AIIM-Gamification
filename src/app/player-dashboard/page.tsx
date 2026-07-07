@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import Avatar from '@/components/Avatar'
 
 type Step = 'email' | 'set-password' | 'login'
 
@@ -22,11 +23,17 @@ export default function PlayerDashboardPage() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  useEffect(() => {
-    fetch('/api/auth/me')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { setData(d); setLoading(false) })
+  const refresh = useCallback(async () => {
+    const r = await fetch('/api/auth/me')
+    setData(r.ok ? await r.json() : null)
+    setLoading(false)
   }, [])
+
+  useEffect(() => {
+    refresh()
+    window.addEventListener('auth-changed', refresh)
+    return () => window.removeEventListener('auth-changed', refresh)
+  }, [refresh])
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -58,8 +65,8 @@ export default function PlayerDashboardPage() {
     setSubmitting(false)
 
     if (!res.ok) { setError('Falsches Passwort. Bitte erneut versuchen.'); return }
-    const me = await fetch('/api/auth/me')
-    setData(await me.json())
+    await refresh()
+    window.dispatchEvent(new Event('auth-changed'))
   }
 
   const handleSetPassword = async (e: React.FormEvent) => {
@@ -77,8 +84,8 @@ export default function PlayerDashboardPage() {
     setSubmitting(false)
 
     if (!res.ok) { setError('Fehler beim Einrichten des Passworts.'); return }
-    const me = await fetch('/api/auth/me')
-    setData(await me.json())
+    await refresh()
+    window.dispatchEvent(new Event('auth-changed'))
   }
 
   const handleLogout = async () => {
@@ -89,6 +96,7 @@ export default function PlayerDashboardPage() {
     setPassword('')
     setConfirm('')
     setError('')
+    window.dispatchEvent(new Event('auth-changed'))
   }
 
   if (loading) return <div className="loading-spinner">Lade…</div>
@@ -96,36 +104,39 @@ export default function PlayerDashboardPage() {
   // ── Authenticated dashboard ──────────────────────────────────────────────
   if (data) {
     const { player, stats, history } = data
-    const rankLabel = (n: number) => n === 1 ? '🥇 #1' : n === 2 ? '🥈 #2' : n === 3 ? '🥉 #3' : `#${n}`
 
     return (
       <>
-        <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <h1 className="page-title">{player.display_name}</h1>
-            <p className="page-subtitle">{player.role} · {player.email}</p>
+        <div className="dashboard-hero">
+          <div className="dashboard-hero-identity">
+            <Avatar name={player.display_name} size={64} />
+            <div>
+              <h1 className="page-title">{player.display_name}</h1>
+              <div className="dashboard-hero-meta">
+                <span className="player-role">{player.role}</span>
+                <span className="dashboard-hero-email">{player.email}</span>
+              </div>
+            </div>
           </div>
-          <button className="btn btn-ghost" onClick={handleLogout} style={{ marginTop: 4 }}>
-            Abmelden
-          </button>
+          <button className="btn btn-ghost" onClick={handleLogout}>Abmelden</button>
         </div>
 
-        <div className="stats-grid">
-          <div className="stat-card stat-accent">
-            <div className="stat-value">{stats.total_score.toLocaleString('de-DE')}</div>
-            <div className="stat-label">Gesamtpunkte</div>
+        <div className="stat-tiles">
+          <div className="stat-tile stat-tile-hero">
+            <div className="stat-tile-label">Gesamtpunkte</div>
+            <div className="stat-tile-value">{stats.total_score.toLocaleString('de-DE')}</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-value">{stats.games_played}</div>
-            <div className="stat-label">Games gespielt</div>
+          <div className="stat-tile">
+            <div className="stat-tile-label">Games gespielt</div>
+            <div className="stat-tile-value">{stats.games_played}</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-value">{stats.best_score.toLocaleString('de-DE')}</div>
-            <div className="stat-label">Bestes Ergebnis</div>
+          <div className="stat-tile">
+            <div className="stat-tile-label">Bestes Ergebnis</div>
+            <div className="stat-tile-value">{stats.best_score.toLocaleString('de-DE')}</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-value">{Math.round(stats.avg_score).toLocaleString('de-DE')}</div>
-            <div className="stat-label">Ø Score</div>
+          <div className="stat-tile">
+            <div className="stat-tile-label">Ø Score</div>
+            <div className="stat-tile-value">{Math.round(stats.avg_score).toLocaleString('de-DE')}</div>
           </div>
         </div>
 
@@ -148,18 +159,22 @@ export default function PlayerDashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {history.map((s, i) => (
-                    <tr key={s.id}>
-                      <td style={{ color: 'var(--text-muted)', fontWeight: 600 }}>{i + 1}</td>
-                      <td style={{ fontWeight: 500 }}>{s.games?.title ?? '—'}</td>
-                      <td style={{ color: 'var(--accent)', fontWeight: 700 }}>
-                        {s.score.toLocaleString('de-DE')}
-                      </td>
-                      <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-                        {new Date(s.completed_at).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })}
-                      </td>
-                    </tr>
-                  ))}
+                  {history.map((s, i) => {
+                    const isBest = stats.best_score > 0 && s.score === stats.best_score
+                    return (
+                      <tr key={s.id}>
+                        <td style={{ color: 'var(--text-muted)', fontWeight: 600 }}>{i + 1}</td>
+                        <td style={{ fontWeight: 500 }}>{s.games?.title ?? '—'}</td>
+                        <td className="history-score">
+                          {s.score.toLocaleString('de-DE')}
+                          {isBest && <span className="best-badge">Best</span>}
+                        </td>
+                        <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+                          {new Date(s.completed_at).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })}
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -171,17 +186,16 @@ export default function PlayerDashboardPage() {
 
   // ── Login / setup flow ───────────────────────────────────────────────────
   return (
-    <>
-      <div className="page-header">
-        <h1 className="page-title">Player Dashboard</h1>
-        <p className="page-subtitle">
+    <div className="auth-wrapper">
+      <div className="card auth-card">
+        <div className="auth-icon">🎮</div>
+        <h1 className="auth-title">Player Dashboard</h1>
+        <p className="auth-subtitle">
           {step === 'email' && 'Melde dich mit deiner E-Mail-Adresse an.'}
           {step === 'login' && 'Gib dein Passwort ein.'}
           {step === 'set-password' && 'Erstelle ein Passwort für deinen Account.'}
         </p>
-      </div>
 
-      <div className="card" style={{ maxWidth: 420 }}>
         {step === 'email' && (
           <form onSubmit={handleEmailSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div className="form-group">
@@ -267,6 +281,6 @@ export default function PlayerDashboardPage() {
           </form>
         )}
       </div>
-    </>
+    </div>
   )
 }

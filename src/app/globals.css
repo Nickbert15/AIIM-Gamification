@@ -113,7 +113,7 @@ body {
 /* LEADERBOARD */
 .leaderboard-header {
   display: grid;
-  grid-template-columns: 60px 1fr 160px 100px;
+  grid-template-columns: 60px 1fr 80px 180px;
   padding: 10px 20px;
   color: var(--text-muted);
   font-size: 12px;
@@ -124,7 +124,7 @@ body {
 }
 .leaderboard-row {
   display: grid;
-  grid-template-columns: 60px 1fr 160px 100px;
+  grid-template-columns: 60px 1fr 80px 180px;
   padding: 16px 20px;
   border-bottom: 1px solid var(--border);
   align-items: center;
@@ -333,12 +333,255 @@ select option { background: var(--bg-card); }
   color: var(--text-muted);
 }
 
+/* AVATAR */
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+  user-select: none;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.avatar-anon {
+  width: 30px;
+  height: 30px;
+  font-size: 14px;
+  background: var(--bg-card-hover);
+  border: 1px solid var(--border);
+}
+
+/* NAV USER MENU */
+.nav-link.active { color: var(--text); background: var(--bg-card); }
+.nav-user { position: relative; margin-left: 8px; }
+.nav-user-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 5px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  transition: all 0.15s;
+}
+.nav-user-btn:hover { background: var(--bg-card); border-color: var(--accent-dim); }
+.nav-user-name {
+  font-size: 14px;
+  font-weight: 600;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nav-caret { color: var(--text-muted); font-size: 11px; transition: transform 0.15s; }
+.nav-caret.open { transform: rotate(180deg); }
+.nav-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 250px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  padding: 6px;
+  z-index: 200;
+  animation: dropdown-in 0.12s ease-out;
+}
+@keyframes dropdown-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.nav-dropdown-header { display: flex; align-items: center; gap: 10px; padding: 10px; }
+.nav-dropdown-name {
+  font-weight: 600;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nav-dropdown-email {
+  font-size: 12px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nav-dropdown-divider { height: 1px; background: var(--border); margin: 6px 4px; }
+.nav-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text-dim);
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.12s;
+}
+.nav-dropdown-item:hover { background: var(--bg-card-hover); color: var(--text); }
+.nav-dropdown-danger { color: var(--danger); }
+.nav-dropdown-danger:hover { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+.nav-dropdown-icon { width: 18px; text-align: center; }
+
+/* STAT TILES */
+.stat-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.stat-tile {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.stat-tile-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+.stat-tile-value {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.1;
+}
+.stat-tile-hero {
+  border-color: rgba(14, 165, 233, 0.35);
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), var(--bg-card) 60%);
+}
+.stat-tile-hero .stat-tile-value { color: var(--accent); }
+
+/* PODIUM */
+.podium {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.podium-card {
+  flex: 1;
+  max-width: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px 16px 18px;
+}
+.podium-1 {
+  order: 2;
+  padding-top: 30px;
+  padding-bottom: 26px;
+  border-color: rgba(245, 158, 11, 0.45);
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.09), var(--bg-card) 70%);
+}
+.podium-2 {
+  order: 1;
+  border-color: rgba(148, 163, 184, 0.35);
+  background: linear-gradient(180deg, rgba(148, 163, 184, 0.07), var(--bg-card) 70%);
+}
+.podium-3 {
+  order: 3;
+  border-color: rgba(180, 83, 9, 0.4);
+  background: linear-gradient(180deg, rgba(180, 83, 9, 0.08), var(--bg-card) 70%);
+}
+.podium-medal { font-size: 28px; line-height: 1; }
+.podium-name { font-weight: 700; font-size: 15px; }
+.podium-score { font-size: 26px; font-weight: 800; color: var(--accent); margin-top: 4px; }
+.podium-score-label { font-size: 12px; color: var(--text-muted); }
+
+/* LEADERBOARD EXTRAS */
+.leaderboard-player { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.leaderboard-games { color: var(--text-dim); font-size: 14px; font-weight: 600; }
+.leaderboard-top-1 { box-shadow: inset 3px 0 0 var(--gold); background: linear-gradient(90deg, rgba(245, 158, 11, 0.05), transparent 50%); }
+.leaderboard-top-2 { box-shadow: inset 3px 0 0 var(--silver); background: linear-gradient(90deg, rgba(148, 163, 184, 0.05), transparent 50%); }
+.leaderboard-top-3 { box-shadow: inset 3px 0 0 var(--bronze); background: linear-gradient(90deg, rgba(180, 83, 9, 0.05), transparent 50%); }
+.score-bar-track {
+  height: 4px;
+  margin-top: 6px;
+  border-radius: 2px;
+  background: rgba(14, 165, 233, 0.15);
+  overflow: hidden;
+}
+.score-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+/* PLAYER DASHBOARD */
+.dashboard-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 32px;
+  padding: 24px;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.08), var(--bg-card) 55%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.dashboard-hero-identity { display: flex; align-items: center; gap: 18px; min-width: 0; }
+.dashboard-hero-meta { display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+.dashboard-hero-email { color: var(--text-muted); font-size: 14px; }
+.history-score { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
+.best-badge {
+  margin-left: 8px;
+  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gold);
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
+/* AUTH CARD */
+.auth-wrapper { display: flex; justify-content: center; padding-top: 24px; }
+.auth-card { max-width: 420px; width: 100%; }
+.auth-icon { font-size: 36px; text-align: center; margin-bottom: 8px; }
+.auth-title { font-size: 22px; font-weight: 700; text-align: center; }
+.auth-subtitle { color: var(--text-muted); font-size: 14px; text-align: center; margin: 6px 0 24px; }
+
 @media (max-width: 640px) {
   .leaderboard-header,
   .leaderboard-row {
-    grid-template-columns: 50px 1fr 80px;
+    grid-template-columns: 50px 1fr 110px;
   }
   .leaderboard-header > *:nth-child(3),
   .leaderboard-row > *:nth-child(3) { display: none; }
   .main-content { padding: 24px 16px; }
+  .nav-user-name { display: none; }
+  .podium { flex-direction: column; align-items: stretch; }
+  .podium-card { max-width: none; }
+  .podium-1 { order: 1; }
+  .podium-2 { order: 2; }
+  .podium-3 { order: 3; }
 }

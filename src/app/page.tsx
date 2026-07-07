@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import Avatar from '@/components/Avatar'
 
-type Row = { rank: number; display_name: string; role: string; total_score: number }
+type Row = { rank: number; display_name: string; role: string; total_score: number; games_played: number }
+
+const MEDALS = ['🥇', '🥈', '🥉']
 
 export default function LeaderboardPage() {
   const [entries, setEntries] = useState<Row[]>([])
@@ -28,15 +31,15 @@ export default function LeaderboardPage() {
 
   const rankDisplay = (rank: number, hasScore: boolean) => {
     if (!hasScore) return <span className="rank-badge rank-other" style={{ opacity: 0.4 }}>—</span>
-    if (rank === 1) return <span className="rank-badge rank-1">🥇</span>
-    if (rank === 2) return <span className="rank-badge rank-2">🥈</span>
-    if (rank === 3) return <span className="rank-badge rank-3">🥉</span>
+    if (rank <= 3) return <span className={`rank-badge rank-${rank}`}>{MEDALS[rank - 1]}</span>
     return <span className="rank-badge rank-other">#{rank}</span>
   }
 
   const playerCount = entries.length
   const withScores = entries.filter((e) => e.total_score > 0)
   const totalPoints = entries.reduce((s, e) => s + e.total_score, 0)
+  const maxScore = withScores[0]?.total_score ?? 0
+  const podium = withScores.slice(0, 3)
 
   return (
     <>
@@ -45,26 +48,43 @@ export default function LeaderboardPage() {
         <p className="page-subtitle">LHG Finance & Controlling — AI Enablement Pilot</p>
       </div>
 
-      <div className="stats-grid">
-        <div className="stat-card stat-accent">
-          <div className="stat-value">{playerCount}</div>
-          <div className="stat-label">Teilnehmer</div>
+      <div className="stat-tiles">
+        <div className="stat-tile stat-tile-hero">
+          <div className="stat-tile-label">Gesamtpunkte vergeben</div>
+          <div className="stat-tile-value">{totalPoints.toLocaleString('de-DE')}</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-value">{withScores.length}</div>
-          <div className="stat-label">Bereits gespielt</div>
+        <div className="stat-tile">
+          <div className="stat-tile-label">Teilnehmer</div>
+          <div className="stat-tile-value">{playerCount}</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-value">{totalPoints.toLocaleString('de-DE')}</div>
-          <div className="stat-label">Gesamtpunkte vergeben</div>
+        <div className="stat-tile">
+          <div className="stat-tile-label">Bereits gespielt</div>
+          <div className="stat-tile-value">{withScores.length}</div>
         </div>
       </div>
+
+      {!loading && podium.length > 0 && (
+        <div className="podium">
+          {podium.map((p) => (
+            <div key={p.display_name} className={`podium-card podium-${p.rank}`}>
+              <div className="podium-medal">{MEDALS[p.rank - 1]}</div>
+              <Avatar name={p.display_name} size={56} />
+              <div className="podium-name">{p.display_name}</div>
+              <div className="player-role">{p.role}</div>
+              <div className="podium-score">{p.total_score.toLocaleString('de-DE')}</div>
+              <div className="podium-score-label">
+                {p.games_played} {p.games_played === 1 ? 'Spiel' : 'Spiele'}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="leaderboard-header">
           <span>Rang</span>
           <span>Name</span>
-          <span>Rolle</span>
+          <span>Spiele</span>
           <span style={{ textAlign: 'right' }}>Punkte</span>
         </div>
 
@@ -77,18 +97,32 @@ export default function LeaderboardPage() {
           </div>
         ) : (
           entries.map((entry) => (
-            <div key={entry.display_name} className="leaderboard-row" style={{ opacity: entry.total_score === 0 ? 0.55 : 1 }}>
+            <div
+              key={entry.display_name}
+              className={`leaderboard-row${entry.total_score > 0 && entry.rank <= 3 ? ` leaderboard-top leaderboard-top-${entry.rank}` : ''}`}
+              style={{ opacity: entry.total_score === 0 ? 0.55 : 1 }}
+            >
               <div>{rankDisplay(entry.rank, entry.total_score > 0)}</div>
-              <div>
-                <div className="player-name">{entry.display_name}</div>
-                <div className="player-role">{entry.role}</div>
+              <div className="leaderboard-player">
+                <Avatar name={entry.display_name} size={36} />
+                <div style={{ minWidth: 0 }}>
+                  <div className="player-name">{entry.display_name}</div>
+                  <div className="player-role">{entry.role}</div>
+                </div>
               </div>
-              <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>{entry.role}</div>
+              <div className="leaderboard-games">
+                {entry.games_played > 0 ? entry.games_played : '—'}
+              </div>
               <div>
                 {entry.total_score > 0 ? (
                   <>
                     <div className="score-value">{entry.total_score.toLocaleString('de-DE')}</div>
-                    <div className="score-label">Punkte</div>
+                    <div className="score-bar-track">
+                      <div
+                        className="score-bar-fill"
+                        style={{ width: `${maxScore ? Math.max(4, (entry.total_score / maxScore) * 100) : 0}%` }}
+                      />
+                    </div>
                   </>
                 ) : (
                   <div className="score-label" style={{ textAlign: 'right' }}>Noch nicht gespielt</div>
