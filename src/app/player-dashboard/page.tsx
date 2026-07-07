@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Avatar from '@/components/Avatar'
+import GamePlayerModal from '@/components/GamePlayerModal'
+import { Game } from '@/types/game'
 
 type Step = 'email' | 'set-password' | 'login'
 
@@ -14,6 +16,8 @@ type PlayerData = {
 export default function PlayerDashboardPage() {
   const [data, setData] = useState<PlayerData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [games, setGames] = useState<Game[]>([])
+  const [activeGame, setActiveGame] = useState<Game | null>(null)
 
   // login form state
   const [step, setStep] = useState<Step>('email')
@@ -25,8 +29,15 @@ export default function PlayerDashboardPage() {
 
   const refresh = useCallback(async () => {
     const r = await fetch('/api/auth/me')
-    setData(r.ok ? await r.json() : null)
+    const me = r.ok ? await r.json() : null
+    setData(me)
     setLoading(false)
+    if (me) {
+      const gr = await fetch('/api/games')
+      if (gr.ok) setGames(await gr.json())
+    } else {
+      setGames([])
+    }
   }, [])
 
   useEffect(() => {
@@ -140,6 +151,49 @@ export default function PlayerDashboardPage() {
           </div>
         </div>
 
+        <div className="card" style={{ marginBottom: 24 }}>
+          <div className="card-title">Verfügbare Spiele</div>
+          {games.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-state-icon">🕹️</div>
+              <div className="empty-state-text">Aktuell sind keine Spiele verfügbar. Schau später wieder vorbei!</div>
+            </div>
+          ) : (
+            <div className="game-grid">
+              {games.map((game) => {
+                const challengeCount = game.game_json?.challenges?.length ?? 0
+                const questionCount = game.game_json?.questions?.length ?? 0
+                const isChat = game.game_json?.format === 'chat_challenge' && challengeCount > 0
+                const isQuiz = questionCount > 0
+                const kind = isChat
+                  ? { icon: '💬', label: 'Prompt-Challenge', count: `${challengeCount} ${challengeCount === 1 ? 'Aufgabe' : 'Aufgaben'}` }
+                  : isQuiz
+                  ? { icon: '❓', label: 'Quiz', count: `${questionCount} ${questionCount === 1 ? 'Frage' : 'Fragen'}` }
+                  : { icon: '🎮', label: game.format ?? 'Spiel', count: '' }
+                return (
+                  <div key={game.id} className="game-card">
+                    <div className="game-card-top">
+                      <span className="game-card-icon">{kind.icon}</span>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="game-card-title">{game.title}</div>
+                        <div className="game-card-meta">
+                          {[kind.label, game.difficulty, game.topic].filter(Boolean).join(' · ')}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="game-card-footer">
+                      <span className="game-card-count">{kind.count}</span>
+                      <button className="btn btn-primary" onClick={() => setActiveGame(game)}>
+                        Spielen →
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
         <div className="card">
           <div className="card-title">Meine Spiele</div>
           {history.length === 0 ? (
@@ -180,6 +234,15 @@ export default function PlayerDashboardPage() {
             </div>
           )}
         </div>
+
+        {activeGame && (
+          <GamePlayerModal
+            key={activeGame.id}
+            game={activeGame}
+            onClose={() => setActiveGame(null)}
+            onSaved={refresh}
+          />
+        )}
       </>
     )
   }
