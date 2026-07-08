@@ -1,0 +1,313 @@
+{
+  "id": "branch_001",
+  "title": "Der CFO wartet: Abweichungsanalyse mit KI",
+  "format": "prompt_branching",
+  "library_type": "ai_usage_expertise",
+  "target_role": "Accountant / Controller",
+  "difficulty": "3",
+  "language": "de",
+  "topic": "Prompting & KI-Interaktion im Controlling",
+  "persona_key": "sabrina",
+  "learning_objective": "Gute Prompts erkennen (CRAFT), KI-Outputs kritisch bewerten und gezielt nachsteuern (Kontext ergänzen, Fehler adressieren, Halluzinationen erkennen)",
+  "status": "draft",
+  "source_attribution": null,
+  "game_json": {
+    "format": "prompt_branching",
+    "scenario": {
+      "intro": "Es ist 16:30 Uhr. Der CFO fragt kurzfristig nach einer Abweichungsanalyse der Q2-Reisekosten – Abgabe: morgen früh, 9 Uhr. Dir liegt die SAP-Auswertung als Tabelle vor: Reisekosten Q2 gesamt 812.400 € (Plan: 745.000 €, Abweichung +9,0 %). Größte Einzelposten: Flugkosten +11,2 %, Hotelkosten +6,4 %, Bahn/Mietwagen −2,1 %. Du willst dir vom KI-Assistenten einen ersten Entwurf erstellen lassen.",
+      "personaNote": "Sabrina nutzt KI bisher nicht im Arbeitsalltag – dieses Spiel simuliert ihre erste echte Interaktion."
+    },
+    "startNode": "n1_prompt_choice",
+    "nodes": {
+      "n1_prompt_choice": {
+        "type": "prompt_choice",
+        "text": "Mit welchem Prompt startest du?",
+        "options": [
+          {
+            "id": "prompt_a",
+            "label": "Prompt A",
+            "promptText": "Fasse die Abweichungen bei den Reisekosten im Q2 zusammen.",
+            "points": 0,
+            "nextNode": "a1_output_review"
+          },
+          {
+            "id": "prompt_b",
+            "label": "Prompt B",
+            "promptText": "Du bist mein Assistent im Controlling (Rolle). Kontext: Der CFO benötigt bis morgen früh eine Abweichungsanalyse der Q2-Reisekosten. Datenbasis ist ausschließlich die folgende SAP-Auswertung: Gesamt 812.400 € vs. Plan 745.000 € (+9,0 %); Flugkosten +11,2 %, Hotelkosten +6,4 %, Bahn/Mietwagen −2,1 %. Aufgabe: Erstelle eine Management-Zusammenfassung mit den wichtigsten Abweichungstreibern und 2–3 Handlungsempfehlungen. Format: max. eine halbe Seite, sachlicher Ton, Zielgruppe CFO.",
+            "points": 2,
+            "nextNode": "b1_output_review"
+          }
+        ]
+      },
+
+      "a1_output_review": {
+        "type": "output_review",
+        "aiOutput": "Gerne! Reisekosten sind ein wichtiger Kostenblock in Unternehmen. Abweichungen können viele Ursachen haben, zum Beispiel gestiegene Preise, mehr Dienstreisen oder geänderte Buchungsrichtlinien. Um Abweichungen zu analysieren, empfiehlt sich ein Vergleich von Plan- und Istwerten je Kostenart. Anschließend sollten die größten Abweichungen priorisiert und mit den Fachbereichen besprochen werden. Eine regelmäßige Überwachung hilft, Kosten im Griff zu behalten. Wenn Sie mir Ihre Daten nennen, kann ich eine konkretere Analyse erstellen.",
+        "question": "Ist dieser Output gut genug, um ihn als Entwurf für den CFO zu verwenden?",
+        "options": [
+          {
+            "id": "yes",
+            "label": "Ja, das passt so",
+            "points": 0,
+            "feedback": "Vorsicht: Der Text ist allgemeines Lehrbuchwissen – er enthält keine einzige Zahl aus deiner SAP-Auswertung und keine Aussage über euer Q2. Der CFO würde sofort merken, dass hier keine Analyse stattgefunden hat.",
+            "nextNode": "a2_diagnosis"
+          },
+          {
+            "id": "no",
+            "label": "Nein, damit kann ich nicht zum CFO",
+            "points": 2,
+            "feedback": "Richtig erkannt – damit kannst du nicht zum CFO. Aber woran liegt es?",
+            "nextNode": "a2_diagnosis"
+          }
+        ]
+      },
+
+      "a2_diagnosis": {
+        "type": "diagnosis",
+        "text": "Was ist das Kernproblem?",
+        "options": [
+          {
+            "id": "missing_context",
+            "label": "Der Prompt enthielt keinen Kontext: keine Daten, keine Zielgruppe, kein Format",
+            "points": 2,
+            "feedback": "Genau. Die KI kann nur mit dem arbeiten, was du ihr gibst. Ohne Daten (Context), Zielgruppe (Audience) und Formatvorgabe (Format) bleibt nur eine generische Antwort übrig.",
+            "nextNode": "a3_correction"
+          },
+          {
+            "id": "hallucination",
+            "label": "Die KI hat halluziniert und Zahlen erfunden",
+            "points": 0,
+            "feedback": "Nein – schau genau hin: Der Output enthält gar keine Zahlen. Die KI hat nichts erfunden, sie hatte schlicht keine Informationen. Das Problem liegt im Prompt, nicht im Modell.",
+            "nextNode": "a3_correction"
+          },
+          {
+            "id": "wrong_model",
+            "label": "Die KI ist für Finance-Themen ungeeignet, das bringt nichts",
+            "points": 0,
+            "feedback": "Zu früh aufgegeben! Das Modell kann diese Aufgabe gut lösen – es braucht nur die richtigen Informationen. Der nächste Schritt zeigt, wie.",
+            "nextNode": "a3_correction"
+          }
+        ]
+      },
+
+      "a3_correction": {
+        "type": "prompt_choice",
+        "text": "Wie steuerst du nach?",
+        "options": [
+          {
+            "id": "craft_followup",
+            "label": "Kontext, Daten und Format nachliefern",
+            "promptText": "Hier die Datenbasis: Q2-Reisekosten gesamt 812.400 € vs. Plan 745.000 € (+9,0 %); Flugkosten +11,2 %, Hotelkosten +6,4 %, Bahn/Mietwagen −2,1 %. Nutze ausschließlich diese Zahlen. Erstelle daraus eine Management-Zusammenfassung für den CFO: max. eine halbe Seite, sachlicher Ton, wichtigste Abweichungstreiber zuerst, am Ende 2–3 Handlungsempfehlungen.",
+            "points": 2,
+            "nextNode": "a4_final_good"
+          },
+          {
+            "id": "vague_followup",
+            "label": "Allgemein nachbessern",
+            "promptText": "Das ist zu allgemein. Mach es bitte konkreter und kürzer.",
+            "points": 0,
+            "nextNode": "a4_final_meh"
+          }
+        ]
+      },
+
+      "a4_final_good": {
+        "type": "output_review",
+        "aiOutput": "Management-Zusammenfassung: Q2-Reisekosten-Abweichung\n\nDie Reisekosten liegen im Q2 mit 812.400 € um 9,0 % über Plan (745.000 €). Haupttreiber ist die Überschreitung bei den Flugkosten (+11,2 %), gefolgt von den Hotelkosten (+6,4 %). Bahn und Mietwagen liegen mit −2,1 % leicht unter Plan und wirken der Abweichung entgegen.\n\nHandlungsempfehlungen: (1) Analyse der Flugbuchungen auf Kurzfristbuchungen und Business-Class-Anteile, (2) Prüfung der Einhaltung der Reiserichtlinie bei Hotelbuchungen, (3) Vorgabe längerer Buchungsvorläufe für Q3.",
+        "question": "Und jetzt – gut genug als Entwurf für den CFO?",
+        "options": [
+          {
+            "id": "yes",
+            "label": "Ja – Zahlen stimmen mit der SAP-Auswertung überein, Format passt",
+            "points": 2,
+            "feedback": "Richtig. Wichtig: Du hast die Zahlen gegen die Quelle geprüft, bevor du zustimmst – genau so bleibt die Verantwortung bei dir, nicht bei der KI.",
+            "nextNode": "end_recap"
+          },
+          {
+            "id": "no",
+            "label": "Nein, immer noch unbrauchbar",
+            "points": 0,
+            "feedback": "Prüfe genau: Alle Zahlen stammen aus deiner Auswertung, Struktur und Länge passen zur Anforderung. Übertriebene Skepsis kostet Zeit – kritisch prüfen heißt vergleichen, nicht pauschal ablehnen.",
+            "nextNode": "end_recap"
+          }
+        ]
+      },
+
+      "a4_final_meh": {
+        "type": "output_review",
+        "aiOutput": "Verstanden, hier eine kompaktere Version: Bei der Analyse von Reisekostenabweichungen sollten die größten Kostenarten priorisiert betrachtet werden. Typischerweise sind Flug- und Hotelkosten die relevantesten Treiber. Ein strukturierter Plan-Ist-Vergleich je Kostenart schafft Transparenz und ermöglicht gezielte Gegenmaßnahmen.",
+        "question": "Ist der Output jetzt brauchbar?",
+        "options": [
+          {
+            "id": "no",
+            "label": "Nein – immer noch keine echten Zahlen, das Grundproblem besteht weiter",
+            "points": 2,
+            "feedback": "Richtig. 'Mach es besser' ohne neue Informationen kann nicht funktionieren – die KI kennt deine Daten weiterhin nicht. Die Lektion: Nachsteuern heißt fehlende Informationen liefern, nicht nur Unzufriedenheit äußern.",
+            "nextNode": "end_recap"
+          },
+          {
+            "id": "yes",
+            "label": "Ja, das reicht",
+            "points": 0,
+            "feedback": "Schau genau hin: Es ist immer noch generisches Wissen ohne eine einzige Zahl aus deinem Q2. Der CFO erwartet eine Analyse eurer Daten – dieser Text könnte in jedem Unternehmen stehen.",
+            "nextNode": "end_recap"
+          }
+        ]
+      },
+
+      "b1_output_review": {
+        "type": "output_review",
+        "aiOutput": "Management-Zusammenfassung: Q2-Reisekosten-Abweichung\n\nDie Reisekosten liegen im Q2 mit 812.400 € um 9,0 % über Plan (745.000 €). Haupttreiber ist die Überschreitung bei den Flugkosten (+11,2 %), die maßgeblich auf die im April konzernweit um 14 % gestiegenen Treibstoffzuschläge zurückzuführen ist. Die Hotelkosten liegen mit +6,4 % ebenfalls über Plan, während Bahn und Mietwagen (−2,1 %) leicht unter Plan bleiben.\n\nHandlungsempfehlungen: (1) Analyse der Flugbuchungen auf Kurzfristbuchungen, (2) Prüfung der Reiserichtlinien-Einhaltung bei Hotels, (3) längere Buchungsvorläufe für Q3 vorgeben.",
+        "question": "Ist dieser Output gut genug, um ihn als Entwurf für den CFO zu verwenden?",
+        "options": [
+          {
+            "id": "yes",
+            "label": "Ja, sieht professionell aus – das nehme ich",
+            "points": 0,
+            "feedback": "Fast in die Falle getappt! Der Text liest sich überzeugend – aber vergleiche jede einzelne Aussage mit deiner SAP-Auswertung: Eine davon ist durch die Daten nicht gedeckt. Wäre das an den CFO gegangen, hättest du eine nicht belegbare Behauptung präsentiert.",
+            "nextNode": "b2_diagnosis"
+          },
+          {
+            "id": "no",
+            "label": "Nein, hier stimmt etwas nicht",
+            "points": 2,
+            "feedback": "Stark – dein Misstrauen ist berechtigt. Ein guter Prompt garantiert keinen korrekten Output. Aber was genau stimmt hier nicht?",
+            "nextNode": "b2_diagnosis"
+          }
+        ]
+      },
+
+      "b2_diagnosis": {
+        "type": "diagnosis",
+        "text": "Was ist das Kernproblem?",
+        "options": [
+          {
+            "id": "hallucination",
+            "label": "Halluzination: Die '14 % gestiegenen Treibstoffzuschläge' stehen nicht in der Datenbasis",
+            "points": 2,
+            "feedback": "Genau. Die KI hat eine kausale Erklärung erfunden, die plausibel klingt, aber durch nichts belegt ist. Das ist das gefährlichste Fehlerbild: Es fällt nicht durch schlechte Qualität auf, sondern versteckt sich in gutem Stil.",
+            "nextNode": "b3_correction"
+          },
+          {
+            "id": "missing_context",
+            "label": "Es fehlt Kontext im Prompt",
+            "points": 0,
+            "feedback": "Nein – der Prompt hatte Rolle, Kontext, Datenbasis, Aufgabe und Format. Das Problem ist nicht fehlender Input, sondern erfundener Output: Die Treibstoffzuschlag-Angabe steht nicht in deinen Daten.",
+            "nextNode": "b3_correction"
+          },
+          {
+            "id": "wrong_format",
+            "label": "Das Format entspricht nicht der Anforderung",
+            "points": 0,
+            "feedback": "Das Format passt sogar sehr gut – halbe Seite, sachlich, Empfehlungen am Ende. Das eigentliche Problem: Die Angabe zu den Treibstoffzuschlägen ist erfunden und nicht durch deine Datenbasis gedeckt.",
+            "nextNode": "b3_correction"
+          }
+        ]
+      },
+
+      "b3_correction": {
+        "type": "prompt_choice",
+        "text": "Wie gehst du mit dem Fehler um?",
+        "options": [
+          {
+            "id": "point_out_error",
+            "label": "Fehler benennen und Quellenbindung einfordern",
+            "promptText": "Die Angabe zu den 'um 14 % gestiegenen Treibstoffzuschlägen' steht nicht in meiner Datenbasis. Bitte entferne sie. Nutze ausschließlich die genannten Zahlen und triff keine Aussagen über Ursachen, die nicht in den Daten stehen – kennzeichne Vermutungen ausdrücklich als solche.",
+            "points": 2,
+            "nextNode": "b4_final_good"
+          },
+          {
+            "id": "silent_fix",
+            "label": "Die Stelle stillschweigend selbst rauslöschen und den Rest übernehmen",
+            "promptText": null,
+            "points": 0,
+            "nextNode": "b4_silent_fix"
+          },
+          {
+            "id": "start_over",
+            "label": "Komplett neuen Prompt schreiben und von vorn beginnen",
+            "promptText": "Vergiss alles Bisherige. Erstelle eine Abweichungsanalyse der Q2-Reisekosten...",
+            "points": 0,
+            "nextNode": "b4_start_over"
+          }
+        ]
+      },
+
+      "b4_final_good": {
+        "type": "output_review",
+        "aiOutput": "Management-Zusammenfassung: Q2-Reisekosten-Abweichung\n\nDie Reisekosten liegen im Q2 mit 812.400 € um 9,0 % über Plan (745.000 €). Haupttreiber ist die Überschreitung bei den Flugkosten (+11,2 %), gefolgt von den Hotelkosten (+6,4 %). Bahn und Mietwagen liegen mit −2,1 % leicht unter Plan. Die Ursachen der Flugkosten-Überschreitung lassen sich aus den vorliegenden Daten nicht ableiten und sollten in einer Detailanalyse der Buchungsdaten geklärt werden.\n\nHandlungsempfehlungen: (1) Detailanalyse der Flugbuchungen (Buchungsvorlauf, Klassen), (2) Prüfung der Reiserichtlinien-Einhaltung bei Hotels, (3) längere Buchungsvorläufe für Q3 vorgeben.",
+        "question": "Und jetzt – bereit für den CFO?",
+        "options": [
+          {
+            "id": "yes",
+            "label": "Ja – alle Aussagen sind durch die Daten gedeckt, offene Punkte sind als solche markiert",
+            "points": 2,
+            "feedback": "Perfekt. Beachte das Detail: Die KI sagt jetzt explizit, was sich aus den Daten NICHT ableiten lässt. Genau diese Transparenz macht den Entwurf CFO-tauglich.",
+            "nextNode": "end_recap"
+          },
+          {
+            "id": "no",
+            "label": "Nein, noch nicht",
+            "points": 0,
+            "feedback": "Vergleiche mit der Datenbasis: Alle Zahlen stimmen, die erfundene Ursache ist entfernt und offene Fragen sind sauber gekennzeichnet. Das ist ein solider Entwurf – kritisches Prüfen heißt abgleichen, nicht endlos zweifeln.",
+            "nextNode": "end_recap"
+          }
+        ]
+      },
+
+      "b4_silent_fix": {
+        "type": "info",
+        "text": "Du löschst den Satz und übernimmst den Rest. Das funktioniert heute – aber du hast der KI kein Feedback gegeben. Beim nächsten Prompt in derselben Unterhaltung kann sie erneut ungestützte Ursachen erfinden, und in einem längeren Dokument übersiehst du die nächste vielleicht. Besser: Fehler benennen und Quellenbindung einfordern – das verbessert alle folgenden Antworten der Session.",
+        "nextNode": "end_recap"
+      },
+
+      "b4_start_over": {
+        "type": "info",
+        "text": "Der neue Anlauf funktioniert – kostet aber unnötig Zeit. Dein ursprünglicher Prompt war gut; nur eine Angabe im Output war fehlerhaft. Gezieltes Nachsteuern ('diese Angabe steht nicht in den Daten, bitte korrigieren') ist fast immer effizienter als ein Neustart. Iteration ist der Normalfall in der KI-Zusammenarbeit, kein Zeichen eines gescheiterten Prompts.",
+        "nextNode": "end_recap"
+      },
+
+      "end_recap": {
+        "type": "end",
+        "recapIntro": "Dein Weg im Vergleich zum Expertenpfad:",
+        "expertPath": ["prompt_b", "no", "hallucination", "point_out_error", "yes"],
+        "lessons": [
+          {
+            "craftElement": "C – Context",
+            "text": "Prompt B lieferte die Datenbasis und den Anlass mit. Prompt A ließ die KI raten – das Ergebnis war generisches Lehrbuchwissen."
+          },
+          {
+            "craftElement": "R – Role",
+            "text": "'Du bist mein Assistent im Controlling' verankert Fachsprache und Perspektive der Antwort."
+          },
+          {
+            "craftElement": "A – Action",
+            "text": "Eine präzise Aufgabe ('Management-Zusammenfassung mit Abweichungstreibern und Handlungsempfehlungen') statt eines vagen Verbs ('fasse zusammen')."
+          },
+          {
+            "craftElement": "F – Format",
+            "text": "'Max. eine halbe Seite, Empfehlungen am Ende' – ohne Formatvorgabe entscheidet die KI selbst, und selten so, wie der CFO es erwartet."
+          },
+          {
+            "craftElement": "T – Target/Tone",
+            "text": "'Zielgruppe CFO, sachlicher Ton' bestimmt Detailtiefe und Sprache."
+          },
+          {
+            "craftElement": "Kernlektion",
+            "text": "Ein perfekter Prompt schützt nicht vor Halluzinationen. Jede Zahl und jede Ursachenbehauptung gegen die Quelle prüfen – und bei Fehlern der KI gezielt Feedback geben statt neu zu starten. Die Verantwortung für das Ergebnis bleibt immer bei dir."
+          }
+        ]
+      }
+    },
+    "scoring": {
+      "maxPoints": 10,
+      "passingScore": 6
+    },
+    "aiContextNote": "Alle aiOutput-Texte sind als reale, vorab generierte LLM-Antworten gedacht. In der Pipeline erzeugt der Content Generator Agent sie durch tatsächliche Ausführung der promptText-Felder gegen das Modell; die Halluzination in b1 wird kontrolliert injiziert (Anweisung an den Generator, genau eine ungestützte Kausalaussage einzubauen und sie im Feld 'injectedError' zu dokumentieren, damit der Compliance Agent sie verifizieren kann).",
+    "injectedError": {
+      "node": "b1_output_review",
+      "claim": "im April konzernweit um 14 % gestiegene Treibstoffzuschläge",
+      "reason": "Kausalaussage ohne Deckung in der Datenbasis"
+    }
+  }
+}
