@@ -257,28 +257,27 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
               </div>
             )}
 
-            {game.game_json.promptOptions && (
+            {game.game_json.halluRound && (
               <div>
-                <p className="grm-section-title">Prompt-Varianten ({game.game_json.promptOptions.length})</p>
+                <p className="grm-section-title">
+                  Prompt-Varianten ({game.game_json.halluRound.promptOptions.length})
+                </p>
+                <div className="grm-q-text" style={{ marginBottom: 8 }}>{game.game_json.halluRound.situation}</div>
                 <div className="grm-question-list">
-                  {game.game_json.promptOptions.map((p, i) => {
-                    const variant = game.game_json.outputVariants?.find(v => v.promptOptionId === p.id)
-                    return (
-                      <div key={p.id} className="grm-question-item">
-                        <div className="grm-q-text">{i + 1}. {p.text}</div>
-                        <div className="grm-q-answer" style={{ color: p.isRecommended ? 'var(--success)' : 'var(--text-muted)' }}>
-                          <span>{p.isRecommended ? '★' : '○'}</span>
-                          <span>{p.isRecommended ? 'Empfohlener Prompt' : 'Alternative'}</span>
-                        </div>
-                        {p.critique && <div className="grm-q-explanation">{p.critique}</div>}
-                        {variant && (
-                          <div className="grm-q-explanation" style={{ marginTop: 6 }}>
-                            {variant.lines.length} Zeilen, davon {variant.lines.filter(l => l.isHallucination).length} Halluzination(en)
-                          </div>
-                        )}
+                  {game.game_json.halluRound.promptOptions.map((p, i) => (
+                    <div key={p.id} className="grm-question-item">
+                      <div className="grm-q-text">{i + 1}. {p.text}</div>
+                      <div className="grm-q-answer" style={{ color: p.isRecommended ? 'var(--success)' : 'var(--text-muted)' }}>
+                        <span>{p.isRecommended ? '★' : '○'}</span>
+                        <span>{p.isRecommended ? `Empfohlen · ${p.approach}` : `Alternative · ${p.approach}`}</span>
                       </div>
-                    )
-                  })}
+                      {p.feedback && <div className="grm-q-explanation">{p.feedback}</div>}
+                    </div>
+                  ))}
+                </div>
+                <div className="grm-q-explanation" style={{ marginTop: 10 }}>
+                  Antworttext: {game.game_json.halluRound.answer.sentences.length} Sätze, davon{' '}
+                  {game.game_json.halluRound.answer.sentences.filter(s => s.isHallucination).length} Halluzination(en)
                 </div>
               </div>
             )}

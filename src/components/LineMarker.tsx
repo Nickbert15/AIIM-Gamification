@@ -1,5 +1,10 @@
 'use client'
 
+// Unused since HallucinationSpotterPlayerV2 switched to the flowing-text
+// HallucinationText component (src/components/ui/HallucinationText.tsx).
+// Kept around rather than deleted in case a future numbered-line game format
+// wants it back.
+
 interface Line {
   id: number
   text: string

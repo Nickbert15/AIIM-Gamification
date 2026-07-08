@@ -21,6 +21,7 @@ export interface GameJson {
   challenges?: Challenge[]
   promptOptions?: HallucinationPromptOption[]
   outputVariants?: HallucinationOutputVariant[]
+  halluRound?: HalluRoundV2
   arenaRounds?: ArenaRound[]
   contextIntro?: string
   scoring?: { maxPoints: number; passingScore: number }
@@ -68,6 +69,32 @@ export interface HallucinationOutputVariant {
   lines: HallucinationLine[]
 }
 
+// --- Hallucination Spotter v2 (round 2: 5 prompts + one full annotated text) ---
+
+export type HalluPromptApproach = 'vage' | 'kontext' | 'rolle' | 'quellen' | 'suggestiv'
+
+export interface HalluPromptOptionV2 {
+  id: number
+  text: string
+  approach: HalluPromptApproach
+  quality: number // 0-100, drives the star rating; hidden from the player until after they choose
+  isRecommended: boolean
+  feedback: string // plain-language explanation shown after choosing
+}
+
+export interface HalluSentenceV2 {
+  id: number
+  text: string
+  isHallucination: boolean
+  explanation: string
+}
+
+export interface HalluRoundV2 {
+  situation: string
+  promptOptions: HalluPromptOptionV2[]
+  answer: { sentences: HalluSentenceV2[] }
+}
+
 // --- Prompt Arena ---
 
 export interface ArenaReferenceOutput {
@@ -82,4 +109,12 @@ export interface ArenaRound {
   taskDescription: string
   systemContext: string
   referenceOutputs: ArenaReferenceOutput[]
+}
+
+export interface ArenaEvaluation {
+  scorePercent: number // 0-100, quality of the player's own answer vs. the best reference
+  explanation: string
+  whatWasGood: string
+  improvement: string
+  comparison: string
 }

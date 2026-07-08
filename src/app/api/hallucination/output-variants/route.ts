@@ -4,67 +4,47 @@ interface RequestBody {
   learningObjective: string
   topic?: string
   difficulty: string
-  prompts: { id: number; text: string }[]
+  situation: string
 }
 
-interface GeneratedLine {
+interface GeneratedSentence {
   text: string
   isHallucination: boolean
   explanation: string
 }
 
-async function generateVariant(
-  promptText: string,
-  learningObjective: string,
-  topic: string | undefined,
-  difficulty: string
-): Promise<GeneratedLine[]> {
-  const systemPrompt = `Du erstellst Inhalte für ein "Hallucination Spotter"-Lernspiel für Finance & Controlling bei der Lufthansa Group.
+export async function POST(request: Request) {
+  try {
+    const { learningObjective, topic, difficulty, situation } = (await request.json()) as RequestBody
 
-Der Spieler hat folgenden Prompt an einen KI-Assistenten gestellt:
-"${promptText}"
+    const systemPrompt = `Du erstellst Inhalte für ein "Hallucination Spotter"-Lernspiel für Finance & Controlling bei der Lufthansa Group.
 
+Situation: ${situation}
 Lernziel: ${learningObjective}
 Thema: ${topic || 'frei wählbar'}
 Schwierigkeit: ${difficulty}
 
-Schreibe die KI-Antwort auf diesen Prompt als 4-5 einzelne Aussagen-Zeilen. GENAU 1-2 der Zeilen sollen erfundene, aber plausibel klingende Halluzinationen sein (falsche Zahlen, erfundene Ereignisse/Beschlüsse, falsche fachliche Regeln), der Rest muss korrekt und fachlich plausibel für den Finance-Kontext sein. Jede Zeile braucht eine kurze Erklärung (explanation), warum sie korrekt bzw. eine Halluzination ist.
+Schreibe EINEN zusammenhängenden, fließenden Text als KI-Antwort auf diese Situation, ca. 450-600 Wörter, aufgeteilt in 20-30 einzelne Sätze. GENAU 3 bis 6 dieser Sätze sollen erfundene, aber plausibel klingende Halluzinationen sein (falsche Zahlen, ein erfundenes Gesetz, eine erfundene Institution o.ä.), der Rest muss fachlich korrekt und für den Finance-Kontext plausibel sein. Prüfe die korrekten Sätze selbst auf Richtigkeit, bevor du sie ausgibst. Jeder Satz braucht eine kurze Erklärung (explanation) in einfacher Alltagssprache, warum er korrekt bzw. erfunden ist.
 
 Antworte AUSSCHLIESSLICH mit validem JSON in diesem Format, ohne weiteren Text:
-{"lines": [{"text": "...", "isHallucination": false, "explanation": "..."}, {"text": "...", "isHallucination": true, "explanation": "..."}]}`
+{"sentences": [{"text": "...", "isHallucination": false, "explanation": "..."}, {"text": "...", "isHallucination": true, "explanation": "..."}]}`
 
-  const raw = await callKiconnect(
-    [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: 'Generiere die Aussagen-Zeilen.' },
-    ],
-    0.8
-  )
+    const raw = await callKiconnect(
+      [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: 'Generiere den vollständigen Antworttext als Satzliste.' },
+      ],
+      0.8
+    )
 
-  const parsed = JSON.parse(extractJson(raw)) as { lines: GeneratedLine[] }
-  if (!Array.isArray(parsed.lines) || parsed.lines.length === 0) {
-    throw new Error('KI-Antwort enthielt keine gültigen Zeilen')
-  }
-  return parsed.lines
-}
-
-export async function POST(request: Request) {
-  try {
-    const { learningObjective, topic, difficulty, prompts } = (await request.json()) as RequestBody
-    if (!Array.isArray(prompts) || prompts.length === 0) {
-      throw new Error('Keine Prompts übergeben')
+    const parsed = JSON.parse(extractJson(raw)) as { sentences: GeneratedSentence[] }
+    if (!Array.isArray(parsed.sentences) || parsed.sentences.length === 0) {
+      throw new Error('KI-Antwort enthielt keine gültigen Sätze')
     }
 
-    const outputVariants = []
-    for (const p of prompts) {
-      const lines = await generateVariant(p.text, learningObjective, topic, difficulty)
-      outputVariants.push({
-        promptOptionId: p.id,
-        lines: lines.map((l, i) => ({ id: i + 1, ...l })),
-      })
-    }
+    const sentences = parsed.sentences.map((s, i) => ({ id: i + 1, ...s }))
 
-    return Response.json({ outputVariants })
+    return Response.json({ sentences })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unbekannter Fehler'
     return Response.json({ error: message }, { status: 500 })

@@ -30,5 +30,12 @@ export async function callKiconnect(
 
 export function extractJson(text: string): string {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i)
-  return (fenced ? fenced[1] : text).trim()
+  const unfenced = (fenced ? fenced[1] : text).trim()
+  // LLMs sometimes prepend/append chatty text around the JSON object even
+  // without code fences ("Hier ist das JSON: {...} Ich hoffe das hilft!").
+  // Slicing from the first "{" to the matching last "}" tolerates that.
+  const start = unfenced.indexOf('{')
+  const end = unfenced.lastIndexOf('}')
+  if (start === -1 || end === -1 || end < start) return unfenced
+  return unfenced.slice(start, end + 1)
 }
