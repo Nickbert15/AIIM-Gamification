@@ -1,4 +1,4 @@
-# Feature: Prompt-Branching-Spiel („Der CFO wartet")
+# Feature: Prompt-Navigator („Der CFO wartet")
 
 Neues Spielformat `prompt_branching`: Entscheidungsbaum, in dem der User zwischen
 vorgegebenen Prompts wählt, KI-Outputs kritisch bewertet (inkl. kontrollierter
@@ -32,7 +32,7 @@ if (game.game_json.format === 'prompt_branching') {
 ```
 
 Tipp: Den Overlay-Wrapper aus dem `chat_challenge`-Block 1:1 kopieren und nur
-den Player austauschen — Untertitel z. B. `Szenario-Spiel · {game.difficulty}`.
+den Player austauschen — Untertitel z. B. `Prompt-Navigator · {game.difficulty}`.
 
 ## Beispielspiel in Supabase laden
 

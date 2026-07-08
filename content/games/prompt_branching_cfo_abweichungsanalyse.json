@@ -1,6 +1,6 @@
 {
   "id": "branch_001",
-  "title": "Der CFO wartet: Abweichungsanalyse mit KI",
+  "title": "Prompt-Navigator: Der CFO wartet",
   "format": "prompt_branching",
   "library_type": "ai_usage_expertise",
   "target_role": "Accountant / Controller",
