@@ -10,6 +10,7 @@ interface Props {
 }
 
 type Step = 'choose' | 'marking' | 'revealed'
+type Confidence = 'sure' | 'unsure'
 
 export default function HallucinationSpotterPlayerV2({ game, onComplete }: Props) {
   const promptOptions = (game.game_json.promptOptions ?? []) as HallucinationPromptOption[]
@@ -18,6 +19,7 @@ export default function HallucinationSpotterPlayerV2({ game, onComplete }: Props
   const [step, setStep] = useState<Step>('choose')
   const [chosenId, setChosenId] = useState<number | null>(null)
   const [markedIds, setMarkedIds] = useState<Set<number>>(new Set())
+  const [confidence, setConfidence] = useState<Map<number, Confidence>>(new Map())
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
 
   const chosen = promptOptions.find(p => p.id === chosenId) ?? null
@@ -26,11 +28,23 @@ export default function HallucinationSpotterPlayerV2({ game, onComplete }: Props
 
   const promptBonus = chosen?.isRecommended ? 1 : 0
   const correctIds = new Set(lines.filter(l => l.isHallucination).map(l => l.id))
-  const correctMarks = Array.from(markedIds).filter(id => correctIds.has(id)).length
-  const incorrectMarks = Array.from(markedIds).filter(id => !correctIds.has(id)).length
-  const markingScore = Math.max(0, correctMarks - incorrectMarks)
+
+  // Confidence-weighted scoring: being confidently right earns more than a
+  // hedged guess, and being confidently wrong costs more than an unsure one —
+  // this rewards accurate self-assessment (calibration), not just marking
+  // everything as "sure".
+  let markingScore = 0
+  markedIds.forEach(id => {
+    const level = confidence.get(id) ?? 'sure'
+    const weight = level === 'sure' ? 2 : 1
+    markingScore += correctIds.has(id) ? weight : -weight
+  })
+  markingScore = Math.max(0, markingScore)
   const totalScore = promptBonus + markingScore
-  const maxPoints = game.game_json.scoring?.maxPoints ?? 1 + correctIds.size
+  const maxPoints = game.game_json.scoring?.maxPoints ?? 1 + correctIds.size * 2
+
+  const sureIds = Array.from(markedIds).filter(id => (confidence.get(id) ?? 'sure') === 'sure')
+  const sureCorrectCount = sureIds.filter(id => correctIds.has(id)).length
 
   function choosePrompt(id: number) {
     if (chosenId !== null) return
@@ -41,9 +55,16 @@ export default function HallucinationSpotterPlayerV2({ game, onComplete }: Props
     setMarkedIds(prev => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
-      else next.add(id)
+      else {
+        next.add(id)
+        setConfidence(c => (c.has(id) ? c : new Map(c).set(id, 'sure')))
+      }
       return next
     })
+  }
+
+  function setLineConfidence(id: number, level: Confidence) {
+    setConfidence(prev => new Map(prev).set(id, level))
   }
 
   function handleReveal() {
@@ -117,6 +138,39 @@ export default function HallucinationSpotterPlayerV2({ game, onComplete }: Props
               falsch vorkommt, sondern ob sie ohne reale Grundlage erfunden wurde.
             </p>
             <LineMarker lines={lines} markedIds={markedIds} onToggle={toggleLine} />
+
+            {markedIds.size > 0 && (
+              <div className="hsv2-confidence-panel">
+                <span className="hsv2-confidence-label">
+                  Wie sicher bist du bei deinen markierten Zeilen? Sicher-und-richtig gibt mehr
+                  Punkte, sicher-und-falsch kostet mehr — ehrliche Einschätzung lohnt sich also.
+                </span>
+                {Array.from(markedIds).sort((a, b) => a - b).map(id => {
+                  const idx = lines.findIndex(l => l.id === id)
+                  const level = confidence.get(id) ?? 'sure'
+                  return (
+                    <div key={id} className="hsv2-confidence-row">
+                      <span className="hsv2-confidence-row-label">Zeile {idx + 1}</span>
+                      <div className="hsv2-confidence-toggle">
+                        <button
+                          className={`hsv2-conf-btn ${level === 'sure' ? 'active' : ''}`}
+                          onClick={() => setLineConfidence(id, 'sure')}
+                        >
+                          Sicher
+                        </button>
+                        <button
+                          className={`hsv2-conf-btn ${level === 'unsure' ? 'active' : ''}`}
+                          onClick={() => setLineConfidence(id, 'unsure')}
+                        >
+                          Unsicher
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
             <div className="hsv2-next-row">
               <button className="btn btn-primary" onClick={handleReveal}>
                 Auswertung anzeigen
@@ -135,6 +189,12 @@ export default function HallucinationSpotterPlayerV2({ game, onComplete }: Props
                 </span>
               </div>
               <div className="hsv2-score-label">Punkte erreicht</div>
+              {sureIds.length > 0 && (
+                <div className="hsv2-calibration">
+                  Kalibrierung: bei deinen "sicheren" Einschätzungen lagst du {sureCorrectCount} von{' '}
+                  {sureIds.length} richtig.
+                </div>
+              )}
             </div>
 
             <div className="hsv2-prompt-recap">Du hast diesen Prompt gewählt: „{chosen?.text}“</div>
@@ -277,6 +337,62 @@ const hsv2Styles = `
     line-height: 1;
   }
   .hsv2-score-label { font-size: 13px; color: var(--text-muted); }
+  .hsv2-calibration {
+    font-size: 12px;
+    color: var(--text-dim);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 9999px;
+    padding: 4px 14px;
+    margin-top: 6px;
+  }
+  .hsv2-confidence-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: rgba(245,158,11,0.05);
+    border: 1px solid rgba(245,158,11,0.2);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+  }
+  .hsv2-confidence-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+  .hsv2-confidence-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .hsv2-confidence-row-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .hsv2-confidence-toggle {
+    display: flex;
+    gap: 6px;
+  }
+  .hsv2-conf-btn {
+    padding: 5px 12px;
+    border-radius: 9999px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+  }
+  .hsv2-conf-btn:hover { border-color: var(--accent); color: var(--text); }
+  .hsv2-conf-btn.active {
+    border-color: #f59e0b;
+    color: #f59e0b;
+    background: rgba(245,158,11,0.1);
+  }
   .hsv2-explanations {
     display: flex;
     flex-direction: column;

@@ -51,6 +51,8 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
   const [roundCorrect, setRoundCorrect] = useState(false)
   const [score, setScore] = useState(0)
   const [done, setDone] = useState(false)
+  const [promptFeedback, setPromptFeedback] = useState('')
+  const [promptFeedbackStatus, setPromptFeedbackStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
 
   // FLIP animation for card reordering: measure each card's position before
   // the reorder commits, then after, apply the inverse transform and release
@@ -166,6 +168,36 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
     setRoundCorrect(correct)
     if (correct) setScore(s => s + 1)
     setPhase('revealed')
+    fetchPromptFeedback(userPrompt.trim())
+  }
+
+  async function fetchPromptFeedback(promptText: string) {
+    if (!promptText) {
+      setPromptFeedbackStatus('error')
+      return
+    }
+    setPromptFeedbackStatus('loading')
+    try {
+      const rank1 = round.referenceOutputs.find(r => r.qualityRank === 1)
+      const systemPrompt =
+        `Du bist ein Prompt-Engineering-Coach für Finance-Mitarbeiter bei der Lufthansa Group. ` +
+        `Die Aufgabe war: "${round.taskDescription}". Eine besonders gute Antwort darauf hat ` +
+        `folgende Eigenschaften: ${rank1?.note ?? 'konkrete Zahlen und Kontext statt Allgemeinplätze'}. ` +
+        `Bewerte kurz (max. 3 Sätze) den folgenden Prompt eines Nutzers zu dieser Aufgabe. ` +
+        `Gib dein Feedback in einem [FEEDBACK]...[/FEEDBACK]-Block: was am Prompt schon gut war ` +
+        `und ein konkreter Vorschlag, wie er noch besser würde.`
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userPrompt: promptText, systemPrompt, history: [] }),
+      })
+      const data = await res.json()
+      if (data.error) throw new Error(data.error)
+      setPromptFeedback(data.feedback || data.response || '')
+      setPromptFeedbackStatus('done')
+    } catch {
+      setPromptFeedbackStatus('error')
+    }
   }
 
   function handleNextRound() {
@@ -178,6 +210,8 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
       setUserPrompt('')
       setGenerationError('')
       setOrder([])
+      setPromptFeedback('')
+      setPromptFeedbackStatus('idle')
     }
   }
 
@@ -331,6 +365,19 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
                       </div>
                     ))}
                 </div>
+
+                <div className="pa-feedback-card">
+                  <span className="pa-feedback-header">
+                    <span className="pa-feedback-icon" aria-hidden="true" />
+                    KI-Feedback zu deinem Prompt
+                  </span>
+                  {promptFeedbackStatus === 'loading' && <ThinkingDots label="Analysiert deinen Prompt" />}
+                  {promptFeedbackStatus === 'done' && <div className="pa-feedback-text">{promptFeedback}</div>}
+                  {promptFeedbackStatus === 'error' && (
+                    <div className="pa-feedback-text">Feedback zu deinem Prompt konnte gerade nicht geladen werden.</div>
+                  )}
+                </div>
+
                 <div className="pa-next-row">
                   <button className="btn btn-primary" onClick={handleNextRound}>
                     {isLast ? 'Ergebnis anzeigen' : 'Nächste Runde →'}
@@ -534,6 +581,37 @@ const paStyles = `
     padding: 12px 14px;
   }
   .pa-note-item { line-height: 1.5; }
+  .pa-feedback-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: rgba(14,165,233,0.05);
+    border: 1px solid rgba(14,165,233,0.2);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .pa-feedback-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+  }
+  .pa-feedback-icon {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), #7dd3fc 60%, #e0f2fe);
+    flex-shrink: 0;
+  }
+  .pa-feedback-text {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
   .pa-next-row { display: flex; justify-content: flex-end; }
   .pa-score-screen {
     display: flex;
