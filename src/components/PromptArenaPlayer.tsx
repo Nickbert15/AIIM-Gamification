@@ -1,8 +1,13 @@
 'use client'
 
 import { useLayoutEffect, useRef, useState } from 'react'
-import { ArenaRound, Game } from '@/types/game'
+import { ArenaEvaluation, ArenaRound, Game } from '@/types/game'
 import ThinkingDots from './ThinkingDots'
+import GamePopup from './ui/GamePopup'
+import ConfettiBurst from './ui/ConfettiBurst'
+import ScoreCounter from './ui/ScoreCounter'
+import Badge from './ui/Badge'
+import HowToPlay from './ui/HowToPlay'
 
 interface Props {
   game: Game
@@ -32,13 +37,22 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false
 }
 
+// Client-side ranking-accuracy proxy used when the LLM evaluation call
+// fails, so the celebratory popup never has to be skipped just because
+// kiconnect is unavailable (e.g. placeholder credentials in a demo).
+function fallbackScorePercent(roundCorrect: boolean): number {
+  return roundCorrect ? 65 : 35
+}
+
 export default function PromptArenaPlayer({ game, onComplete }: Props) {
   const rounds = (game.game_json.arenaRounds ?? []) as ArenaRound[]
   const maxPoints = game.game_json.scoring?.maxPoints ?? rounds.length
 
+  const [howToPlayOpen, setHowToPlayOpen] = useState(true)
   const [roundIndex, setRoundIndex] = useState(0)
   const [phase, setPhase] = useState<Phase>('prompt-input')
   const [userPrompt, setUserPrompt] = useState('')
+  const [ownAnswerText, setOwnAnswerText] = useState('')
   const [generationError, setGenerationError] = useState('')
   const [order, setOrder] = useState<ArenaCard[]>([])
   const [draggedKey, setDraggedKey] = useState<string | null>(null)
@@ -51,8 +65,10 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
   const [roundCorrect, setRoundCorrect] = useState(false)
   const [score, setScore] = useState(0)
   const [done, setDone] = useState(false)
-  const [promptFeedback, setPromptFeedback] = useState('')
-  const [promptFeedbackStatus, setPromptFeedbackStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+
+  const [evaluationOpen, setEvaluationOpen] = useState(false)
+  const [evaluation, setEvaluation] = useState<ArenaEvaluation | null>(null)
+  const [evaluationStatus, setEvaluationStatus] = useState<'loading' | 'done' | 'fallback'>('loading')
 
   // FLIP animation for card reordering: measure each card's position before
   // the reorder commits, then after, apply the inverse transform and release
@@ -114,6 +130,7 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
       })
       const data = await res.json()
       if (data.error) throw new Error(data.error)
+      setOwnAnswerText(data.response)
       buildCards(data.response)
       setPhase('ranking')
     } catch {
@@ -123,7 +140,9 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
   }
 
   function continueWithPlaceholder() {
-    buildCards('(Antwort konnte nicht generiert werden — trotzdem geht die Runde mit den zwei Referenzantworten weiter.)')
+    const placeholder = '(Antwort konnte nicht generiert werden — trotzdem geht die Runde mit den zwei Referenzantworten weiter.)'
+    setOwnAnswerText(placeholder)
+    buildCards(placeholder)
     setGenerationError('')
     setPhase('ranking')
   }
@@ -159,7 +178,7 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
     })
   }
 
-  function handleConfirmOrder() {
+  async function handleConfirmOrder() {
     const rank1 = round.referenceOutputs.find(r => r.qualityRank === 1)
     const rank2 = round.referenceOutputs.find(r => r.qualityRank === 2)
     const idx1 = order.findIndex(c => c.key === `ref-${rank1?.id}`)
@@ -168,36 +187,41 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
     setRoundCorrect(correct)
     if (correct) setScore(s => s + 1)
     setPhase('revealed')
-    fetchPromptFeedback(userPrompt.trim())
-  }
+    setEvaluationOpen(true)
+    setEvaluationStatus('loading')
+    setEvaluation(null)
 
-  async function fetchPromptFeedback(promptText: string) {
-    if (!promptText) {
-      setPromptFeedbackStatus('error')
-      return
-    }
-    setPromptFeedbackStatus('loading')
     try {
-      const rank1 = round.referenceOutputs.find(r => r.qualityRank === 1)
-      const systemPrompt =
-        `Du bist ein Prompt-Engineering-Coach für Finance-Mitarbeiter bei der Lufthansa Group. ` +
-        `Die Aufgabe war: "${round.taskDescription}". Eine besonders gute Antwort darauf hat ` +
-        `folgende Eigenschaften: ${rank1?.note ?? 'konkrete Zahlen und Kontext statt Allgemeinplätze'}. ` +
-        `Bewerte kurz (max. 3 Sätze) den folgenden Prompt eines Nutzers zu dieser Aufgabe. ` +
-        `Gib dein Feedback in einem [FEEDBACK]...[/FEEDBACK]-Block: was am Prompt schon gut war ` +
-        `und ein konkreter Vorschlag, wie er noch besser würde.`
-      const res = await fetch('/api/chat', {
+      const res = await fetch('/api/prompt-arena/evaluate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userPrompt: promptText, systemPrompt, history: [] }),
+        body: JSON.stringify({
+          taskDescription: round.taskDescription,
+          systemContext: round.systemContext,
+          userPrompt: userPrompt.trim(),
+          ownAnswerText,
+          bestReferenceText: rank1?.text ?? '',
+          bestReferenceNote: rank1?.note ?? '',
+        }),
       })
       const data = await res.json()
       if (data.error) throw new Error(data.error)
-      setPromptFeedback(data.feedback || data.response || '')
-      setPromptFeedbackStatus('done')
+      setEvaluation(data as ArenaEvaluation)
+      setEvaluationStatus('done')
     } catch {
-      setPromptFeedbackStatus('error')
+      setEvaluation({
+        scorePercent: fallbackScorePercent(correct),
+        explanation: 'Ausführliches KI-Feedback ist gerade nicht verfügbar.',
+        whatWasGood: '',
+        improvement: '',
+        comparison: '',
+      })
+      setEvaluationStatus('fallback')
     }
+  }
+
+  function closeEvaluation() {
+    setEvaluationOpen(false)
   }
 
   function handleNextRound() {
@@ -208,10 +232,11 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
       setRoundIndex(i => i + 1)
       setPhase('prompt-input')
       setUserPrompt('')
+      setOwnAnswerText('')
       setGenerationError('')
       setOrder([])
-      setPromptFeedback('')
-      setPromptFeedbackStatus('idle')
+      setEvaluation(null)
+      setEvaluationOpen(false)
     }
   }
 
@@ -241,10 +266,27 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
   if (!round) return null
 
   const rank1Id = round.referenceOutputs.find(r => r.qualityRank === 1)?.id
+  const showConfetti = evaluationOpen && evaluationStatus !== 'loading' && (evaluation?.scorePercent ?? 0) >= 70
 
   return (
     <>
       <style>{paStyles}</style>
+
+      <HowToPlay
+        open={howToPlayOpen}
+        title="So funktioniert Prompt Arena"
+        termExplanation={
+          'Ein „Prompt" ist die Anfrage, die du an eine KI schickst. Je genauer dein Prompt, ' +
+          'desto besser und zuverlässiger fällt meist die Antwort der KI aus.'
+        }
+        steps={[
+          { icon: '1️⃣', text: 'Du liest eine Finance-Situation und schreibst deinen eigenen Prompt dazu.' },
+          { icon: '2️⃣', text: 'Die KI antwortet live auf deinen Prompt. Du siehst drei Antworten — deine und zwei Referenzantworten, aber nicht, welche welche ist.' },
+          { icon: '3️⃣', text: 'Du sortierst alle drei von der besten zur schwächsten. Danach bekommst du eine Auswertung inklusive Feedback zu deinem Prompt.' },
+        ]}
+        onDismiss={() => setHowToPlayOpen(false)}
+      />
+
       <div className="pa-container">
         <div className="pa-progress">
           <span>Runde {roundIndex + 1} von {rounds.length}</span>
@@ -340,6 +382,8 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
               ))}
             </div>
 
+            <p className="pa-hint">Ziehen oder mit den Pfeil-Buttons sortieren.</p>
+
             {phase === 'ranking' && (
               <div className="pa-submit-row">
                 <button className="btn btn-primary" onClick={handleConfirmOrder}>
@@ -347,47 +391,70 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
                 </button>
               </div>
             )}
-
-            {phase === 'revealed' && (
-              <>
-                <div className={`pa-result ${roundCorrect ? 'result-correct' : 'result-wrong'}`}>
-                  {roundCorrect
-                    ? '✓ Richtig! Du hast die stärkere Referenzantwort vor die schwächere einsortiert.'
-                    : '✗ Nicht ganz — die schwächere Referenzantwort stand bei dir vor der stärkeren.'}
-                </div>
-                <div className="pa-notes">
-                  {round.referenceOutputs
-                    .slice()
-                    .sort((a, b) => a.qualityRank - b.qualityRank)
-                    .map(r => (
-                      <div key={r.id} className="pa-note-item">
-                        <strong>{r.qualityRank === 1 ? 'Stärkere Referenz:' : 'Schwächere Referenz:'}</strong> {r.note}
-                      </div>
-                    ))}
-                </div>
-
-                <div className="pa-feedback-card">
-                  <span className="pa-feedback-header">
-                    <span className="pa-feedback-icon" aria-hidden="true" />
-                    KI-Feedback zu deinem Prompt
-                  </span>
-                  {promptFeedbackStatus === 'loading' && <ThinkingDots label="Analysiert deinen Prompt" />}
-                  {promptFeedbackStatus === 'done' && <div className="pa-feedback-text">{promptFeedback}</div>}
-                  {promptFeedbackStatus === 'error' && (
-                    <div className="pa-feedback-text">Feedback zu deinem Prompt konnte gerade nicht geladen werden.</div>
-                  )}
-                </div>
-
-                <div className="pa-next-row">
-                  <button className="btn btn-primary" onClick={handleNextRound}>
-                    {isLast ? 'Ergebnis anzeigen' : 'Nächste Runde →'}
-                  </button>
-                </div>
-              </>
-            )}
           </>
         )}
       </div>
+
+      <GamePopup open={evaluationOpen} title="Deine Auswertung" onClose={closeEvaluation} variant="celebratory">
+        {showConfetti && <ConfettiBurst />}
+        {evaluationStatus === 'loading' && (
+          <div className="pa-eval-loading">
+            <ThinkingDots label="KI bewertet deine Antwort" />
+          </div>
+        )}
+        {evaluation && evaluationStatus !== 'loading' && (
+          <>
+            <div className="pa-eval-score-card">
+              <ScoreCounter value={evaluation.scorePercent} suffix="%" className="pa-eval-percent" />
+              <div className="pa-eval-percent-label">so gut wie die beste Vergleichsantwort</div>
+              {evaluation.scorePercent >= 70 && <Badge label="Prompt-Profi" icon="🎯" />}
+            </div>
+            {evaluationStatus === 'done' && <p className="pa-eval-text">{evaluation.explanation}</p>}
+
+            <div className={`pa-result ${roundCorrect ? 'result-correct' : 'result-wrong'}`}>
+              {roundCorrect
+                ? '✓ Richtig! Du hast die stärkere Referenzantwort vor die schwächere einsortiert.'
+                : '✗ Nicht ganz — die schwächere Referenzantwort stand bei dir vor der stärkeren.'}
+            </div>
+
+            <div className="pa-notes">
+              {round.referenceOutputs
+                .slice()
+                .sort((a, b) => a.qualityRank - b.qualityRank)
+                .map(r => (
+                  <div key={r.id} className="pa-note-item">
+                    <strong>{r.qualityRank === 1 ? 'Stärkere Referenz:' : 'Schwächere Referenz:'}</strong> {r.note}
+                  </div>
+                ))}
+              {evaluationStatus === 'done' && evaluation.comparison && (
+                <div className="pa-note-item">{evaluation.comparison}</div>
+              )}
+            </div>
+
+            <div className="pa-feedback-card">
+              <span className="pa-feedback-header">
+                <span className="pa-feedback-icon" aria-hidden="true" />
+                KI-Feedback zu deinem Prompt
+              </span>
+              {evaluationStatus === 'done' ? (
+                <div className="pa-feedback-text">
+                  {evaluation.whatWasGood} {evaluation.improvement}
+                </div>
+              ) : (
+                <div className="pa-feedback-text">Feedback zu deinem Prompt konnte gerade nicht geladen werden.</div>
+              )}
+            </div>
+
+            <div className="pa-lesson">Merke: Je genauer dein Prompt, desto besser die Antwort.</div>
+
+            <div className="pa-next-row">
+              <button className="btn btn-primary" onClick={handleNextRound}>
+                {isLast ? 'Ergebnis anzeigen' : 'Nächste Runde →'}
+              </button>
+            </div>
+          </>
+        )}
+      </GamePopup>
     </>
   )
 }
@@ -438,6 +505,7 @@ const paStyles = `
     padding: 16px;
   }
   .pa-instruction { font-size: 13px; color: var(--text-dim); margin: 0; }
+  .pa-hint { font-size: 11px; color: var(--text-muted); margin: -6px 0 0; font-style: italic; }
   .pa-textarea {
     background: var(--bg);
     border: 1px solid var(--border);
@@ -472,6 +540,12 @@ const paStyles = `
     align-items: center;
     justify-content: center;
     padding: 40px 0;
+  }
+  .pa-eval-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 0;
   }
   .pa-card-list {
     display: flex;
@@ -523,18 +597,18 @@ const paStyles = `
   .pa-move-buttons {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
     flex-shrink: 0;
   }
   .pa-move-btn {
-    width: 22px;
-    height: 18px;
-    border-radius: 4px;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
     border: 1px solid var(--border);
     background: var(--bg-card);
     color: var(--text-muted);
     cursor: pointer;
-    font-size: 11px;
+    font-size: 16px;
     line-height: 1;
     font-family: inherit;
   }
@@ -581,6 +655,27 @@ const paStyles = `
     padding: 12px 14px;
   }
   .pa-note-item { line-height: 1.5; }
+  .pa-eval-score-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+  }
+  .pa-eval-percent {
+    font-size: 40px;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .pa-eval-percent-label { font-size: 12px; color: var(--text-muted); }
+  .pa-eval-text {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.6;
+    text-align: center;
+    margin: 0;
+  }
   .pa-feedback-card {
     display: flex;
     flex-direction: column;
@@ -611,6 +706,16 @@ const paStyles = `
     font-size: 13px;
     color: var(--text-dim);
     line-height: 1.5;
+  }
+  .pa-lesson {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    background: rgba(14,165,233,0.06);
+    border: 1px solid rgba(14,165,233,0.2);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    text-align: center;
   }
   .pa-next-row { display: flex; justify-content: flex-end; }
   .pa-score-screen {
