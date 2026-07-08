@@ -18,6 +18,7 @@ export default function HallucinationSpotterPlayerV2({ game, onComplete }: Props
   const [step, setStep] = useState<Step>('choose')
   const [chosenId, setChosenId] = useState<number | null>(null)
   const [markedIds, setMarkedIds] = useState<Set<number>>(new Set())
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
 
   const chosen = promptOptions.find(p => p.id === chosenId) ?? null
   const variant = outputVariants.find(v => v.promptOptionId === chosenId) ?? null
@@ -50,6 +51,15 @@ export default function HallucinationSpotterPlayerV2({ game, onComplete }: Props
     onComplete(totalScore)
   }
 
+  function toggleExplanation(id: number) {
+    setExpandedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
   if (!promptOptions.length) return null
 
   return (
@@ -66,7 +76,8 @@ export default function HallucinationSpotterPlayerV2({ game, onComplete }: Props
           <>
             {game.game_json.contextIntro && <p className="hsv2-intro">{game.game_json.contextIntro}</p>}
             <p className="hsv2-instruction">
-              Wähle den Prompt, mit dem du die zuverlässigste KI-Antwort erwarten würdest:
+              Das sind drei Prompts, die man zu dieser Situation an eine KI schicken könnte.
+              Wähle den, der die zuverlässigste — also am wenigsten erfundene — Antwort liefern würde:
             </p>
             <div className="hsv2-prompt-list">
               {promptOptions.map(p => (
@@ -99,10 +110,11 @@ export default function HallucinationSpotterPlayerV2({ game, onComplete }: Props
 
         {step === 'marking' && (
           <>
-            <div className="hsv2-prompt-recap">Dein Prompt: „{chosen?.text}“</div>
+            <div className="hsv2-prompt-recap">Du hast diesen Prompt gewählt: „{chosen?.text}“</div>
             <p className="hsv2-instruction">
-              Hier ist die KI-Antwort darauf. Klicke alle Zeilen an, die du für erfunden
-              (Halluzination) hältst.
+              Das hat die KI auf diesen Prompt geantwortet. Markiere alle Zeilen, die die KI
+              sich ausgedacht hat — es geht nicht darum, ob eine Aussage dir richtig oder
+              falsch vorkommt, sondern ob sie ohne reale Grundlage erfunden wurde.
             </p>
             <LineMarker lines={lines} markedIds={markedIds} onToggle={toggleLine} />
             <div className="hsv2-next-row">
@@ -125,17 +137,24 @@ export default function HallucinationSpotterPlayerV2({ game, onComplete }: Props
               <div className="hsv2-score-label">Punkte erreicht</div>
             </div>
 
-            <div className="hsv2-prompt-recap">Dein Prompt: „{chosen?.text}“</div>
+            <div className="hsv2-prompt-recap">Du hast diesen Prompt gewählt: „{chosen?.text}“</div>
 
             <p className="hsv2-instruction">Auswertung der markierten Zeilen:</p>
             <LineMarker lines={lines} markedIds={markedIds} onToggle={toggleLine} revealCorrect={correctIds} />
 
             <div className="hsv2-explanations">
-              {lines.map((l, i) => (
-                <div key={l.id} className="hsv2-explanation-item">
-                  <strong>Zeile {i + 1}:</strong> {l.explanation}
-                </div>
-              ))}
+              {lines.map((l, i) => {
+                const expanded = expandedIds.has(l.id)
+                return (
+                  <div key={l.id} className="hsv2-explanation-item">
+                    <button className="hsv2-explanation-toggle" onClick={() => toggleExplanation(l.id)}>
+                      <span>Zeile {i + 1}</span>
+                      <span>{expanded ? '– Erklärung ausblenden' : 'Warum? →'}</span>
+                    </button>
+                    {expanded && <div className="hsv2-explanation-text">{l.explanation}</div>}
+                  </div>
+                )
+              })}
             </div>
           </>
         )}
@@ -261,13 +280,38 @@ const hsv2Styles = `
   .hsv2-explanations {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    font-size: 12px;
-    color: var(--text-dim);
+    gap: 4px;
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 12px 14px;
+    padding: 6px 8px;
   }
-  .hsv2-explanation-item { line-height: 1.5; }
+  .hsv2-explanation-item {
+    border-bottom: 1px solid var(--border);
+  }
+  .hsv2-explanation-item:last-child { border-bottom: none; }
+  .hsv2-explanation-toggle {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    font-family: inherit;
+  }
+  .hsv2-explanation-toggle:hover { color: var(--accent); }
+  .hsv2-explanation-text {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    padding: 0 6px 10px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hsv2-prompt-card, .hsv2-critique, .hsv2-step-pill { transition: none; }
+  }
 `

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { HallucinationOutputVariant, HallucinationPromptOption } from '@/types/game'
+import ThinkingDots from './ThinkingDots'
 
 interface Props {
   learningObjective: string
@@ -149,8 +150,7 @@ export default function HallucinationWizardV2({ learningObjective, topic, diffic
           <div className="wz2-body">
             {(step === 'loading-prompts' || step === 'loading-outputs') && (
               <div className="wz2-loading">
-                <span className="wz2-spinner" />
-                {step === 'loading-prompts' ? 'KI generiert Prompt-Varianten…' : 'KI generiert Antworten je Prompt…'}
+                <ThinkingDots label={step === 'loading-prompts' ? 'KI generiert Prompt-Varianten' : 'KI generiert Antworten je Prompt'} />
               </div>
             )}
 
@@ -338,12 +338,6 @@ const wz2Styles = `
   .wz2-close:hover { color: var(--text); border-color: var(--accent); }
   .wz2-body { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
   .wz2-loading { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 40px 0; color: var(--text-muted); }
-  .wz2-spinner {
-    display: inline-block; width: 22px; height: 22px;
-    border: 3px solid var(--border); border-top-color: var(--accent);
-    border-radius: 50%; animation: wz2-spin 0.7s linear infinite;
-  }
-  @keyframes wz2-spin { to { transform: rotate(360deg); } }
   .wz2-hint { font-size: 12px; color: var(--text-muted); margin: 0; line-height: 1.5; }
   .wz2-field { display: flex; flex-direction: column; gap: 6px; }
   .wz2-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }

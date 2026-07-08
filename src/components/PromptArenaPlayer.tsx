@@ -1,7 +1,8 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { ArenaRound, Game } from '@/types/game'
+import ThinkingDots from './ThinkingDots'
 
 interface Props {
   game: Game
@@ -26,6 +27,11 @@ function shuffled<T>(arr: T[]): T[] {
   return copy
 }
 
+function prefersReducedMotion(): boolean {
+  if (typeof window === 'undefined') return false
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false
+}
+
 export default function PromptArenaPlayer({ game, onComplete }: Props) {
   const rounds = (game.game_json.arenaRounds ?? []) as ArenaRound[]
   const maxPoints = game.game_json.scoring?.maxPoints ?? rounds.length
@@ -46,6 +52,36 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
   const [score, setScore] = useState(0)
   const [done, setDone] = useState(false)
 
+  // FLIP animation for card reordering: measure each card's position before
+  // the reorder commits, then after, apply the inverse transform and release
+  // it into a transition so the card visibly glides to its new slot instead
+  // of snapping.
+  const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map())
+  const prevRectsRef = useRef<Map<string, DOMRect>>(new Map())
+
+  useLayoutEffect(() => {
+    const newRects = new Map<string, DOMRect>()
+    cardRefs.current.forEach((el, key) => newRects.set(key, el.getBoundingClientRect()))
+
+    if (prevRectsRef.current.size > 0 && !prefersReducedMotion()) {
+      cardRefs.current.forEach((el, key) => {
+        const oldRect = prevRectsRef.current.get(key)
+        const newRect = newRects.get(key)
+        if (!oldRect || !newRect) return
+        const deltaY = oldRect.top - newRect.top
+        if (Math.abs(deltaY) > 0.5) {
+          el.style.transition = 'none'
+          el.style.transform = `translateY(${deltaY}px)`
+          requestAnimationFrame(() => {
+            el.style.transition = 'transform 0.35s ease'
+            el.style.transform = ''
+          })
+        }
+      })
+    }
+    prevRectsRef.current = newRects
+  }, [order])
+
   const round = rounds[roundIndex]
   const isLast = roundIndex + 1 >= rounds.length
 
@@ -56,6 +92,7 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
       kind: 'reference',
       refId: r.id,
     }))
+    prevRectsRef.current = new Map()
     setOrder(shuffled([{ key: 'own', text: ownText, kind: 'own' }, ...refs]))
   }
 
@@ -185,13 +222,15 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
 
         {phase === 'prompt-input' && (
           <>
+            <span className="pa-label">Situation</span>
             <div className="pa-task">{round.taskDescription}</div>
             <p className="pa-instruction">
-              Schreibe einen Prompt, mit dem eine KI diese Aufgabe möglichst gut löst.
+              Schreibe einen Prompt, den du einer KI schicken würdest, um zu dieser Situation
+              eine möglichst gute, faktenbasierte Antwort zu bekommen.
             </p>
             <textarea
               className="pa-textarea"
-              placeholder="Dein Prompt…"
+              placeholder="Dein Prompt an die KI…"
               value={userPrompt}
               onChange={(e) => setUserPrompt(e.target.value)}
             />
@@ -218,22 +257,25 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
 
         {phase === 'loading' && (
           <div className="pa-loading">
-            <span className="pa-spinner" />
-            KI generiert eine Antwort auf deinen Prompt…
+            <ThinkingDots label="KI generiert eine Antwort auf deinen Prompt" />
           </div>
         )}
 
         {(phase === 'ranking' || phase === 'revealed') && (
           <>
             <p className="pa-instruction">
-              Drei Antworten auf dieselbe Aufgabe — eine davon ist deine eigene. Ziehe sie
-              (oder nutze die Pfeile) von der besten (oben) zur schwächsten (unten) Antwort.
+              Hier sind drei KI-Antworten auf dieselbe Situation — eine davon basiert auf
+              deinem Prompt, die anderen zwei sind Referenzantworten. Du siehst nicht, welche
+              welche ist. Ordne sie per Ziehen (oder mit den Pfeilen) von der besten (oben)
+              zur schwächsten (unten) Antwort.
             </p>
             <div className="pa-card-list">
               {order.map((card, i) => (
                 <div
                   key={card.key}
-                  className={`pa-card ${draggedKey === card.key ? 'dragging' : ''} ${dragOverKey === card.key ? 'drag-over' : ''}`}
+                  ref={el => { if (el) cardRefs.current.set(card.key, el); else cardRefs.current.delete(card.key) }}
+                  className={`pa-card pa-card-enter ${draggedKey === card.key ? 'dragging' : ''} ${dragOverKey === card.key ? 'drag-over' : ''}`}
+                  style={{ animationDelay: `${i * 70}ms` }}
                   draggable={phase === 'ranking'}
                   onDragStart={() => { draggedKeyRef.current = card.key; setDraggedKey(card.key) }}
                   onDragOver={(e) => { e.preventDefault(); if (draggedKeyRef.current) setDragOverKey(card.key) }}
@@ -330,6 +372,14 @@ const paStyles = `
     border-radius: 9999px;
     transition: width 0.3s ease;
   }
+  .pa-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-bottom: -6px;
+  }
   .pa-task {
     font-size: 15px;
     font-weight: 600;
@@ -374,21 +424,8 @@ const paStyles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
     padding: 40px 0;
-    color: var(--text-muted);
-    font-size: 13px;
   }
-  .pa-spinner {
-    display: inline-block;
-    width: 18px;
-    height: 18px;
-    border: 3px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: pa-spin 0.7s linear infinite;
-  }
-  @keyframes pa-spin { to { transform: rotate(360deg); } }
   .pa-card-list {
     display: flex;
     flex-direction: column;
@@ -404,6 +441,11 @@ const paStyles = `
     background: var(--bg);
     cursor: grab;
     transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
+  }
+  .pa-card-enter { animation: pa-card-fade-in 0.35s ease both; }
+  @keyframes pa-card-fade-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
   }
   .pa-card:active { cursor: grabbing; }
   .pa-card:hover { border-color: var(--accent); }
@@ -514,5 +556,8 @@ const paStyles = `
     max-width: 380px;
     line-height: 1.5;
     margin-top: 8px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pa-card-enter { animation: none; }
   }
 `

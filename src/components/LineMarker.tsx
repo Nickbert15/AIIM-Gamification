@@ -142,19 +142,39 @@ const lmStyles = `
   .lm-line.lm-state-correct {
     border-color: var(--success);
     background: rgba(16,185,129,0.1);
+    animation: lm-pulse-correct 0.9s ease;
   }
   .lm-line.lm-state-correct .lm-marker-icon { color: var(--success); }
   .lm-line.lm-state-incorrect {
     border-color: var(--danger);
     background: rgba(239,68,68,0.08);
+    animation: lm-pulse-incorrect 0.9s ease;
   }
   .lm-line.lm-state-incorrect .lm-marker-icon { color: var(--danger); }
   .lm-line.lm-state-missed {
     border-color: #f59e0b;
     background: rgba(245,158,11,0.06);
     border-style: dashed;
+    animation: lm-pulse-missed 0.9s ease;
   }
   .lm-line.lm-state-missed .lm-marker-icon { color: #f59e0b; }
+  @keyframes lm-pulse-correct {
+    0% { background: rgba(16,185,129,0.5); }
+    100% { background: rgba(16,185,129,0.1); }
+  }
+  @keyframes lm-pulse-incorrect {
+    0% { background: rgba(239,68,68,0.4); }
+    100% { background: rgba(239,68,68,0.08); }
+  }
+  @keyframes lm-pulse-missed {
+    0% { background: rgba(245,158,11,0.35); }
+    100% { background: rgba(245,158,11,0.06); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lm-line.lm-state-correct, .lm-line.lm-state-incorrect, .lm-line.lm-state-missed {
+      animation: none;
+    }
+  }
   .lm-legend {
     display: flex;
     flex-wrap: wrap;

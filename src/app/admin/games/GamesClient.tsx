@@ -24,7 +24,7 @@ const DEMO_HALLUCINATION_V2_GAME: Game = {
   learning_objective: 'Der Lernende kann einen guten Prompt von einem schwachen unterscheiden und erkennt, welche Teile einer KI-Antwort erfunden sind.',
   game_json: {
     format: 'hallucination_spotter_v2',
-    contextIntro: 'Ein KI-Assistent hat auf einen der folgenden Prompts geantwortet. Finde die Halluzination(en).',
+    contextIntro: 'Situation: Ein Kollege aus dem Controlling möchte für den Monatsbericht wissen, warum es bei den Vertriebskosten eine Abweichung zum Budget gibt — und schickt dafür einen Prompt an die KI.',
     promptOptions: [
       { id: 1, text: 'Erkläre die Kostenabweichung.', isRecommended: false, critique: 'Zu vage — keine Angabe, welche Kosten, welcher Zeitraum oder welches Detailniveau erwartet wird. Lädt die KI förmlich dazu ein, Lücken mit Vermutungen zu füllen.' },
       { id: 2, text: 'Warum liegen die Reisekosten der Vertriebsabteilung im Juni 12% über Budget? Nenne die drei wichtigsten Treiber mit Zahlen, basierend auf den bekannten Fakten — keine Spekulation.', isRecommended: true, critique: 'Konkret, zeitlich eingegrenzt, fordert Zahlen und schließt Spekulation explizit aus — reduziert das Risiko einer Halluzination deutlich.' },
@@ -80,7 +80,7 @@ const DEMO_PROMPT_ARENA_GAME: Game = {
     arenaRounds: [
       {
         id: 1,
-        taskDescription: 'Formuliere eine Antwort auf die Frage: Ist die Liquiditätsreserve aktuell ausreichend für das Q3-Ziel von 5 Mio. EUR?',
+        taskDescription: 'Ein Kollege aus dem Treasury fragt dich: "Ist die Liquiditätsreserve aktuell ausreichend für unser Q3-Ziel von 5 Mio. EUR?"',
         systemContext: 'Du bist ein KI-Assistent für Finance & Controlling bei der Lufthansa Group. Du hast Zugriff auf folgende Fakten: Aktuelle Liquiditätsreserve 5,8 Mio. EUR. Im Juli steht eine Jahresbonizahlung von ca. 1,2 Mio. EUR an, die in der Reserve bereits berücksichtigt ist. Q3-Ziel: 5 Mio. EUR.',
         referenceOutputs: [
           {
@@ -99,7 +99,7 @@ const DEMO_PROMPT_ARENA_GAME: Game = {
       },
       {
         id: 2,
-        taskDescription: 'Formuliere eine Antwort auf die Frage: Warum sind die Materialkosten im Juni um 8% gestiegen?',
+        taskDescription: 'Deine Abteilungsleiterin fragt dich: "Warum sind die Materialkosten im Juni um 8% gestiegen?"',
         systemContext: 'Du bist ein KI-Assistent für Finance & Controlling bei der Lufthansa Group. Fakten: Materialkosten Juni +8% ggü. Vormonat. Ursache 1: Rohstoffpreis Aluminium +12% ggü. Vormonat. Ursache 2: einmaliger Sondereffekt aus Neubewertung des Lagerbestands zum Quartalsende.',
         referenceOutputs: [
           {
