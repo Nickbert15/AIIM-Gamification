@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, CSSProperties } from 'react'
+import { useState, useEffect, CSSProperties, useRef } from 'react'
 import type { KnowledgeTopic } from '@/app/api/knowledge-suggestions/route'
 
 interface Props {
@@ -58,16 +58,35 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
   const [topic, setTopic] = useState('')
   const [status, setStatus] = useState<Status>('idle')
   const [errorMessage, setErrorMessage] = useState('')
-
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [suggestions, setSuggestions] = useState<KnowledgeTopic[]>([])
   const [suggestionsStatus, setSuggestionsStatus] = useState<SuggestionsStatus>('loading')
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null)
 
+  const isNativeGeneration = gameType === 'excel_prompt_challenge'
+
+  useEffect(() => {
+    if (status === 'loading') {
+      setElapsedSeconds(0)
+      timerRef.current = setInterval(() => setElapsedSeconds((s) => s + 1), 1000)
+    } else if (timerRef.current) {
+      clearInterval(timerRef.current)
+      timerRef.current = null
+    }
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+    }
+  }, [status])
+
   useEffect(() => {
     if (!isOpen) return
+
     setSuggestionsStatus('loading')
     setSuggestions([])
     setSelectedTopicId(null)
+
     fetch('/api/knowledge-suggestions')
       .then((res) => res.json())
       .then((data) => {
@@ -87,6 +106,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
     setDifficulty('beginner')
     setTopic('')
     setErrorMessage('')
+    setElapsedSeconds(0)
     setSuggestions([])
     setSuggestionsStatus('loading')
     setSelectedTopicId(null)
@@ -106,7 +126,8 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
     if (!learningObjective.trim()) return
     setStatus('loading')
     try {
-      const res = await fetch('/api/generate', {
+      const endpoint = isNativeGeneration ? '/api/excel/generate' : '/api/generate'
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ learningObjective, difficulty, topic, format: gameType }),
@@ -231,105 +252,6 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
         .ggm-error-msg {
           margin-bottom: 10px;
         }
-
-        /* ── Recommendations ── */
-        .ggm-suggestions {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-        .ggm-suggestions-header {
-          font-size: 13px;
-          font-weight: 600;
-          color: var(--text-dim);
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
-        }
-        .ggm-suggestions-list {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-        .ggm-topic-card {
-          background: var(--bg);
-          border: 1px solid var(--border);
-          border-radius: var(--radius);
-          padding: 10px 12px;
-          text-align: left;
-          cursor: pointer;
-          display: flex;
-          flex-direction: column;
-          gap: 5px;
-          transition: border-color 0.15s, background 0.15s;
-          width: 100%;
-          font-family: inherit;
-        }
-        .ggm-topic-card:hover:not(:disabled) {
-          border-color: var(--accent-dim);
-          background: var(--bg-card-hover);
-        }
-        .ggm-topic-card:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-        .ggm-topic-card--selected {
-          border-color: var(--accent) !important;
-          background: rgba(14,165,233,0.06) !important;
-        }
-        .ggm-topic-title {
-          font-size: 13px;
-          font-weight: 600;
-          color: var(--text);
-          line-height: 1.35;
-        }
-        .ggm-topic-badges {
-          display: flex;
-          gap: 6px;
-          flex-wrap: wrap;
-          align-items: center;
-        }
-        .ggm-badge {
-          font-size: 11px;
-          font-weight: 500;
-          padding: 2px 7px;
-          border-radius: 20px;
-          line-height: 1.6;
-        }
-        .ggm-badge--relevance {
-          border-style: solid;
-          border-width: 1px;
-        }
-        .ggm-badge--potential {
-          border: none;
-        }
-        .ggm-skeleton-card {
-          height: 60px;
-          border-radius: var(--radius);
-          border: 1px solid var(--border);
-          background: linear-gradient(
-            90deg,
-            var(--bg) 25%,
-            var(--bg-card-hover) 50%,
-            var(--bg) 75%
-          );
-          background-size: 200% 100%;
-          animation: ggm-shimmer 1.4s ease-in-out infinite;
-        }
-        @keyframes ggm-shimmer {
-          0%   { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
-        }
-        .ggm-suggestions-empty {
-          font-size: 13px;
-          color: var(--text-muted);
-          margin: 0;
-          padding: 4px 0;
-        }
-        .ggm-divider {
-          border: none;
-          border-top: 1px solid var(--border);
-          margin: 0;
-        }
       `}</style>
 
       <div
@@ -343,7 +265,9 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
 
           {status === 'success' ? (
             <>
-              <div className="ggm-success">Spiel wird generiert. Erscheint bald unter Games.</div>
+              <div className="ggm-success">
+                Spiel wird generiert. Erscheint bald unter Games.
+              </div>
               <div className="ggm-actions">
                 <button className="btn btn-ghost" onClick={handleClose}>
                   Schließen
@@ -442,6 +366,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                 >
                   <option value="quiz">Quiz — Multiple Choice</option>
                   <option value="chat_challenge">Prompt-Challenge — Chatbot</option>
+                  <option value="excel_prompt_challenge">Excel-Prompt-Challenge — Copilot-Grid</option>
                 </select>
               </div>
 
@@ -485,9 +410,18 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                   disabled={status === 'loading' || !learningObjective.trim()}
                 >
                   {status === 'loading' && <span className="ggm-spinner" />}
-                  {status === 'loading' ? 'Pipeline läuft…' : 'Generieren'}
+                  {status === 'loading'
+                    ? (isNativeGeneration ? `Generiere… (${elapsedSeconds}s)` : 'Pipeline läuft…')
+                    : 'Generieren'}
                 </button>
               </div>
+              {status === 'loading' && isNativeGeneration && (
+                <div className="ggm-hint">
+                  Die KI prüft ihre eigene Antwort und generiert bei Bedarf einmal neu — das kann bis zu 90
+                  Sekunden dauern. Du kannst das Fenster schließen oder wegnavigieren, das Spiel wird trotzdem
+                  im Hintergrund fertig erstellt und erscheint als Draft unter Games.
+                </div>
+              )}
             </>
           )}
         </div>
