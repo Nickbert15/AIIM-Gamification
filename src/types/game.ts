@@ -26,26 +26,63 @@ export interface GameJson {
   contextIntro?: string
   scoring?: { maxPoints: number; passingScore: number }
   aiContextNote?: string
+  task?: string
+  initialData?: ExcelTableState
+  solutionData?: ExcelTableState
+  evaluationCriteria?: ExcelEvaluationCriterion[]
+  evaluationConfig?: ExcelEvaluationConfig
+  maxAttempts?: number
+  samplePrompt?: string
+  [key: string]: unknown
+}
+
+export interface QuestionOption {
+  id: string
+  text: string
+  [key: string]: unknown
+}
+
+export interface Question {
+  id: string
+  question: string
+  options: QuestionOption[]
+  correctAnswer: string
+  explanation?: string
   [key: string]: unknown
 }
 
 export interface Challenge {
-  id: number
-  task: string
-  context: string
-  system_prompt: string
-  evaluation_criteria: string[]
-  example_good_prompt: string
-  points: number
+  [key: string]: unknown
 }
 
-export interface Question {
-  id: number
-  question: string
-  options: { id: string; text: string }[]
-  correctAnswer: string
-  explanation: string
-  points?: number
+export type ExcelCellValue = string | number | null
+
+export interface ExcelTableState {
+  headers: string[]
+  rows: ExcelCellValue[][]
+}
+
+export interface ExcelEvaluationCriterion {
+  id: string
+  description: string
+  weight: number
+  columns: string[]
+}
+
+export interface ExcelEvaluationConfig {
+  rowOrderMatters: boolean
+  columnOrderMatters: boolean
+  numericTolerance: number
+}
+
+export interface ExcelChallengeData {
+  task: string
+  initialData: ExcelTableState
+  solutionData: ExcelTableState
+  evaluationCriteria: ExcelEvaluationCriterion[]
+  evaluationConfig: ExcelEvaluationConfig
+  maxAttempts: number
+  samplePrompt: string
 }
 
 // --- Hallucination Spotter v2 ---
