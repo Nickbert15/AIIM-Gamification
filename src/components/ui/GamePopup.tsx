@@ -74,7 +74,16 @@ export default function GamePopup({ open, onClose, variant = 'neutral', title, c
           aria-label={title}
           onClick={(e) => e.stopPropagation()}
         >
-          {title && <div className="gpop-title">{title}</div>}
+          {(title || onClose) && (
+            <div className="gpop-header">
+              {title && <div className="gpop-title">{title}</div>}
+              {onClose && (
+                <button type="button" className="gpop-close" onClick={onClose} aria-label="Schließen">
+                  ×
+                </button>
+              )}
+            </div>
+          )}
           <div className="gpop-content">{children}</div>
         </div>
       </div>
@@ -112,11 +121,40 @@ const popupStyles = `
     box-shadow: 0 20px 60px rgba(14,165,233,0.25);
   }
   .gpop-dialog.gpop-no-anim { animation: none; }
+  .gpop-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
   .gpop-title {
     font-size: 17px;
     font-weight: 700;
     color: var(--text);
-    margin-bottom: 14px;
+  }
+  .gpop-close {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text-muted);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    font-family: inherit;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .gpop-close:hover {
+    border-color: var(--accent);
+    color: var(--text);
   }
   .gpop-content {
     display: flex;

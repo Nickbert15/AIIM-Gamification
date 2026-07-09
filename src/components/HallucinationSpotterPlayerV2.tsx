@@ -213,7 +213,7 @@ export default function HallucinationSpotterPlayerV2({ game, onComplete }: Props
         )}
       </GamePopup>
 
-      <GamePopup open={confidencePopupOpen} title="Wie sicher bist du dir?">
+      <GamePopup open={confidencePopupOpen} title="Wie sicher bist du dir?" onClose={() => setConfidencePopupOpen(false)}>
         <ConfidenceSlider
           value={confidenceValue}
           onChange={setConfidenceValue}
@@ -226,7 +226,7 @@ export default function HallucinationSpotterPlayerV2({ game, onComplete }: Props
         </div>
       </GamePopup>
 
-      <GamePopup open={resultOpen} title="Deine Auswertung" variant="celebratory">
+      <GamePopup open={resultOpen} title="Deine Auswertung" variant="celebratory" onClose={() => setResultOpen(false)}>
         {showConfetti && <ConfettiBurst />}
         <div className="hsv2-result-card">
           <ScoreCounter value={totalScore} className="hsv2-score-number" suffix={`/${maxPoints}`} />
