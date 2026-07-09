@@ -71,8 +71,11 @@ export async function POST(request: Request) {
 
       let raw: string
       try {
-        raw = await callKiconnect(messages, { temperature: 0.2 })
-      } catch {
+        // Großzügiges Token-Limit: die transformierte Tabelle (bis 60 Zeilen) muss
+        // vollständig als JSON zurückkommen, sonst reißt das Array ab.
+        raw = await callKiconnect(messages, { temperature: 0.2, maxTokens: 8000 })
+      } catch (err) {
+        console.error(`[excel/execute] kiconnect-Fehler (Versuch ${i + 1}):`, err)
         continue
       }
 
@@ -80,6 +83,7 @@ export async function POST(request: Request) {
       try {
         candidate = parseJsonResponse(raw)
       } catch {
+        console.error(`[excel/execute] JSON-Parse fehlgeschlagen (Versuch ${i + 1}). Roh-Antwort:`, raw)
         continue
       }
 
@@ -87,6 +91,11 @@ export async function POST(request: Request) {
         table = candidate
         break
       }
+
+      console.error(
+        `[excel/execute] isTableState=false (Versuch ${i + 1}). Kandidat:`,
+        JSON.stringify(candidate).slice(0, 2000)
+      )
     }
 
     if (!table) {

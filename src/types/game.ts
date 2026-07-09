@@ -17,8 +17,6 @@ export interface Game {
 
 export interface GameJson {
   format?: string
-  questions?: Question[]
-  challenges?: Challenge[]
   scoring?: { maxPoints: number; passingScore: number }
   aiContextNote?: string
   task?: string
@@ -29,25 +27,6 @@ export interface GameJson {
   maxAttempts?: number
   samplePrompt?: string
   [key: string]: unknown
-}
-
-export interface Challenge {
-  id: number
-  task: string
-  context: string
-  system_prompt: string
-  evaluation_criteria: string[]
-  example_good_prompt: string
-  points: number
-}
-
-export interface Question {
-  id: number
-  question: string
-  options: { id: string; text: string }[]
-  correctAnswer: string
-  explanation: string
-  points?: number
 }
 
 export type ExcelCellValue = string | number | null

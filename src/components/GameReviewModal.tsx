@@ -234,31 +234,9 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
               </div>
             </div>
 
-            {game.game_json.format === 'chat_challenge' ? (
+            {game.format === 'excel_challenge' ? (
               <div>
-                <p className="grm-section-title">Aufgaben ({(game.game_json.challenges ?? []).length})</p>
-                <div className="grm-question-list">
-                  {(game.game_json.challenges ?? []).map((c, i) => (
-                    <div key={c.id} className="grm-question-item">
-                      <div className="grm-q-text">{i + 1}. {c.task}</div>
-                      {c.evaluation_criteria?.length > 0 && (
-                        <div className="grm-q-explanation">
-                          Kriterien: {c.evaluation_criteria.join(', ')}
-                        </div>
-                      )}
-                      {c.example_good_prompt && (
-                        <div className="grm-q-answer">
-                          <span>✓</span>
-                          <span>{c.example_good_prompt}</span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : game.game_json.format === 'excel_prompt_challenge' ? (
-              <div>
-                <p className="grm-section-title">Excel-Prompt-Challenge</p>
+                <p className="grm-section-title">Excel Challenge</p>
                 <div className="grm-question-list">
                   <div className="grm-question-item">
                     <div className="grm-q-text">{game.game_json.task}</div>
@@ -288,23 +266,9 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
               </div>
             ) : (
               <div>
-                <p className="grm-section-title">Fragen ({(game.game_json.questions ?? []).length})</p>
-                <div className="grm-question-list">
-                  {(game.game_json.questions ?? []).map((q, i) => {
-                    const correctOption = q.options.find(o => o.id === q.correctAnswer)
-                    return (
-                      <div key={q.id} className="grm-question-item">
-                        <div className="grm-q-text">{i + 1}. {q.question}</div>
-                        <div className="grm-q-answer">
-                          <span>✓</span>
-                          <span>{correctOption?.text ?? q.correctAnswer}</span>
-                        </div>
-                        {q.explanation && (
-                          <div className="grm-q-explanation">{q.explanation}</div>
-                        )}
-                      </div>
-                    )
-                  })}
+                <p className="grm-section-title">Spieltyp nicht verfügbar</p>
+                <div className="grm-objective">
+                  Für das Format „{game.format || '—'}" ist keine Detailansicht verfügbar.
                 </div>
               </div>
             )}

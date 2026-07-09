@@ -9,7 +9,7 @@ interface KiconnectResponse {
 
 export async function callKiconnect(
   messages: KiconnectMessage[],
-  opts?: { temperature?: number }
+  opts?: { temperature?: number; maxTokens?: number }
 ): Promise<string> {
   const res = await fetch(process.env.KICONNECT_API_URL!, {
     method: 'POST',
@@ -18,9 +18,13 @@ export async function callKiconnect(
       Authorization: `Bearer ${process.env.KICONNECT_API_KEY!}`,
     },
     body: JSON.stringify({
-      model: 'Mistral Small 3-2-24b Instruct KI:Inferenz.nrw',
+      // Modell über Env steuerbar; Fallback = bisheriger Default.
+      model: process.env.KICONNECT_MODEL ?? 'Mistral Small 3-2-24b Instruct KI:Inferenz.nrw',
       messages,
       temperature: opts?.temperature ?? 0.3,
+      // Ohne explizites Limit greift der Gateway-Default (oft ~512-1024) und schneidet
+      // größere Tabellen-JSONs mitten im Array ab → JSON.parse scheitert.
+      max_tokens: opts?.maxTokens ?? 4096,
     }),
   })
 

@@ -11,8 +11,8 @@ interface RawGame {
   id: string
   title: string
   difficulty: string | null
+  format: string
   game_json: {
-    format?: string
     task?: string
     initialData?: ExcelTableState
     maxAttempts?: number
@@ -21,7 +21,7 @@ interface RawGame {
 
 export default async function PlayGamePage({ params }: PageProps) {
   const res = await fetch(
-    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/games?id=eq.${params.gameId}&status=eq.approved&select=id,title,difficulty,game_json`,
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/games?id=eq.${params.gameId}&status=eq.approved&select=id,title,difficulty,format,game_json`,
     {
       headers: {
         apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -43,12 +43,12 @@ export default async function PlayGamePage({ params }: PageProps) {
     )
   }
 
-  if (game.game_json.format !== 'excel_prompt_challenge' || !game.game_json.initialData) {
+  if (game.format !== 'excel_challenge' || !game.game_json.initialData) {
     return (
       <div className="empty-state">
         <div className="empty-state-icon">🚧</div>
         <div className="empty-state-text">
-          Dieser Spieltyp ist hier noch nicht spielbar — /play unterstützt aktuell nur Excel-Prompt-Challenge.
+          Spieltyp nicht verfügbar — /play unterstützt aktuell nur die Excel Challenge.
         </div>
       </div>
     )
