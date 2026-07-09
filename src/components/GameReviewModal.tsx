@@ -234,7 +234,69 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
               </div>
             </div>
 
-            {game.format === 'excel_challenge' ? (
+            {game.game_json.questions && (
+              <div>
+                <p className="grm-section-title">Fragen ({game.game_json.questions.length})</p>
+                <div className="grm-question-list">
+                  {game.game_json.questions.map((q, i) => {
+                    const correctOption = q.options.find(o => o.id === q.correctAnswer)
+                    return (
+                      <div key={q.id} className="grm-question-item">
+                        <div className="grm-q-text">{i + 1}. {q.question}</div>
+                        <div className="grm-q-answer">
+                          <span>✓</span>
+                          <span>{correctOption?.text ?? q.correctAnswer}</span>
+                        </div>
+                        {q.explanation && (
+                          <div className="grm-q-explanation">{q.explanation}</div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {game.game_json.halluRound && (
+              <div>
+                <p className="grm-section-title">
+                  Prompt-Varianten ({game.game_json.halluRound.promptOptions.length})
+                </p>
+                <div className="grm-q-text" style={{ marginBottom: 8 }}>{game.game_json.halluRound.situation}</div>
+                <div className="grm-question-list">
+                  {game.game_json.halluRound.promptOptions.map((p, i) => (
+                    <div key={p.id} className="grm-question-item">
+                      <div className="grm-q-text">{i + 1}. {p.text}</div>
+                      <div className="grm-q-answer" style={{ color: p.isRecommended ? 'var(--success)' : 'var(--text-muted)' }}>
+                        <span>{p.isRecommended ? '★' : '○'}</span>
+                        <span>{p.isRecommended ? `Empfohlen · ${p.approach}` : `Alternative · ${p.approach}`}</span>
+                      </div>
+                      {p.feedback && <div className="grm-q-explanation">{p.feedback}</div>}
+                    </div>
+                  ))}
+                </div>
+                <div className="grm-q-explanation" style={{ marginTop: 10 }}>
+                  Antworttext: {game.game_json.halluRound.answer.sentences.length} Sätze, davon{' '}
+                  {game.game_json.halluRound.answer.sentences.filter(s => s.isHallucination).length} Halluzination(en)
+                </div>
+              </div>
+            )}
+
+            {game.game_json.arenaRounds && (
+              <div>
+                <p className="grm-section-title">Arena-Runden ({game.game_json.arenaRounds.length})</p>
+                <div className="grm-question-list">
+                  {game.game_json.arenaRounds.map((r, i) => (
+                    <div key={r.id} className="grm-question-item">
+                      <div className="grm-q-text">{i + 1}. {r.taskDescription}</div>
+                      <div className="grm-q-explanation">{r.referenceOutputs.length} Referenzantworten hinterlegt</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {game.format === 'excel_challenge' && (
               <div>
                 <p className="grm-section-title">Excel Challenge</p>
                 <div className="grm-question-list">
@@ -264,7 +326,9 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
                   )}
                 </div>
               </div>
-            ) : (
+            )}
+
+            {!game.game_json.questions && !game.game_json.halluRound && !game.game_json.arenaRounds && game.format !== 'excel_challenge' && (
               <div>
                 <p className="grm-section-title">Spieltyp nicht verfügbar</p>
                 <div className="grm-objective">

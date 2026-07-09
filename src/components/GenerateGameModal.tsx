@@ -72,6 +72,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
 
   const [status, setStatus] = useState<Status>('idle')
   const [errorMessage, setErrorMessage] = useState('')
+  const [wizardV2Open, setWizardV2Open] = useState(false)
 
   // Feedback aus /api/generate: Schicht-1-Feldfehler und Schicht-2-Klärung.
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
