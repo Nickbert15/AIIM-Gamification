@@ -11,6 +11,7 @@ interface Props {
 type Status = 'idle' | 'loading' | 'success' | 'error'
 type TechStatus = 'loading' | 'success' | 'empty' | 'error'
 type Difficulty = 'easy' | 'medium' | 'hard'
+type GameType = 'excel_challenge' | 'hallucination_spotter_v2' | 'prompt_arena'
 
 interface Technology {
   id: string
@@ -41,6 +42,13 @@ const DIFFICULTIES: { value: Difficulty; label: string }[] = [
   { value: 'hard', label: 'Schwer' },
 ]
 
+// Werte identisch mit der Spalte games.format.
+const GAME_TYPES: { value: GameType; label: string }[] = [
+  { value: 'excel_challenge', label: 'Excel Challenge' },
+  { value: 'hallucination_spotter_v2', label: 'Hallucination Spotter' },
+  { value: 'prompt_arena', label: 'Prompt Arena' },
+]
+
 // Neueste zuerst, dann pro label nur den ersten (= neuesten) Eintrag behalten.
 function dedupeByLabel(rows: Technology[]): Technology[] {
   const sorted = [...rows].sort(
@@ -68,6 +76,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
   const [learningGoalCustom, setLearningGoalCustom] = useState('')
   const [goalOpen, setGoalOpen] = useState(false)
 
+  const [gameType, setGameType] = useState<GameType>('excel_challenge')
   const [difficulty, setDifficulty] = useState<Difficulty>('easy')
 
   const [status, setStatus] = useState<Status>('idle')
@@ -161,6 +170,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
     setLearningGoal('')
     setLearningGoalCustom('')
     setGoalOpen(false)
+    setGameType('excel_challenge')
     setDifficulty('easy')
     setErrorMessage('')
     setFieldErrors({})
@@ -210,7 +220,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
           technologyCustom: technologyId === OTHER ? technologyCustom.trim() : null,
           learningGoal,
           learningGoalCustom: learningGoal === OTHER ? learningGoalCustom.trim() : null,
-          gameType: 'excel_challenge',
+          gameType,
           difficulty,
           acknowledgedWarning,
         }),
@@ -725,8 +735,16 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
               {/* ── 3. Spieltyp ── */}
               <div className="ggm-field">
                 <label className="ggm-label">Spieltyp</label>
-                <select className="ggm-select" value="excel_challenge" disabled>
-                  <option value="excel_challenge">Excel Challenge</option>
+                <select
+                  className="ggm-select"
+                  value={gameType}
+                  onChange={(e) => setGameType(e.target.value as GameType)}
+                >
+                  {GAME_TYPES.map((g) => (
+                    <option key={g.value} value={g.value}>
+                      {g.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 

@@ -5,6 +5,9 @@ import { clarifyCustomInput } from '@/lib/inputClarification'
 
 type Difficulty = 'easy' | 'medium' | 'hard'
 
+// Kanonische Spieltyp-Werte — identisch mit der Spalte games.format.
+type GameType = 'excel_challenge' | 'hallucination_spotter_v2' | 'prompt_arena'
+
 interface GenerateRequest {
   technologyId: string
   technologyCustom: string | null
@@ -16,6 +19,21 @@ interface GenerateRequest {
 }
 
 const DIFFICULTIES: Difficulty[] = ['easy', 'medium', 'hard']
+const GAME_TYPES: GameType[] = ['excel_challenge', 'hallucination_spotter_v2', 'prompt_arena']
+
+// Jeder Spieltyp hat seinen eigenen n8n-Workflow. process.env wird bewusst mit
+// statischen Schlüsseln gelesen (kein process.env[dynamic]), damit der Next-Build
+// die Werte weiterhin auflösen kann.
+function resolveWebhook(gameType: GameType): { envKey: string; url: string | undefined } {
+  switch (gameType) {
+    case 'excel_challenge':
+      return { envKey: 'N8N_EXCEL_WEBHOOK_URL', url: process.env.N8N_EXCEL_WEBHOOK_URL }
+    case 'hallucination_spotter_v2':
+      return { envKey: 'N8N_HALLUCINATION_WEBHOOK_URL', url: process.env.N8N_HALLUCINATION_WEBHOOK_URL }
+    case 'prompt_arena':
+      return { envKey: 'N8N_ARENA_WEBHOOK_URL', url: process.env.N8N_ARENA_WEBHOOK_URL }
+  }
+}
 
 function isNonEmptyString(v: unknown): v is string {
   return typeof v === 'string' && v.trim().length > 0
@@ -63,8 +81,8 @@ export async function POST(request: Request) {
     errors.push('learningGoal fehlt')
   }
 
-  if (body.gameType !== 'excel_challenge') {
-    errors.push('gameType muss "excel_challenge" sein')
+  if (!GAME_TYPES.includes(body.gameType as GameType)) {
+    errors.push(`gameType muss ${GAME_TYPES.map((t) => `"${t}"`).join(' | ')} sein`)
   }
 
   if (!DIFFICULTIES.includes(body.difficulty as Difficulty)) {
@@ -126,11 +144,12 @@ export async function POST(request: Request) {
     technologyWhatsNew = techRow?.whats_new ?? null
   }
 
-  // ── An n8n-Workflow "Game Generator: Excel" übergeben ──
-  const webhookUrl = process.env.N8N_EXCEL_WEBHOOK_URL
+  // ── An den n8n-Workflow des jeweiligen Spieltyps übergeben ──
+  const gameType = body.gameType as GameType
+  const { envKey, url: webhookUrl } = resolveWebhook(gameType)
   if (!webhookUrl) {
     return Response.json(
-      { ok: false, stage: 'generation', errors: ['N8N_EXCEL_WEBHOOK_URL ist nicht konfiguriert'] },
+      { ok: false, stage: 'generation', errors: [`${envKey} ist nicht konfiguriert`] },
       { status: 502 }
     )
   }
@@ -142,7 +161,7 @@ export async function POST(request: Request) {
     technologyWhatsNew,
     learningGoal: body.learningGoal,
     learningGoalCustom: body.learningGoal === 'other' ? body.learningGoalCustom!.trim() : null,
-    gameType: 'excel_challenge' as const,
+    gameType,
     difficulty: body.difficulty as Difficulty,
     requestedBy,
   }
