@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Award, Star, TrendingUp, Zap, type LucideIcon } from 'lucide-react'
 import { Game, BranchNode, BranchOption } from '@/types/game'
 import GamePopup from './ui/GamePopup'
 import ScoreCounter from './ui/ScoreCounter'
@@ -135,9 +136,9 @@ export default function BranchingGamePlayer({ game, onComplete }: Props) {
         title="So funktioniert der Prompt-Navigator"
         termExplanation="Du bekommst ein Szenario aus dem Arbeitsalltag und wählst einen Prompt (eine Anfrage an die KI) aus mehreren Optionen. Manche Formulierungen liefern brauchbare Ergebnisse, andere nicht — genau das lernst du hier zu unterscheiden."
         steps={[
-          { icon: '1️⃣', text: 'Du liest das Szenario und wählst einen von mehreren möglichen Prompts.' },
-          { icon: '2️⃣', text: 'Ein Popup zeigt dir, was die KI daraus macht. Du bestätigst oder wählst neu.' },
-          { icon: '3️⃣', text: 'Du bekommst Punkte und eine Begründung, warum der Prompt gut oder weniger gut war.' },
+          { text: 'Du liest das Szenario und wählst einen von mehreren möglichen Prompts.' },
+          { text: 'Ein Popup zeigt dir, was die KI daraus macht. Du bestätigst oder wählst neu.' },
+          { text: 'Du bekommst Punkte und eine Begründung, warum der Prompt gut oder weniger gut war.' },
         ]}
         onDismiss={() => setHowToPlayOpen(false)}
       />
@@ -145,12 +146,12 @@ export default function BranchingGamePlayer({ game, onComplete }: Props) {
       {/* ---------- Recap / Ende ---------- */}
       {node.type === 'end' && (() => {
         const pct = maxPoints > 0 ? Math.round((totalScore / maxPoints) * 100) : 0
-        const badges: { icon: string; label: string }[] = []
-        if (pct >= 90) badges.push({ icon: '🏆', label: 'Prompt-Profi' })
-        else if (pct >= 60) badges.push({ icon: '⭐', label: 'Gut gemacht' })
-        else badges.push({ icon: '📈', label: 'Weiter üben' })
+        const badges: { icon: LucideIcon; label: string }[] = []
+        if (pct >= 90) badges.push({ icon: Award, label: 'Prompt-Profi' })
+        else if (pct >= 60) badges.push({ icon: Star, label: 'Gut gemacht' })
+        else badges.push({ icon: TrendingUp, label: 'Weiter üben' })
         const volltreffer = path[0]?.id === 'prompt_d'
-        if (volltreffer) badges.push({ icon: '⚡', label: 'Volltreffer' })
+        if (volltreffer) badges.push({ icon: Zap, label: 'Volltreffer' })
 
         return (
           <div className="pnav-container">
