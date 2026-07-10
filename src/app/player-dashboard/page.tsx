@@ -161,13 +161,8 @@ export default function PlayerDashboardPage() {
           ) : (
             <div className="game-grid">
               {games.map((game) => {
-                const challengeCount = game.game_json?.challenges?.length ?? 0
                 const questionCount = game.game_json?.questions?.length ?? 0
-                const isChat = game.game_json?.format === 'chat_challenge' && challengeCount > 0
-                const isQuiz = questionCount > 0
-                const kind = isChat
-                  ? { icon: '💬', label: 'Prompt-Challenge', count: `${challengeCount} ${challengeCount === 1 ? 'Aufgabe' : 'Aufgaben'}` }
-                  : isQuiz
+                const kind = questionCount > 0
                   ? { icon: '❓', label: 'Quiz', count: `${questionCount} ${questionCount === 1 ? 'Frage' : 'Fragen'}` }
                   : { icon: '🎮', label: game.format ?? 'Spiel', count: '' }
                 return (

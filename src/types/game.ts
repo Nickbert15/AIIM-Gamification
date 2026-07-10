@@ -18,7 +18,6 @@ export interface Game {
 export interface GameJson {
   format?: string
   questions?: Question[]
-  challenges?: Challenge[]
   promptOptions?: HallucinationPromptOption[]
   outputVariants?: HallucinationOutputVariant[]
   halluRound?: HalluRoundV2
@@ -48,10 +47,7 @@ export interface Question {
   options: QuestionOption[]
   correctAnswer: string
   explanation?: string
-  [key: string]: unknown
-}
-
-export interface Challenge {
+  points?: number
   [key: string]: unknown
 }
 

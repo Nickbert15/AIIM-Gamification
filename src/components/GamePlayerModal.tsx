@@ -2,7 +2,6 @@
 
 import { useCallback, useState } from 'react'
 import { Game, Question } from '@/types/game'
-import ChatGamePlayer from './ChatGamePlayer'
 
 interface Props {
   game: Game
@@ -32,20 +31,19 @@ export default function GamePlayerModal({ game, onClose, onSaved }: Props) {
     }
   }, [game.id, onSaved])
 
-  const isChat = game.game_json?.format === 'chat_challenge' && (game.game_json?.challenges?.length ?? 0) > 0
   const isQuiz = (game.game_json?.questions?.length ?? 0) > 0
-  const mode: 'chat' | 'quiz' | 'unsupported' = isChat ? 'chat' : isQuiz ? 'quiz' : 'unsupported'
+  const mode: 'quiz' | 'unsupported' = isQuiz ? 'quiz' : 'unsupported'
 
   return (
     <>
       <style>{gplStyles}</style>
       <div className="gpl-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
-        <div className="gpl-card" style={{ maxWidth: mode === 'chat' ? 720 : 620 }}>
+        <div className="gpl-card" style={{ maxWidth: 620 }}>
           <div className="gpl-header">
             <div>
               <h2 className="gpl-title">{game.title}</h2>
               <div className="gpl-subtitle">
-                {[mode === 'chat' ? 'Prompt-Challenge' : mode === 'quiz' ? 'Quiz' : game.format, game.difficulty, game.topic]
+                {[mode === 'quiz' ? 'Quiz' : game.format, game.difficulty, game.topic]
                   .filter(Boolean)
                   .join(' · ')}
               </div>
@@ -61,7 +59,6 @@ export default function GamePlayerModal({ game, onClose, onSaved }: Props) {
             </div>
           )}
 
-          {mode === 'chat' && <ChatGamePlayer game={game} onComplete={saveScore} />}
           {mode === 'quiz' && <QuizPlayer game={game} onComplete={saveScore} onClose={onClose} />}
           {mode === 'unsupported' && (
             <div className="gpl-body">
