@@ -13,17 +13,11 @@ export async function GET() {
     return NextResponse.json({ error: 'invalid_token' }, { status: 401 })
   }
 
-  const [{ data: player }, { data: stats }, { data: history }] = await Promise.all([
+  const [{ data: player }, { data: history }] = await Promise.all([
     supabaseAdmin
       .from('players')
       .select('id, email, display_name, role')
       .eq('id', playerId)
-      .single(),
-
-    supabaseAdmin
-      .from('player_scores')
-      .select('games_played, total_score, avg_score, best_score')
-      .eq('player_id', playerId)
       .single(),
 
     supabaseAdmin
@@ -35,14 +29,17 @@ export async function GET() {
 
   if (!player) return NextResponse.json({ error: 'player_not_found' }, { status: 404 })
 
+  const rows = history ?? []
+  const total_score = rows.reduce((sum: number, r: any) => sum + (r.score ?? 0), 0)
+
   return NextResponse.json({
     player,
     stats: {
-      games_played: stats?.games_played ?? 0,
-      total_score: stats?.total_score ?? 0,
-      avg_score: stats?.avg_score ?? 0,
-      best_score: stats?.best_score ?? 0,
+      games_played: rows.length,
+      total_score,
+      avg_score: rows.length ? total_score / rows.length : 0,
+      best_score: rows.reduce((max: number, r: any) => Math.max(max, r.score ?? 0), 0),
     },
-    history: history ?? [],
+    history: rows,
   })
 }
