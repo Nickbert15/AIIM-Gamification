@@ -4,7 +4,9 @@ import { SESSION_COOKIE, verifyToken } from '@/lib/session'
 // Erste Verteidigungslinie: authentifiziert, nicht autorisiert. Der Admin-Check
 // braucht die DB und passiert deshalb in src/app/admin/layout.tsx bzw. in den
 // /api/admin-Routen.
-const PUBLIC_PATHS = new Set(['/login', '/api/auth/login', '/api/auth/logout'])
+// /play/demo ist bewusst öffentlich: reine Client-Vorschau mit hart codierten
+// Beispieldaten (src/content/promptNavigatorDemo.ts), ohne Netzwerk-/DB-Zugriff.
+const PUBLIC_PATHS = new Set(['/login', '/api/auth/login', '/api/auth/logout', '/play/demo'])
 
 export async function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl

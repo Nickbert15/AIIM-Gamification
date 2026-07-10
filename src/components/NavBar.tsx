@@ -63,6 +63,7 @@ export default function NavBar() {
         <div className="nav-links">
           <Link href="/" className={linkClass('/')}>Leaderboard</Link>
           <Link href="/player-dashboard" className={linkClass('/player-dashboard')}>Player Dashboard</Link>
+          <Link href="/play/demo" className={linkClass('/play/demo')}>Prompt-Navigator (Demo)</Link>
           {player?.is_admin && <Link href="/admin" className={linkClass('/admin')}>Admin</Link>}
 
           <div className="nav-user" ref={menuRef}>
