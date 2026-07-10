@@ -6,7 +6,7 @@ import { clarifyCustomInput } from '@/lib/inputClarification'
 type Difficulty = 'easy' | 'medium' | 'hard'
 
 // Kanonische Spieltyp-Werte — identisch mit der Spalte games.format.
-type GameType = 'excel_challenge' | 'hallucination_spotter_v2' | 'prompt_arena'
+type GameType = 'excel_challenge' | 'hallucination_spotter_v2' | 'prompt_arena' | 'prompt_branching'
 
 interface GenerateRequest {
   technologyId: string
@@ -19,7 +19,7 @@ interface GenerateRequest {
 }
 
 const DIFFICULTIES: Difficulty[] = ['easy', 'medium', 'hard']
-const GAME_TYPES: GameType[] = ['excel_challenge', 'hallucination_spotter_v2', 'prompt_arena']
+const GAME_TYPES: GameType[] = ['excel_challenge', 'hallucination_spotter_v2', 'prompt_arena', 'prompt_branching']
 
 // Jeder Spieltyp hat seinen eigenen n8n-Workflow. process.env wird bewusst mit
 // statischen Schlüsseln gelesen (kein process.env[dynamic]), damit der Next-Build
@@ -32,6 +32,8 @@ function resolveWebhook(gameType: GameType): { envKey: string; url: string | und
       return { envKey: 'N8N_HALLUCINATION_WEBHOOK_URL', url: process.env.N8N_HALLUCINATION_WEBHOOK_URL }
     case 'prompt_arena':
       return { envKey: 'N8N_ARENA_WEBHOOK_URL', url: process.env.N8N_ARENA_WEBHOOK_URL }
+    case 'prompt_branching':
+      return { envKey: 'N8N_BRANCHING_WEBHOOK_URL', url: process.env.N8N_BRANCHING_WEBHOOK_URL }
   }
 }
 
