@@ -118,7 +118,7 @@ const popupStyles = `
   }
   .gpop-dialog.gpop-celebratory {
     border-color: var(--accent);
-    box-shadow: 0 20px 60px rgba(14,165,233,0.25);
+    box-shadow: 0 20px 60px rgba(255,173,0,0.25);
   }
   .gpop-dialog.gpop-no-anim { animation: none; }
   .gpop-header {

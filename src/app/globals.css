@@ -1,20 +1,36 @@
 :root {
-  --bg: #0a0f1e;
-  --bg-card: #111827;
-  --bg-card-hover: #1a2235;
-  --border: #1e2d45;
-  --accent: #0ea5e9;
-  --accent-dim: #0369a1;
-  --gold: #f59e0b;
-  --silver: #94a3b8;
+  /* Lufthansa Corporate Design */
+  --lh-blue:       #0A1D3D;   /* Primär, Night Sky / Maastricht Blue */
+  --lh-yellow:     #FFAD00;   /* Akzent, klassisches Lufthansa-Gelb */
+  --lh-yellow-alt: #FBBB04;   /* Variante aus dem Booking-UI */
+  --lh-white:      #FFFFFF;
+  --lh-gray-1:     #9B9B9B;
+  --lh-gray-2:     #B4B4B4;
+  --lh-gray-3:     #DCDCDC;
+
+  --lh-font-head: "Lufthansa Head", "Helvetica Neue", Inter, Arimo, sans-serif;
+  --lh-font-text: "Lufthansa Text", "Helvetica Neue", Inter, Arimo, sans-serif;
+
+  /* Helles Theme: weiße Fläche, Night Sky als Typo- und Primärfarbe */
+  --bg: #FFFFFF;
+  --bg-card: #F7F8FA;
+  --bg-card-hover: #EFF2F6;
+  --border: #E3E6EA;
+  --accent: var(--lh-yellow);
+  --accent-dim: #D99300;      /* Hover-Zustand des Gelbs */
+  --accent-text: #8A6400;     /* lesbares Gelb-Derivat für Text auf hellem Grund */
+  --primary: var(--lh-blue);
+  --primary-hover: #16325E;
+  --gold: var(--lh-yellow);
+  --silver: var(--lh-gray-1);
   --bronze: #b45309;
-  --text: #f1f5f9;
-  --text-muted: #64748b;
-  --text-dim: #94a3b8;
-  --success: #10b981;
-  --danger: #ef4444;
-  --danger-dim: #7f1d1d;
-  --radius: 10px;
+  --text: var(--lh-blue);
+  --text-muted: var(--lh-gray-1);
+  --text-dim: #5C6B82;
+  --success: #0e9f6e;
+  --danger: #dc2626;
+  --danger-dim: #fca5a5;
+  --radius: 6px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -22,15 +38,14 @@
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--lh-font-text);
   min-height: 100vh;
 }
 
 /* NAV */
 .nav-bar {
-  border-bottom: 1px solid var(--border);
-  background: rgba(10,15,30,0.95);
-  backdrop-filter: blur(12px);
+  border-bottom: 3px solid var(--lh-yellow);
+  background: var(--lh-blue);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -49,29 +64,40 @@ body {
   align-items: center;
   gap: 10px;
   text-decoration: none;
-  color: var(--text);
+  color: var(--lh-white);
   font-weight: 700;
   font-size: 16px;
 }
-.logo-icon { font-size: 20px; }
-.logo-text { color: var(--text); }
+.logo-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--lh-yellow);
+  color: var(--lh-blue);
+  font-size: 16px;
+}
+.logo-text { color: var(--lh-white); }
 .nav-links { display: flex; gap: 8px; }
 .nav-link {
   padding: 6px 14px;
   border-radius: 6px;
   text-decoration: none;
-  color: var(--text-dim);
+  color: var(--lh-gray-3);
   font-size: 14px;
   font-weight: 500;
   transition: all 0.15s;
 }
-.nav-link:hover { color: var(--text); background: var(--bg-card); }
+.nav-link:hover { color: var(--lh-white); background: rgba(255,255,255,0.12); }
 .nav-link-admin {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  color: var(--accent);
+  background: var(--lh-yellow);
+  border: 1px solid var(--lh-yellow);
+  color: var(--lh-blue);
+  font-weight: 600;
 }
-.nav-link-admin:hover { border-color: var(--accent); background: var(--bg-card-hover); }
+.nav-link-admin:hover { background: var(--accent-dim); border-color: var(--accent-dim); color: var(--lh-blue); }
 
 /* LAYOUT */
 .main-content {
@@ -83,6 +109,7 @@ body {
   margin-bottom: 32px;
 }
 .page-title {
+  font-family: var(--lh-font-head);
   font-size: 28px;
   font-weight: 700;
   color: var(--text);
@@ -154,7 +181,7 @@ body {
 .score-value {
   font-size: 20px;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--lh-blue);
   text-align: right;
 }
 .score-label {
@@ -186,7 +213,7 @@ body {
   color: var(--text-muted);
   margin-top: 4px;
 }
-.stat-accent .stat-value { color: var(--accent); }
+.stat-accent .stat-value { color: var(--lh-blue); }
 
 /* TABLES */
 .table-wrapper {
@@ -248,7 +275,7 @@ input, select {
   width: 100%;
 }
 input:focus, select:focus {
-  border-color: var(--accent);
+  border-color: var(--lh-blue);
 }
 select option { background: var(--bg-card); }
 
@@ -266,10 +293,10 @@ select option { background: var(--bg-card); }
   transition: all 0.15s;
 }
 .btn-primary {
-  background: var(--accent);
-  color: white;
+  background: var(--primary);
+  color: var(--lh-white);
 }
-.btn-primary:hover { background: var(--accent-dim); }
+.btn-primary:hover { background: var(--primary-hover); }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-danger {
   background: transparent;
@@ -313,7 +340,12 @@ select option { background: var(--bg-card); }
   transition: all 0.15s;
 }
 .admin-subnav-link:hover { color: var(--text); }
-.admin-subnav-link.active { color: var(--accent); border-bottom-color: var(--accent); }
+.admin-subnav-link.active {
+  color: var(--lh-blue);
+  font-weight: 600;
+  border-bottom-color: var(--lh-yellow);
+  border-bottom-width: 3px;
+}
 
 /* EMPTY STATE */
 .empty-state {

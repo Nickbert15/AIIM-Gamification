@@ -28,6 +28,6 @@ const starStyles = `
     font-size: 24px;
     line-height: 1;
   }
-  .star-filled { color: #f59e0b; }
+  .star-filled { color: #FFAD00; }
   .star-empty { color: var(--border); }
 `

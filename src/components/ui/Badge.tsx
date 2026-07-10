@@ -24,9 +24,9 @@ const badgeStyles = `
     gap: 6px;
     padding: 6px 14px;
     border-radius: 9999px;
-    background: rgba(245,158,11,0.12);
-    border: 1px solid rgba(245,158,11,0.35);
-    color: #f59e0b;
+    background: rgba(255,173,0,0.12);
+    border: 1px solid rgba(255,173,0,0.35);
+    color: var(--accent-text);
     font-size: 13px;
     font-weight: 700;
   }

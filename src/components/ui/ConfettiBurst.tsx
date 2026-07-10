@@ -11,7 +11,7 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false
 }
 
-const COLORS = ['#0ea5e9', '#10b981', '#f59e0b', '#e0f2fe', '#7dd3fc']
+const COLORS = ['#FFAD00', '#FBBB04', '#0A1D3D', '#DCDCDC', '#3B5C8F']
 
 // Self-built canvas confetti (no npm package): a one-shot burst of falling,
 // rotating rectangles that fades out on its own. Skipped entirely under

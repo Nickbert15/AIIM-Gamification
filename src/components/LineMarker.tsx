@@ -99,7 +99,7 @@ const lmStyles = `
   }
   .lm-line:hover:not(.lm-static) {
     border-color: var(--accent);
-    background: rgba(14,165,233,0.06);
+    background: rgba(255,173,0,0.06);
   }
   .lm-line:active:not(.lm-static) {
     transform: scale(0.997);
@@ -134,15 +134,15 @@ const lmStyles = `
     margin-top: 1px;
   }
   .lm-line.lm-marked {
-    border-color: #f59e0b;
-    background: rgba(245,158,11,0.08);
+    border-color: #FFAD00;
+    background: rgba(255,173,0,0.08);
   }
   .lm-line.lm-marked .lm-index {
-    background: #f59e0b;
-    color: #fff;
+    background: #FFAD00;
+    color: #0A1D3D;
   }
   .lm-line.lm-marked .lm-marker-icon {
-    color: #f59e0b;
+    color: var(--accent-text);
   }
   .lm-line.lm-state-correct {
     border-color: var(--success);
@@ -157,12 +157,12 @@ const lmStyles = `
   }
   .lm-line.lm-state-incorrect .lm-marker-icon { color: var(--danger); }
   .lm-line.lm-state-missed {
-    border-color: #f59e0b;
-    background: rgba(245,158,11,0.06);
+    border-color: #FFAD00;
+    background: rgba(255,173,0,0.06);
     border-style: dashed;
     animation: lm-pulse-missed 0.9s ease;
   }
-  .lm-line.lm-state-missed .lm-marker-icon { color: #f59e0b; }
+  .lm-line.lm-state-missed .lm-marker-icon { color: var(--accent-text); }
   @keyframes lm-pulse-correct {
     0% { background: rgba(16,185,129,0.5); }
     100% { background: rgba(16,185,129,0.1); }
@@ -172,8 +172,8 @@ const lmStyles = `
     100% { background: rgba(239,68,68,0.08); }
   }
   @keyframes lm-pulse-missed {
-    0% { background: rgba(245,158,11,0.35); }
-    100% { background: rgba(245,158,11,0.06); }
+    0% { background: rgba(255,173,0,0.35); }
+    100% { background: rgba(255,173,0,0.06); }
   }
   @media (prefers-reduced-motion: reduce) {
     .lm-line.lm-state-correct, .lm-line.lm-state-incorrect, .lm-line.lm-state-missed {
@@ -201,5 +201,5 @@ const lmStyles = `
   }
   .lm-dot.lm-state-correct { background: var(--success); }
   .lm-dot.lm-state-incorrect { background: var(--danger); }
-  .lm-dot.lm-state-missed { background: #f59e0b; }
+  .lm-dot.lm-state-missed { background: #FFAD00; }
 `

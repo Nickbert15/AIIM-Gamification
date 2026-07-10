@@ -385,7 +385,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
           border-radius: 8px;
         }
         .ggm-combo-row:hover { background: rgba(148,163,184,0.08); }
-        .ggm-combo-row[data-selected="true"] { background: rgba(14,165,233,0.1); }
+        .ggm-combo-row[data-selected="true"] { background: rgba(255,173,0,0.1); }
         .ggm-combo-option {
           flex: 1;
           background: transparent;
@@ -418,7 +418,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
         .ggm-info-wrap:hover .ggm-info-icon,
         .ggm-info-wrap:focus-within .ggm-info-icon {
           border-color: var(--accent);
-          color: var(--accent);
+          color: var(--accent-text);
         }
         .ggm-tooltip {
           display: none;
@@ -445,7 +445,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
         .ggm-tooltip-link {
           font-size: 12px;
           font-weight: 600;
-          color: var(--accent);
+          color: var(--accent-text);
           text-decoration: none;
         }
         .ggm-tooltip-link:hover { text-decoration: underline; }
@@ -463,9 +463,9 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
           line-height: 1.5;
         }
         .ggm-clarify--warn {
-          background: rgba(245,158,11,0.1);
-          border: 1px solid rgba(245,158,11,0.35);
-          color: #f59e0b;
+          background: rgba(255,173,0,0.1);
+          border: 1px solid rgba(255,173,0,0.35);
+          color: var(--accent-text);
         }
         .ggm-clarify--block {
           background: rgba(239,68,68,0.1);

@@ -348,9 +348,9 @@ const wz2Styles = `
     cursor: pointer; font-size: 12px; font-weight: 600; font-family: inherit;
     transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
   }
-  .wz2-recommend-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .wz2-recommend-btn:hover { border-color: var(--accent); color: var(--accent-text); }
   .wz2-recommend-btn.active {
-    border-color: #f59e0b; color: #f59e0b; background: rgba(245,158,11,0.1);
+    border-color: #FFAD00; color: var(--accent-text); background: rgba(255,173,0,0.1);
   }
   .wz2-verdict-row { display: flex; gap: 8px; }
   .wz2-verdict-btn {

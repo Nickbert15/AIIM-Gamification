@@ -45,8 +45,8 @@ const htpStyles = `
     font-size: 13px;
     color: var(--text-dim);
     line-height: 1.6;
-    background: rgba(14,165,233,0.05);
-    border: 1px solid rgba(14,165,233,0.2);
+    background: rgba(255,173,0,0.05);
+    border: 1px solid rgba(255,173,0,0.2);
     border-radius: var(--radius);
     padding: 12px 14px;
     margin: 0;

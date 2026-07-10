@@ -48,8 +48,8 @@ const stepStyles = `
   }
   .step-pill.active {
     border-color: var(--accent);
-    color: var(--accent);
-    background: rgba(14,165,233,0.08);
+    color: var(--accent-text);
+    background: rgba(255,173,0,0.08);
   }
   .step-pill.done {
     border-color: var(--success);

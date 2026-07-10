@@ -230,7 +230,7 @@ export default function GamesClient({ games: initialGames }: Props) {
           font-family: inherit;
         }
         .gp-filter-btn:hover { border-color: var(--accent); color: var(--text); }
-        .gp-filter-btn.active { border-color: var(--accent); background: rgba(14,165,233,0.08); color: var(--text); }
+        .gp-filter-btn.active { border-color: var(--accent); background: rgba(255,173,0,0.08); color: var(--text); }
         .gp-filter-count {
           background: var(--bg);
           border-radius: 9999px;
@@ -238,7 +238,7 @@ export default function GamesClient({ games: initialGames }: Props) {
           font-size: 11px;
           color: var(--text-muted);
         }
-        .gp-filter-btn.active .gp-filter-count { color: var(--accent); }
+        .gp-filter-btn.active .gp-filter-count { color: var(--accent-text); }
         .gp-grid { display: flex; flex-direction: column; gap: 12px; }
         .gp-card {
           background: var(--bg-card);
@@ -250,7 +250,7 @@ export default function GamesClient({ games: initialGames }: Props) {
           gap: 12px;
           transition: border-color 0.15s;
         }
-        .gp-card:hover { border-color: rgba(14,165,233,0.3); }
+        .gp-card:hover { border-color: rgba(255,173,0,0.3); }
         .gp-card-header {
           display: flex;
           align-items: flex-start;

@@ -125,20 +125,20 @@ const htStyles = `
     outline-offset: 2px;
   }
   .ht-sentence:hover, .ht-sentence.ht-hovered {
-    background: rgba(14,165,233,0.12);
+    background: rgba(10,29,61,0.05);
   }
   .ht-sentence:focus-visible {
     outline: 2px solid var(--accent);
   }
   .ht-sentence.ht-marked {
-    background: rgba(245,158,11,0.18);
-    box-shadow: inset 0 -2px 0 #f59e0b;
+    background: rgba(255,173,0,0.18);
+    box-shadow: inset 0 -2px 0 #FFAD00;
   }
   .ht-icon {
     font-weight: 800;
     font-size: 12px;
   }
-  .ht-sentence.ht-marked .ht-icon { color: #f59e0b; }
+  .ht-sentence.ht-marked .ht-icon { color: var(--accent-text); }
   .ht-sentence.ht-state-correct {
     background: rgba(16,185,129,0.16);
     box-shadow: inset 0 -2px 0 var(--success);
@@ -150,11 +150,11 @@ const htStyles = `
   }
   .ht-sentence.ht-state-incorrect .ht-icon { color: var(--danger); }
   .ht-sentence.ht-state-missed {
-    background: rgba(245,158,11,0.12);
-    box-shadow: inset 0 -2px 0 #f59e0b;
-    border-bottom: 1px dashed #f59e0b;
+    background: rgba(255,173,0,0.12);
+    box-shadow: inset 0 -2px 0 #FFAD00;
+    border-bottom: 1px dashed #FFAD00;
   }
-  .ht-sentence.ht-state-missed .ht-icon { color: #f59e0b; }
+  .ht-sentence.ht-state-missed .ht-icon { color: var(--accent-text); }
   .ht-popover {
     display: inline-block;
     font-size: 12px;
@@ -191,7 +191,7 @@ const htStyles = `
   }
   .ht-dot.ht-state-correct { background: var(--success); }
   .ht-dot.ht-state-incorrect { background: var(--danger); }
-  .ht-dot.ht-state-missed { background: #f59e0b; }
+  .ht-dot.ht-state-missed { background: #FFAD00; }
   @media (prefers-reduced-motion: reduce) {
     .ht-sentence { transition: none; }
   }

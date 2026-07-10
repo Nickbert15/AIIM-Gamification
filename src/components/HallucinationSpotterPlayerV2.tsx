@@ -269,8 +269,8 @@ const hsv2Styles = `
     gap: 16px;
   }
   .hsv2-intro {
-    background: rgba(14,165,233,0.05);
-    border: 1px solid rgba(14,165,233,0.2);
+    background: rgba(255,173,0,0.05);
+    border: 1px solid rgba(255,173,0,0.2);
     border-radius: var(--radius);
     padding: 14px 16px;
     font-size: 13px;
@@ -304,11 +304,11 @@ const hsv2Styles = `
   }
   .hsv2-prompt-card:hover:not(:disabled) {
     border-color: var(--accent);
-    background: rgba(14,165,233,0.06);
+    background: rgba(255,173,0,0.06);
   }
   .hsv2-prompt-card.chosen {
     border-color: var(--accent);
-    background: rgba(14,165,233,0.1);
+    background: rgba(255,173,0,0.1);
   }
   .hsv2-prompt-card.dimmed { opacity: 0.4; }
   .hsv2-prompt-card:disabled { cursor: default; }
@@ -328,9 +328,9 @@ const hsv2Styles = `
   }
   .hsv2-popup-hint {
     font-size: 12px;
-    color: var(--accent);
-    background: rgba(14,165,233,0.06);
-    border: 1px solid rgba(14,165,233,0.2);
+    color: var(--accent-text);
+    background: rgba(255,173,0,0.06);
+    border: 1px solid rgba(255,173,0,0.2);
     border-radius: var(--radius);
     padding: 10px 12px;
     margin: 0;
@@ -346,7 +346,7 @@ const hsv2Styles = `
   .hsv2-score-number {
     font-size: 44px;
     font-weight: 800;
-    color: var(--accent);
+    color: var(--accent-text);
     line-height: 1;
   }
   .hsv2-score-label { font-size: 13px; color: var(--text-muted); }
@@ -368,9 +368,9 @@ const hsv2Styles = `
   .hsv2-lesson {
     font-size: 13px;
     font-weight: 600;
-    color: var(--accent);
-    background: rgba(14,165,233,0.06);
-    border: 1px solid rgba(14,165,233,0.2);
+    color: var(--accent-text);
+    background: rgba(255,173,0,0.06);
+    border: 1px solid rgba(255,173,0,0.2);
     border-radius: var(--radius);
     padding: 12px 14px;
     text-align: center;

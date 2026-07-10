@@ -132,7 +132,7 @@ const styles = `
   }
   .gpm-option:hover:not(:disabled) {
     border-color: var(--accent);
-    background: rgba(14,165,233,0.06);
+    background: rgba(255,173,0,0.06);
   }
   .gpm-option:disabled { cursor: default; }
   .gpm-option.opt-correct { border-color: rgba(16,185,129,0.6); background: rgba(16,185,129,0.06); }
@@ -141,7 +141,7 @@ const styles = `
   .gpm-option-label { display: block; font-weight: 600; }
   .gpm-feedback {
     border-left: 3px solid var(--accent);
-    background: rgba(14,165,233,0.06);
+    background: rgba(255,173,0,0.06);
     padding: 12px 14px;
     border-radius: 8px;
     color: var(--text);
@@ -154,7 +154,7 @@ const styles = `
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.07em;
-    color: var(--accent);
+    color: var(--accent-text);
     margin-bottom: 4px;
   }
   .gpm-next-row {
