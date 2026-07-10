@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Game } from '@/types/game'
 import GamePreviewModal from '@/components/GamePreviewModal'
 import GameReviewModal from '@/components/GameReviewModal'
-import { Gamepad2, User, Star } from 'lucide-react'
+import { Gamepad2, User } from 'lucide-react'
 
 interface Props {
   games: Game[]
@@ -147,78 +147,10 @@ export default function GamesClient({ games: initialGames }: Props) {
         .gp-actions { display: flex; gap: 8px; }
         .gp-layout {
           display: grid;
-          grid-template-columns: 1.25fr 1fr;
+          grid-template-columns: 1fr;
           gap: 22px;
           align-items: start;
         }
-        @media (max-width: 900px) {
-          .gp-layout { grid-template-columns: 1fr; }
-        }
-        .gp-htp-card {
-          background: var(--bg-card);
-          border: 1px solid var(--border);
-          border-radius: var(--radius-lg);
-          box-shadow: var(--shadow-sm);
-          padding: 32px 34px 34px;
-          position: sticky;
-          top: 84px;
-        }
-        @media (max-width: 900px) {
-          .gp-htp-card { position: static; }
-        }
-        .gp-htp-icon {
-          width: 56px;
-          height: 56px;
-          border-radius: var(--radius);
-          background: var(--lh-yellow-soft);
-          color: var(--lh-yellow-ink);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 18px;
-        }
-        .gp-htp-title {
-          font-size: 22px;
-          font-weight: 700;
-          font-family: var(--font-head);
-          color: var(--text);
-          margin: 0 0 8px;
-        }
-        .gp-htp-intro {
-          font-size: 14px;
-          color: var(--text-dim);
-          line-height: 1.6;
-          margin: 0 0 20px;
-        }
-        .gp-htp-steps {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          list-style: none;
-          margin: 0 0 24px;
-          padding: 0;
-        }
-        .gp-htp-step {
-          display: flex;
-          gap: 14px;
-          align-items: flex-start;
-        }
-        .gp-htp-step-number {
-          flex-shrink: 0;
-          width: 28px;
-          height: 28px;
-          border-radius: var(--radius-pill);
-          background: var(--accent);
-          color: #fff;
-          font-family: var(--font-head);
-          font-weight: 700;
-          font-size: 13px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .gp-htp-step-title { font-size: 14px; font-weight: 600; color: var(--text); }
-        .gp-htp-step-text { font-size: 13px; color: var(--text-dim); line-height: 1.5; margin-top: 2px; }
       `}</style>
 
       <div className="gp-layout">
@@ -288,44 +220,6 @@ export default function GamesClient({ games: initialGames }: Props) {
               ))}
             </div>
           )}
-        </div>
-
-        <div className="gp-htp-card">
-          <div className="gp-htp-icon"><Star size={26} strokeWidth={2} /></div>
-          <h3 className="gp-htp-title">So funktionieren die Spiele</h3>
-          <p className="gp-htp-intro">
-            Keine KI-Erfahrung nötig. Es gibt keine Uhr, und ein falscher Klick ist Teil des Lernens.
-          </p>
-          <ol className="gp-htp-steps">
-            <li className="gp-htp-step">
-              <span className="gp-htp-step-number">1</span>
-              <span>
-                <div className="gp-htp-step-title">Situation lesen</div>
-                <div className="gp-htp-step-text">Jedes Spiel startet mit einer kurzen Finance-Situation aus dem Arbeitsalltag.</div>
-              </span>
-            </li>
-            <li className="gp-htp-step">
-              <span className="gp-htp-step-number">2</span>
-              <span>
-                <div className="gp-htp-step-title">Aufgabe lösen</div>
-                <div className="gp-htp-step-text">Prompt auswählen und Text prüfen, oder eigenen Prompt schreiben und Antworten sortieren.</div>
-              </span>
-            </li>
-            <li className="gp-htp-step">
-              <span className="gp-htp-step-number">3</span>
-              <span>
-                <div className="gp-htp-step-title">Erklärung erhalten</div>
-                <div className="gp-htp-step-text">Jede Auswertung kommt mit einer Begründung in Alltagssprache.</div>
-              </span>
-            </li>
-          </ol>
-          <button
-            className="btn btn-primary"
-            style={{ width: '100%' }}
-            onClick={() => games[0] && setPreviewGame(games[0])}
-          >
-            Jetzt spielen
-          </button>
         </div>
       </div>
 

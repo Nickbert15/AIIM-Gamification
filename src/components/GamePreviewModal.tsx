@@ -5,6 +5,7 @@ import { Game } from '@/types/game'
 import ExcelGamePlayer from './ExcelGamePlayer'
 import HallucinationSpotterPlayerV2 from './HallucinationSpotterPlayerV2'
 import PromptArenaPlayer from './PromptArenaPlayer'
+import BranchingGamePlayer from './BranchingGamePlayer'
 import { X, CheckCircle2, XCircle } from 'lucide-react'
 
 interface Props {
@@ -386,6 +387,14 @@ export default function GamePreviewModal({ game, onClose }: Props) {
     return (
       <PreviewShell game={game} onClose={onClose} subtitle={`Prompt Arena · ${game.difficulty}`} maxWidth={680}>
         <PromptArenaPlayer game={game} onComplete={(score) => console.log('preview score:', score)} />
+      </PreviewShell>
+    )
+  }
+
+  if (game.game_json.format === 'prompt_branching' && game.game_json.branching) {
+    return (
+      <PreviewShell game={game} onClose={onClose} subtitle={`Prompt-Navigator · ${game.difficulty}`} maxWidth={680}>
+        <BranchingGamePlayer game={game} onComplete={(score) => console.log('preview score:', score)} />
       </PreviewShell>
     )
   }

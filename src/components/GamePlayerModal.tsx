@@ -5,6 +5,7 @@ import { Game, Question } from '@/types/game'
 import ExcelGamePlayer from './ExcelGamePlayer'
 import HallucinationSpotterPlayerV2 from './HallucinationSpotterPlayerV2'
 import PromptArenaPlayer from './PromptArenaPlayer'
+import BranchingGamePlayer from './BranchingGamePlayer'
 import { X, CheckCircle2, XCircle, AlertTriangle, Construction } from 'lucide-react'
 
 interface Props {
@@ -42,17 +43,19 @@ export default function GamePlayerModal({ game, playerId, onClose, onSaved }: Pr
   const isExcel = game.format === 'excel_challenge' && Boolean(game.game_json?.task) && Boolean(game.game_json?.initialData)
   const isHallu = game.game_json?.format === 'hallucination_spotter_v2' && Boolean(game.game_json?.halluRound)
   const isArena = game.game_json?.format === 'prompt_arena' && (game.game_json?.arenaRounds?.length ?? 0) > 0
+  const isBranching = game.game_json?.format === 'prompt_branching' && Boolean(game.game_json?.branching)
   const isQuiz = (game.game_json?.questions?.length ?? 0) > 0
-  const mode: 'excel' | 'hallu' | 'arena' | 'quiz' | 'unsupported' =
-    isExcel ? 'excel' : isHallu ? 'hallu' : isArena ? 'arena' : isQuiz ? 'quiz' : 'unsupported'
+  const mode: 'excel' | 'hallu' | 'arena' | 'branching' | 'quiz' | 'unsupported' =
+    isExcel ? 'excel' : isHallu ? 'hallu' : isArena ? 'arena' : isBranching ? 'branching' : isQuiz ? 'quiz' : 'unsupported'
 
   const modeLabel =
     mode === 'excel' ? 'Excel Challenge'
     : mode === 'hallu' ? 'Hallucination Spotter'
     : mode === 'arena' ? 'Prompt Arena'
+    : mode === 'branching' ? 'Prompt-Navigator'
     : mode === 'quiz' ? 'Quiz'
     : game.format
-  const cardWidth = mode === 'excel' ? '96vw' : mode === 'hallu' || mode === 'arena' ? 680 : 620
+  const cardWidth = mode === 'excel' ? '96vw' : mode === 'hallu' || mode === 'arena' || mode === 'branching' ? 680 : 620
 
   return (
     <>
@@ -100,6 +103,7 @@ export default function GamePlayerModal({ game, playerId, onClose, onSaved }: Pr
             <HallucinationSpotterPlayerV2 game={game} onComplete={(result) => saveScore(result.score)} />
           )}
           {mode === 'arena' && <PromptArenaPlayer game={game} onComplete={saveScore} />}
+          {mode === 'branching' && <BranchingGamePlayer game={game} onComplete={saveScore} />}
           {mode === 'quiz' && <QuizPlayer game={game} onComplete={saveScore} onClose={onClose} />}
           {mode === 'unsupported' && (
             <div className="gpl-body">
