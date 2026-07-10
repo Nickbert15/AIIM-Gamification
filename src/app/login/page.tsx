@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -40,7 +41,9 @@ export default function LoginPage() {
   return (
     <div className="auth-wrapper">
       <div className="card auth-card">
-        <div className="auth-icon">✈</div>
+        <div className="auth-icon">
+          <Image src="/lufthansa-crane.svg" alt="" width={36} height={36} priority />
+        </div>
         <h1 className="auth-title">AI Enablement</h1>
         <p className="auth-subtitle">Melde dich mit deinen Zugangsdaten an.</p>
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Player } from '@/lib/supabase'
+import { Users, Wrench } from 'lucide-react'
 
 const ROLES = ['Controller', 'Finance Manager', 'Senior Controller', 'CFO', 'Analyst', 'Other']
 
@@ -151,7 +152,7 @@ export default function PlayersPage() {
           <div className="loading-spinner">Lade…</div>
         ) : players.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-state-icon">👤</div>
+            <div className="empty-state-icon"><Users size={26} strokeWidth={1.5} /></div>
             <div className="empty-state-text">Noch keine Spieler angelegt.</div>
           </div>
         ) : (
@@ -179,7 +180,7 @@ export default function PlayersPage() {
                         style={{ padding: '4px 10px', fontSize: 12 }}
                         onClick={() => handleToggleAdmin(p)}
                       >
-                        {p.is_admin ? '🛠️ Admin' : 'Nutzer'}
+                        {p.is_admin ? <><Wrench size={12} strokeWidth={2.25} style={{ marginRight: 4, verticalAlign: -1 }} />Admin</> : 'Nutzer'}
                       </button>
                     </td>
                     <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { HalluPromptOptionV2, HalluSentenceV2 } from '@/types/game'
 import ThinkingDots from './ThinkingDots'
+import { X, Star, Check, AlertTriangle } from 'lucide-react'
 
 interface Props {
   learningObjective: string
@@ -132,7 +133,7 @@ export default function HallucinationWizardV2({ learningObjective, topic, diffic
                 {(step === 'loading-sentences' || step === 'review-sentences') && 'Schritt 2/2 — Antworttext prüfen'}
               </div>
             </div>
-            <button className="wz2-close" onClick={onClose}>×</button>
+            <button className="wz2-close" onClick={onClose} aria-label="Schließen"><X size={16} strokeWidth={2} /></button>
           </div>
 
           <div className="wz2-body">
@@ -183,7 +184,8 @@ export default function HallucinationWizardV2({ learningObjective, topic, diffic
                       className={`wz2-recommend-btn ${p.isRecommended ? 'active' : ''}`}
                       onClick={() => setRecommended(p.id)}
                     >
-                      {p.isRecommended ? '★ Empfohlener Prompt' : 'Als empfohlen markieren'}
+                      {p.isRecommended && <Star size={13} strokeWidth={2} fill="currentColor" />}
+                      {p.isRecommended ? 'Empfohlener Prompt' : 'Als empfohlen markieren'}
                     </button>
                     <div className="wz2-field">
                       <label className="wz2-label">Feedback-Text</label>
@@ -229,14 +231,14 @@ export default function HallucinationWizardV2({ learningObjective, topic, diffic
                         onClick={() => updateSentence(s.id, { isHallucination: false })}
                         disabled={step === 'saving'}
                       >
-                        ✓ Fakt
+                        <Check size={14} strokeWidth={2.25} /> Fakt
                       </button>
                       <button
                         className={`wz2-verdict-btn ${s.isHallucination ? 'active-hallu' : ''}`}
                         onClick={() => updateSentence(s.id, { isHallucination: true })}
                         disabled={step === 'saving'}
                       >
-                        ⚠ Halluzination
+                        <AlertTriangle size={14} strokeWidth={2.25} /> Halluzination
                       </button>
                     </div>
                     <div className="wz2-field">
@@ -297,7 +299,7 @@ export default function HallucinationWizardV2({ learningObjective, topic, diffic
 
 const wz2Styles = `
   .wz2-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+    position: fixed; inset: 0; background: rgba(5,22,77,.38);
     backdrop-filter: blur(4px); display: flex; align-items: center;
     justify-content: center; z-index: 1000; padding: 16px;
   }
@@ -315,8 +317,9 @@ const wz2Styles = `
   .wz2-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
   .wz2-close {
     background: none; border: 1px solid var(--border); border-radius: 6px;
-    color: var(--text-muted); cursor: pointer; font-size: 18px; line-height: 1;
-    padding: 4px 10px; flex-shrink: 0; font-family: inherit;
+    color: var(--text-muted); cursor: pointer; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; padding: 0; flex-shrink: 0; font-family: inherit;
   }
   .wz2-close:hover { color: var(--text); border-color: var(--accent); }
   .wz2-body { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
@@ -343,31 +346,33 @@ const wz2Styles = `
     display: flex; flex-direction: column; gap: 10px; background: var(--bg);
   }
   .wz2-recommend-btn {
-    align-self: flex-start; padding: 6px 12px; border-radius: 9999px;
+    align-self: flex-start; display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 9999px;
     border: 1px solid var(--border); background: var(--bg-card); color: var(--text-muted);
     cursor: pointer; font-size: 12px; font-weight: 600; font-family: inherit;
     transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
   }
-  .wz2-recommend-btn:hover { border-color: var(--accent); color: var(--accent-text); }
+  .wz2-recommend-btn:hover { border-color: var(--accent); color: var(--accent-ink); }
   .wz2-recommend-btn.active {
-    border-color: #FFAD00; color: var(--accent-text); background: rgba(255,173,0,0.1);
+    border-color: var(--lh-yellow); color: var(--lh-yellow-ink); background: var(--lh-yellow-soft);
   }
   .wz2-verdict-row { display: flex; gap: 8px; }
   .wz2-verdict-btn {
-    flex: 1; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border);
+    flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border);
     background: var(--bg-card); color: var(--text-muted); cursor: pointer;
     font-size: 12px; font-weight: 600; font-family: inherit;
-    transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+    transition: border-color 0.2s ease-out, color 0.2s ease-out, background-color 0.2s ease-out;
   }
-  .wz2-verdict-btn.active-fact { border-color: var(--success); color: var(--success); background: rgba(16,185,129,0.1); }
-  .wz2-verdict-btn.active-hallu { border-color: var(--danger); color: var(--danger); background: rgba(239,68,68,0.08); }
+  .wz2-verdict-btn.active-fact { border-color: var(--success); color: var(--success-ink); background: var(--success-soft); }
+  .wz2-verdict-btn.active-hallu { border-color: var(--attention); color: var(--attention-ink); background: var(--attention-soft); }
   .wz2-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
   .wz2-error {
-    background: rgba(239,68,68,0.1); border: 1px solid var(--danger); border-radius: var(--radius);
+    background: var(--danger-soft); border: 1px solid var(--danger); border-radius: var(--radius);
     color: var(--danger); padding: 14px 16px; font-size: 13px;
   }
   .wz2-success {
-    background: rgba(16,185,129,0.12); border: 1px solid var(--success); border-radius: var(--radius);
-    color: var(--success); padding: 14px 16px; font-size: 14px; text-align: center;
+    background: var(--success-soft); border: 1px solid var(--success); border-radius: var(--radius);
+    color: var(--success-ink); padding: 14px 16px; font-size: 14px; text-align: center;
   }
 `

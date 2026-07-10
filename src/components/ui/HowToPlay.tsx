@@ -3,7 +3,6 @@
 import GamePopup from './GamePopup'
 
 interface StepItem {
-  icon: string
   text: string
 }
 
@@ -26,7 +25,7 @@ export default function HowToPlay({ open, title, termExplanation, steps, onDismi
       <ol className="htp-steps">
         {steps.map((s, i) => (
           <li key={i} className="htp-step">
-            <span className="htp-step-icon" aria-hidden="true">{s.icon}</span>
+            <span className="htp-step-number" aria-hidden="true">{i + 1}</span>
             <span className="htp-step-text">{s.text}</span>
           </li>
         ))}
@@ -45,8 +44,8 @@ const htpStyles = `
     font-size: 13px;
     color: var(--text-dim);
     line-height: 1.6;
-    background: rgba(255,173,0,0.05);
-    border: 1px solid rgba(255,173,0,0.2);
+    background: var(--accent-soft);
+    border: none;
     border-radius: var(--radius);
     padding: 12px 14px;
     margin: 0;
@@ -54,7 +53,7 @@ const htpStyles = `
   .htp-steps {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 14px;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -67,12 +66,21 @@ const htpStyles = `
     color: var(--text);
     line-height: 1.5;
   }
-  .htp-step-icon {
+  .htp-step-number {
     flex-shrink: 0;
-    font-size: 20px;
-    width: 28px;
-    text-align: center;
+    width: 26px;
+    height: 26px;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    color: #fff;
+    font-family: var(--font-head);
+    font-weight: 700;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
+  .htp-step-text { padding-top: 3px; }
   .htp-actions {
     display: flex;
     justify-content: flex-end;

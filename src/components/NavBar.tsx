@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
+import { ChevronDown, Gamepad2, Wrench, LogOut, KeyRound, User } from 'lucide-react'
 import Avatar from './Avatar'
 
 type Player = { display_name: string; email: string; role: string; is_admin: boolean }
@@ -56,7 +58,9 @@ export default function NavBar() {
     <nav className="nav-bar">
       <div className="nav-inner">
         <Link href="/" className="nav-logo">
-          <span className="logo-icon">✈</span>
+          <span className="logo-icon">
+            <Image src="/lufthansa-crane.svg" alt="" width={22} height={22} priority />
+          </span>
           <span className="logo-text">AI Enablement</span>
         </Link>
 
@@ -79,9 +83,9 @@ export default function NavBar() {
                   <span className="nav-user-name">{player.display_name}</span>
                 </>
               ) : (
-                <span className="avatar avatar-anon">👤</span>
+                <span className="avatar avatar-anon"><User size={16} strokeWidth={2.25} /></span>
               )}
-              <span className={`nav-caret${open ? ' open' : ''}`}>▾</span>
+              <span className={`nav-caret${open ? ' open' : ''}`}><ChevronDown size={14} strokeWidth={2.25} /></span>
             </button>
 
             {open && (
@@ -97,21 +101,21 @@ export default function NavBar() {
                     </div>
                     <div className="nav-dropdown-divider" />
                     <Link href="/player-dashboard" className="nav-dropdown-item" onClick={() => setOpen(false)}>
-                      <span className="nav-dropdown-icon">🎮</span> Player Dashboard
+                      <span className="nav-dropdown-icon"><Gamepad2 size={16} strokeWidth={2} /></span> Player Dashboard
                     </Link>
                     {player.is_admin && (
                       <Link href="/admin" className="nav-dropdown-item" onClick={() => setOpen(false)}>
-                        <span className="nav-dropdown-icon">🛠️</span> Admin Dashboard
+                        <span className="nav-dropdown-icon"><Wrench size={16} strokeWidth={2} /></span> Admin Dashboard
                       </Link>
                     )}
                     <div className="nav-dropdown-divider" />
                     <button className="nav-dropdown-item nav-dropdown-danger" onClick={handleLogout}>
-                      <span className="nav-dropdown-icon">↩</span> Abmelden
+                      <span className="nav-dropdown-icon"><LogOut size={16} strokeWidth={2} /></span> Abmelden
                     </button>
                   </>
                 ) : (
                   <Link href="/login" className="nav-dropdown-item" onClick={() => setOpen(false)}>
-                    <span className="nav-dropdown-icon">🔑</span> Anmelden
+                    <span className="nav-dropdown-icon"><KeyRound size={16} strokeWidth={2} /></span> Anmelden
                   </Link>
                 )}
               </div>

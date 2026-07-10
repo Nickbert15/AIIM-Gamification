@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase, Player, Score } from '@/lib/supabase'
+import { Trophy } from 'lucide-react'
 
 export default function ScoresPage() {
   const [scores, setScores] = useState<any[]>([])
@@ -110,7 +111,7 @@ export default function ScoresPage() {
           <div className="loading-spinner">Lade…</div>
         ) : scores.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-state-icon">🏆</div>
+            <div className="empty-state-icon"><Trophy size={26} strokeWidth={1.5} /></div>
             <div className="empty-state-text">Noch keine Scores vorhanden.</div>
           </div>
         ) : (

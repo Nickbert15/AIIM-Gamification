@@ -6,6 +6,7 @@ import ExcelGamePlayer from './ExcelGamePlayer'
 import HallucinationSpotterPlayerV2 from './HallucinationSpotterPlayerV2'
 import PromptArenaPlayer from './PromptArenaPlayer'
 import BranchingGamePlayer from './BranchingGamePlayer'
+import { X, CheckCircle2, XCircle } from 'lucide-react'
 
 interface Props {
   game: Game | null
@@ -24,7 +25,7 @@ const styles = `
   .gpm-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.8);
+    background: rgba(5,22,77,.38);
     backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
@@ -36,6 +37,7 @@ const styles = `
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
     width: 100%;
     max-height: 90vh;
     overflow-y: auto;
@@ -57,6 +59,7 @@ const styles = `
   .gpm-title {
     font-size: 16px;
     font-weight: 700;
+    font-family: var(--font-head);
     color: var(--text);
     margin: 0;
     line-height: 1.4;
@@ -68,13 +71,17 @@ const styles = `
   }
   .gpm-close {
     background: none;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-strong);
     border-radius: 6px;
-    color: var(--text-muted);
+    color: var(--text-dim);
     cursor: pointer;
-    font-size: 18px;
     line-height: 1;
-    padding: 4px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
     flex-shrink: 0;
     font-family: inherit;
   }
@@ -133,29 +140,34 @@ const styles = `
   }
   .gpm-option:hover:not(:disabled) {
     border-color: var(--accent);
-    background: rgba(255,173,0,0.06);
+    background: var(--bg-card-hover);
   }
   .gpm-option:disabled { cursor: default; }
-  .gpm-option.opt-correct { border-color: rgba(16,185,129,0.6); background: rgba(16,185,129,0.06); }
-  .gpm-option.opt-wrong { border-color: rgba(239,68,68,0.6); background: rgba(239,68,68,0.06); }
+  .gpm-option.opt-correct { border-color: var(--success); background: var(--success-soft); }
+  .gpm-option.opt-wrong { border-color: var(--attention); background: var(--attention-soft); }
   .gpm-option.opt-chosen { box-shadow: inset 0 0 0 1px var(--accent); }
   .gpm-option-label { display: block; font-weight: 600; }
   .gpm-feedback {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
     border-left: 3px solid var(--accent);
-    background: rgba(255,173,0,0.06);
+    background: var(--accent-soft);
     padding: 12px 14px;
     border-radius: 8px;
     color: var(--text);
     font-size: 13px;
     line-height: 1.5;
   }
+  .gpm-feedback-icon { flex-shrink: 0; margin-top: 1px; }
+  .gpm-feedback-body { flex: 1; }
   .gpm-feedback-label {
     display: block;
     font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.07em;
-    color: var(--accent-text);
+    color: var(--accent-ink);
     margin-bottom: 4px;
   }
   .gpm-next-row {
@@ -204,7 +216,7 @@ function PreviewShell({
               <h2 className="gpm-title">{game.title}</h2>
               <div className="gpm-subtitle">{subtitle}</div>
             </div>
-            <button className="gpm-close" onClick={onClose}>×</button>
+            <button className="gpm-close" onClick={onClose} aria-label="Schließen"><X size={16} strokeWidth={2} /></button>
           </div>
           {children}
         </div>
@@ -303,8 +315,13 @@ function QuestionPreview({
 
         {answered && (
           <div className="gpm-feedback">
-            <span className="gpm-feedback-label">{isCorrect ? 'Richtig' : 'Falsch'}</span>
-            {current.explanation ?? (isCorrect ? 'Gute Wahl.' : 'Beim nächsten Versuch die Antwort mit der Quelle abgleichen.')}
+            <span className="gpm-feedback-icon">
+              {isCorrect ? <CheckCircle2 size={16} strokeWidth={2} /> : <XCircle size={16} strokeWidth={2} />}
+            </span>
+            <span className="gpm-feedback-body">
+              <span className="gpm-feedback-label">{isCorrect ? 'Richtig' : 'Falsch'}</span>
+              {current.explanation ?? (isCorrect ? 'Gute Wahl.' : 'Beim nächsten Versuch die Antwort mit der Quelle abgleichen.')}
+            </span>
           </div>
         )}
 
