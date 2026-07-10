@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Game } from '@/types/game'
+import { X, Check, XCircle, Star, Circle } from 'lucide-react'
 
 interface Props {
   game: Game | null
@@ -39,7 +40,7 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
         .grm-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(0,0,0,0.8);
+          background: rgba(5,22,77,.38);
           backdrop-filter: blur(4px);
           display: flex;
           align-items: center;
@@ -51,6 +52,7 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
           background: var(--bg-card);
           border: 1px solid var(--border);
           border-radius: var(--radius);
+          box-shadow: var(--shadow-lg);
           width: 100%;
           max-width: 680px;
           max-height: 90vh;
@@ -73,19 +75,24 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
         .grm-title {
           font-size: 16px;
           font-weight: 700;
+          font-family: var(--font-head);
           color: var(--text);
           margin: 0;
           line-height: 1.4;
         }
         .grm-close {
           background: none;
-          border: 1px solid var(--border);
+          border: 1px solid var(--border-strong);
           border-radius: 6px;
-          color: var(--text-muted);
+          color: var(--text-dim);
           cursor: pointer;
-          font-size: 18px;
           line-height: 1;
-          padding: 4px 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          padding: 0;
           flex-shrink: 0;
           font-family: inherit;
         }
@@ -106,7 +113,7 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
           margin: 0 0 10px;
         }
         .grm-objective {
-          background: var(--bg);
+          background: var(--surface-sunken);
           border: 1px solid var(--border);
           border-radius: var(--radius);
           padding: 14px 16px;
@@ -120,7 +127,7 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
           gap: 8px;
         }
         .grm-meta-item {
-          background: var(--bg);
+          background: var(--surface-sunken);
           border: 1px solid var(--border);
           border-radius: var(--radius);
           padding: 10px 12px;
@@ -141,7 +148,7 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
           gap: 10px;
         }
         .grm-question-item {
-          background: var(--bg);
+          background: var(--surface-sunken);
           border: 1px solid var(--border);
           border-radius: var(--radius);
           padding: 14px 16px;
@@ -158,7 +165,7 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
           align-items: flex-start;
           gap: 6px;
           font-size: 13px;
-          color: var(--success);
+          color: var(--success-ink);
           margin-bottom: 6px;
         }
         .grm-q-explanation {
@@ -167,7 +174,7 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
           line-height: 1.5;
         }
         .grm-attribution {
-          background: var(--bg);
+          background: var(--surface-sunken);
           border: 1px solid var(--border);
           border-radius: var(--radius);
           padding: 12px 16px;
@@ -202,7 +209,7 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
         <div className="grm-card">
           <div className="grm-header">
             <h2 className="grm-title">Review: {game.title}</h2>
-            <button className="grm-close" onClick={onClose}>×</button>
+            <button className="grm-close" onClick={onClose} aria-label="Schließen"><X size={16} strokeWidth={2} /></button>
           </div>
 
           <div className="grm-body">
@@ -244,7 +251,7 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
                       <div key={q.id} className="grm-question-item">
                         <div className="grm-q-text">{i + 1}. {q.question}</div>
                         <div className="grm-q-answer">
-                          <span>✓</span>
+                          <Check size={14} strokeWidth={2.5} />
                           <span>{correctOption?.text ?? q.correctAnswer}</span>
                         </div>
                         {q.explanation && (
@@ -267,8 +274,8 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
                   {game.game_json.halluRound.promptOptions.map((p, i) => (
                     <div key={p.id} className="grm-question-item">
                       <div className="grm-q-text">{i + 1}. {p.text}</div>
-                      <div className="grm-q-answer" style={{ color: p.isRecommended ? 'var(--success)' : 'var(--text-muted)' }}>
-                        <span>{p.isRecommended ? '★' : '○'}</span>
+                      <div className="grm-q-answer" style={{ color: p.isRecommended ? 'var(--success-ink)' : 'var(--text-muted)' }}>
+                        {p.isRecommended ? <Star size={13} strokeWidth={2} fill="currentColor" /> : <Circle size={9} strokeWidth={2} fill="currentColor" />}
                         <span>{p.isRecommended ? `Empfohlen · ${p.approach}` : `Alternative · ${p.approach}`}</span>
                       </div>
                       {p.feedback && <div className="grm-q-explanation">{p.feedback}</div>}
@@ -357,14 +364,16 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
               onClick={() => handleStatus('rejected')}
               disabled={loading}
             >
-              {loading ? '…' : '✗ Ablehnen'}
+              {!loading && <XCircle size={15} strokeWidth={2} />}
+              {loading ? '…' : 'Ablehnen'}
             </button>
             <button
               className="btn btn-primary"
               onClick={() => handleStatus('approved')}
               disabled={loading}
             >
-              {loading ? '…' : '✓ Freigeben'}
+              {!loading && <Check size={15} strokeWidth={2.25} />}
+              {loading ? '…' : 'Freigeben'}
             </button>
           </div>
         </div>

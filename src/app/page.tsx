@@ -3,36 +3,69 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import Avatar from '@/components/Avatar'
+import { Gamepad2 } from 'lucide-react'
 
 type Row = { rank: number; display_name: string; role: string; total_score: number; games_played: number }
 
-const MEDALS = ['🥇', '🥈', '🥉']
+// Demo-Daten zum lokalen Testen ohne echte Supabase-Anbindung (greift nur,
+// wenn die echte Abfrage leer zurückkommt). Vor dem Merge nach main wieder entfernen.
+const DEMO_ENTRIES: Row[] = [
+  { rank: 1, display_name: 'Lena Braun', role: 'Controller', total_score: 1840, games_played: 6 },
+  { rank: 2, display_name: 'Markus Kessler', role: 'Finance Manager', total_score: 1655, games_played: 5 },
+  { rank: 3, display_name: 'Amir Novak', role: 'Analyst', total_score: 1470, games_played: 5 },
+  { rank: 4, display_name: 'Sofia Rossi', role: 'CFO', total_score: 1290, games_played: 4 },
+]
 
 export default function LeaderboardPage() {
   const [entries, setEntries] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
 
-  async function load() {
-    const res = await fetch('/api/leaderboard')
-    if (res.ok) setEntries(await res.json())
-    setLoading(false)
-  }
-
   useEffect(() => {
+    let cancelled = false
+
+    async function load() {
+      // See admin/page.tsx for why this race exists: a placeholder Supabase
+      // project's DNS never resolves, so the client hangs instead of
+      // rejecting - this timeout keeps the demo fallback reachable for local
+      // testing without a real backend.
+      const timeout = new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 4000))
+      const fetchPromise = supabase.from('leaderboard').select('*').order('rank')
+
+      const result = await Promise.race([fetchPromise, timeout])
+      if (cancelled) return
+
+      if (result === 'timeout') {
+        setEntries(DEMO_ENTRIES)
+        setLoading(false)
+        return
+      }
+
+      const { data: lb } = result
+
+      if (!lb || lb.length === 0) {
+        setEntries(DEMO_ENTRIES)
+        setLoading(false)
+        return
+      }
+
+      setEntries(lb)
+      setLoading(false)
+    }
     load()
 
+    // Realtime: update leaderboard live
     const channel = supabase
       .channel('scores-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'scores' }, load)
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
+    return () => { cancelled = true; supabase.removeChannel(channel) }
   }, [])
 
   const rankDisplay = (rank: number, hasScore: boolean) => {
     if (!hasScore) return <span className="rank-badge rank-other" style={{ opacity: 0.4 }}>—</span>
-    if (rank <= 3) return <span className={`rank-badge rank-${rank}`}>{MEDALS[rank - 1]}</span>
-    return <span className="rank-badge rank-other">#{rank}</span>
+    const cls = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-other'
+    return <span className={`rank-badge ${cls}`}>{rank}</span>
   }
 
   const playerCount = entries.length
@@ -40,6 +73,7 @@ export default function LeaderboardPage() {
   const totalPoints = entries.reduce((s, e) => s + e.total_score, 0)
   const maxScore = withScores[0]?.total_score ?? 0
   const podium = withScores.slice(0, 3)
+
 
   return (
     <>
@@ -67,7 +101,7 @@ export default function LeaderboardPage() {
         <div className="podium">
           {podium.map((p) => (
             <div key={p.display_name} className={`podium-card podium-${p.rank}`}>
-              <div className="podium-medal">{MEDALS[p.rank - 1]}</div>
+              <div className={`podium-medal rank-${p.rank}`}>{p.rank}</div>
               <Avatar name={p.display_name} size={56} />
               <div className="podium-name">{p.display_name}</div>
               <div className="player-role">{p.role}</div>
@@ -92,8 +126,8 @@ export default function LeaderboardPage() {
           <div className="loading-spinner">Lade Leaderboard…</div>
         ) : entries.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-state-icon">🎮</div>
-            <div className="empty-state-text">Noch keine Spieler registriert.</div>
+            <div className="empty-state-icon"><Gamepad2 size={26} strokeWidth={1.5} /></div>
+            <div className="empty-state-text">Noch keine Scores — first one to play wins!</div>
           </div>
         ) : (
           entries.map((entry) => (

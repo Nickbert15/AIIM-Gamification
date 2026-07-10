@@ -1,5 +1,6 @@
 import PlayClient from './PlayClient'
 import { ExcelTableState } from '@/types/game'
+import { SearchX, Construction } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,7 +38,7 @@ export default async function PlayGamePage({ params }: PageProps) {
   if (!game) {
     return (
       <div className="empty-state">
-        <div className="empty-state-icon">🔍</div>
+        <div className="empty-state-icon"><SearchX size={26} strokeWidth={1.5} /></div>
         <div className="empty-state-text">Spiel nicht gefunden oder noch nicht freigegeben.</div>
       </div>
     )
@@ -46,7 +47,7 @@ export default async function PlayGamePage({ params }: PageProps) {
   if (game.format !== 'excel_challenge' || !game.game_json.initialData) {
     return (
       <div className="empty-state">
-        <div className="empty-state-icon">🚧</div>
+        <div className="empty-state-icon"><Construction size={26} strokeWidth={1.5} /></div>
         <div className="empty-state-text">
           Spieltyp nicht verfügbar — /play unterstützt aktuell nur die Excel Challenge.
         </div>

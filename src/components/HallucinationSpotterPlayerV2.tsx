@@ -9,6 +9,7 @@ import ConfettiBurst from './ui/ConfettiBurst'
 import ScoreCounter from './ui/ScoreCounter'
 import StarRating from './ui/StarRating'
 import Badge from './ui/Badge'
+import { Search, Check, Trophy, ThumbsUp, Sparkles } from 'lucide-react'
 import StepIndicator from './ui/StepIndicator'
 import ConfidenceSlider from './ui/ConfidenceSlider'
 
@@ -44,9 +45,10 @@ export default function HallucinationSpotterPlayerV2({ game, onComplete }: Props
   const [promptFeedbackOpen, setPromptFeedbackOpen] = useState(false)
   const [markedIds, setMarkedIds] = useState<Set<number>>(new Set())
   const [confidencePopupOpen, setConfidencePopupOpen] = useState(false)
-  const [confidenceValue, setConfidenceValue] = useState(3)
+  const [confidenceValue, setConfidenceValue] = useState(1)
   const [resultOpen, setResultOpen] = useState(false)
   const [completed, setCompleted] = useState(false)
+  const [reviewOpen, setReviewOpen] = useState(false)
 
   const chosen: HalluPromptOptionV2 | null = promptOptions.find(p => p.id === chosenId) ?? null
 
@@ -69,8 +71,8 @@ export default function HallucinationSpotterPlayerV2({ game, onComplete }: Props
   const maxPoints = 3 + totalHallucinations * 2
 
   const recall = totalHallucinations > 0 ? correctCount / totalHallucinations : 1
-  const highConfidence = confidenceValue >= 4
-  const lowConfidence = confidenceValue <= 1
+  const highConfidence = confidenceValue === 2
+  const lowConfidence = confidenceValue === 0
   let calibrationMessage: string
   if (highConfidence && recall < 0.5) {
     calibrationMessage = `Du warst dir sehr sicher, hast aber nur ${correctCount} von ${totalHallucinations} erfundenen Stellen gefunden. Bei KI-Texten lohnt sich gesundes Misstrauen — auch wenn ein Text überzeugend klingt.`
@@ -126,7 +128,12 @@ export default function HallucinationSpotterPlayerV2({ game, onComplete }: Props
   if (!round || !promptOptions.length || !sentences.length) return null
 
   const scorePct = maxPoints > 0 ? totalScore / maxPoints : 0
-  const showConfetti = resultOpen && scorePct >= 0.7
+  // Every completion gets a confetti moment - just a smaller, quieter one for
+  // weaker rounds instead of withholding it entirely below a score cutoff.
+  const showConfetti = resultOpen
+  const tier = scorePct >= 0.7 ? 'high' : scorePct >= 0.4 ? 'mid' : 'low'
+  const TierIcon = tier === 'high' ? Trophy : tier === 'mid' ? ThumbsUp : Sparkles
+  const tierTitle = tier === 'high' ? 'Klasse gemacht!' : tier === 'mid' ? 'Gut gemacht!' : 'Dranbleiben lohnt sich!'
 
   return (
     <>
@@ -140,17 +147,17 @@ export default function HallucinationSpotterPlayerV2({ game, onComplete }: Props
           'zum Beispiel eine Zahl, ein Gesetz oder einen Namen, den es gar nicht gibt.'
         }
         steps={[
-          { icon: '1️⃣', text: 'Du wählst einen von 5 möglichen Prompts (Anfragen an die KI) zu einer Finance-Situation aus.' },
-          { icon: '2️⃣', text: 'Du liest die KI-Antwort und klickst jeden Satz an, den du für erfunden hältst.' },
-          { icon: '3️⃣', text: 'Du gibst an, wie sicher du dir insgesamt bist, und siehst danach deine Auswertung mit Erklärungen.' },
+          { text: 'Du wählst einen von 5 möglichen Prompts (Anfragen an die KI) zu einer Finance-Situation aus.' },
+          { text: 'Du liest die KI-Antwort und klickst jeden Satz an, den du für erfunden hältst.' },
+          { text: 'Du gibst an, wie sicher du dir insgesamt bist, und siehst danach deine Auswertung mit Erklärungen.' },
         ]}
         onDismiss={() => setHowToPlayOpen(false)}
       />
 
       <div className="hsv2-container">
         <StepIndicator
-          steps={['Prompt wählen', 'Halluzinationen markieren']}
-          currentIndex={step === 'choose' ? 0 : 1}
+          steps={['Prompt wählen', 'Halluzinationen markieren', 'Auswertung']}
+          currentIndex={resultOpen || confidencePopupOpen ? 2 : step === 'choose' ? 0 : 1}
         />
 
         {step === 'choose' && (
@@ -161,14 +168,18 @@ export default function HallucinationSpotterPlayerV2({ game, onComplete }: Props
               der die zuverlässigste — also am wenigsten erfundene — Antwort liefern würde:
             </p>
             <div className="hsv2-prompt-list">
-              {promptOptions.map(p => (
+              {promptOptions.map((p, i) => (
                 <button
                   key={p.id}
                   className={`hsv2-prompt-card ${chosenId === p.id ? 'chosen' : ''} ${chosenId !== null && chosenId !== p.id ? 'dimmed' : ''}`}
                   onClick={() => choosePrompt(p.id)}
                   disabled={chosenId !== null}
                 >
+                  <span className="hsv2-prompt-eyebrow">Prompt {i + 1}</span>
                   {p.text}
+                  {chosenId === p.id && (
+                    <span className="hsv2-prompt-check" aria-hidden="true"><Check size={13} strokeWidth={3} /></span>
+                  )}
                 </button>
               ))}
             </div>
@@ -226,36 +237,56 @@ export default function HallucinationSpotterPlayerV2({ game, onComplete }: Props
         </div>
       </GamePopup>
 
-      <GamePopup open={resultOpen} title="Deine Auswertung" variant="celebratory" onClose={() => setResultOpen(false)}>
-        {showConfetti && <ConfettiBurst />}
+      <GamePopup open={resultOpen} variant="celebratory" onClose={() => setResultOpen(false)}>
+        {showConfetti && <ConfettiBurst intensity={tier === 'high' ? 'high' : 'low'} />}
+        <div className={`hsv2-result-band hsv2-result-band-${tier}`}>
+          <span className="hsv2-result-band-icon" aria-hidden="true">
+            <TierIcon size={26} strokeWidth={2.5} />
+          </span>
+        </div>
         <div className="hsv2-result-card">
+          <h3 className="hsv2-result-title">{tierTitle}</h3>
+          <p className="hsv2-result-subtitle">
+            Du hast {correctCount} von {totalHallucinations} Halluzinationen gefunden.
+          </p>
+          <StarRating stars={Math.round(scorePct * 5)} max={5} />
           <ScoreCounter value={totalScore} className="hsv2-score-number" suffix={`/${maxPoints}`} />
           <div className="hsv2-score-label">Punkte erreicht</div>
-          {scorePct >= 0.7 && <Badge label="Halluzinations-Späher" icon="🕵️" />}
+          {scorePct >= 0.7 && <Badge label="Halluzinations-Späher" icon={Search} />}
         </div>
 
-        <div className="hsv2-summary-line">
-          Gefundene erfundene Stellen: <strong>{correctCount} von {totalHallucinations}</strong>
-          {falsePositives > 0 && (
-            <>
-              {' '}· Fälschlich markiert: <strong>{falsePositives}</strong>{' '}
-              ({falsePositives === 1 ? 'ein Satz war eigentlich korrekt' : `${falsePositives} Sätze waren eigentlich korrekt`}
-              {' '}— kein Problem, das ist knifflig.)
-            </>
-          )}
-        </div>
+        {falsePositives > 0 && (
+          <div className="hsv2-summary-line">
+            Fälschlich markiert: <strong>{falsePositives}</strong>{' '}
+            ({falsePositives === 1 ? 'ein Satz war eigentlich korrekt' : `${falsePositives} Sätze waren eigentlich korrekt`}
+            {' '}— kein Problem, das ist knifflig.)
+          </div>
+        )}
 
         <div className="hsv2-calibration">{calibrationMessage}</div>
-
-        <p className="hsv2-instruction">
-          Hier ist der Text nochmal — grün: richtig erkannt, rot: fälschlich markiert, gelb gestrichelt:
-          übersehen. Klicke einen Satz für die Erklärung.
-        </p>
-        <HallucinationText sentences={sentences} markedIds={markedIds} onToggle={toggleSentence} revealMode />
 
         <div className="hsv2-lesson">
           Merke: Zahlen, Gesetze und Namen von einer KI immer prüfen.
         </div>
+
+        <div className="hsv2-next-row">
+          <button className="btn btn-reward" onClick={() => setResultOpen(false)}>
+            Fertig
+          </button>
+        </div>
+        <button className="hsv2-review-toggle" onClick={() => setReviewOpen(v => !v)}>
+          {reviewOpen ? 'Antworten ausblenden' : 'Antworten ansehen'}
+        </button>
+
+        {reviewOpen && (
+          <>
+            <p className="hsv2-instruction">
+              Hier ist der Text nochmal — grün: richtig erkannt, gestrichelt neutral: fälschlich markiert,
+              amber gestrichelt: übersehen. Klicke einen Satz für die Erklärung.
+            </p>
+            <HallucinationText sentences={sentences} markedIds={markedIds} onToggle={toggleSentence} revealMode />
+          </>
+        )}
       </GamePopup>
     </>
   )
@@ -269,12 +300,12 @@ const hsv2Styles = `
     gap: 16px;
   }
   .hsv2-intro {
-    background: rgba(255,173,0,0.05);
-    border: 1px solid rgba(255,173,0,0.2);
+    background: var(--accent-soft);
+    border: none;
     border-radius: var(--radius);
     padding: 14px 16px;
     font-size: 13px;
-    color: var(--text-dim);
+    color: var(--accent-ink);
     line-height: 1.5;
     margin: 0;
   }
@@ -289,26 +320,55 @@ const hsv2Styles = `
     gap: 8px;
   }
   .hsv2-prompt-card {
+    position: relative;
     text-align: left;
-    padding: 14px 16px;
+    padding: 14px 40px 14px 16px;
     min-height: 44px;
     border-radius: var(--radius);
     border: 1px solid var(--border);
-    background: var(--bg);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
     color: var(--text);
     cursor: pointer;
     font-size: 14px;
     line-height: 1.5;
     font-family: inherit;
-    transition: border-color 0.15s ease, background-color 0.15s ease, opacity 0.2s ease;
+    transition: border-color 0.2s ease-out, background-color 0.2s ease-out, box-shadow 0.2s ease-out, opacity 0.2s ease-out;
+  }
+  .hsv2-prompt-eyebrow {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .hsv2-prompt-card.chosen .hsv2-prompt-eyebrow { color: var(--accent-ink); }
+  .hsv2-prompt-check {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 22px;
+    height: 22px;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   .hsv2-prompt-card:hover:not(:disabled) {
-    border-color: var(--accent);
-    background: rgba(255,173,0,0.06);
+    box-shadow: var(--shadow-md);
+    background: var(--bg-card-hover);
+  }
+  .hsv2-prompt-card:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
   }
   .hsv2-prompt-card.chosen {
-    border-color: var(--accent);
-    background: rgba(255,173,0,0.1);
+    border: 2px solid var(--accent);
+    background: var(--accent-soft);
   }
   .hsv2-prompt-card.dimmed { opacity: 0.4; }
   .hsv2-prompt-card:disabled { cursor: default; }
@@ -321,20 +381,50 @@ const hsv2Styles = `
   }
   .hsv2-next-row { display: flex; justify-content: flex-end; }
   .hsv2-popup-text {
-    font-size: 13px;
+    font-size: 15px;
     color: var(--text-dim);
     line-height: 1.6;
     margin: 0;
   }
   .hsv2-popup-hint {
-    font-size: 12px;
-    color: var(--accent-text);
-    background: rgba(255,173,0,0.06);
-    border: 1px solid rgba(255,173,0,0.2);
+    font-size: 13px;
+    color: var(--accent-ink);
+    background: var(--accent-soft);
+    border: none;
     border-radius: var(--radius);
-    padding: 10px 12px;
+    padding: 12px 14px;
     margin: 0;
     line-height: 1.5;
+  }
+  .hsv2-result-band {
+    margin: -14px -24px 0;
+    height: 88px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+  .hsv2-result-band-high { background: linear-gradient(180deg, var(--lh-yellow-soft), transparent); }
+  .hsv2-result-band-mid { background: linear-gradient(180deg, var(--success-soft), transparent); }
+  .hsv2-result-band-low { background: linear-gradient(180deg, var(--accent-soft), transparent); }
+  .hsv2-result-band-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-md);
+    animation: hsv2-icon-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  @keyframes hsv2-icon-pop {
+    0% { transform: scale(0.4); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hsv2-result-band-icon { animation: none; }
   }
   .hsv2-result-card {
     display: flex;
@@ -342,14 +432,45 @@ const hsv2Styles = `
     align-items: center;
     padding: 8px 0;
     gap: 8px;
+    text-align: center;
   }
+  .hsv2-result-title {
+    font-size: 26px;
+    font-weight: 700;
+    font-family: var(--font-head);
+    color: var(--text);
+    margin: 0;
+  }
+  .hsv2-result-subtitle {
+    font-size: 14px;
+    color: var(--text-dim);
+    margin: 0 0 4px;
+  }
+  .hsv2-review-toggle {
+    background: none;
+    border: none;
+    color: var(--accent-ink);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: center;
+    padding: 4px;
+  }
+  .hsv2-review-toggle:hover { text-decoration: underline; }
   .hsv2-score-number {
-    font-size: 44px;
+    font-size: 56px;
     font-weight: 800;
-    color: var(--accent-text);
+    font-family: var(--font-head);
+    color: var(--accent);
     line-height: 1;
   }
-  .hsv2-score-label { font-size: 13px; color: var(--text-muted); }
+  .hsv2-score-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
   .hsv2-summary-line {
     font-size: 13px;
     color: var(--text-dim);
@@ -357,20 +478,20 @@ const hsv2Styles = `
     text-align: center;
   }
   .hsv2-calibration {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--text-dim);
-    background: var(--bg);
-    border: 1px solid var(--border);
+    background: var(--surface-sunken);
+    border: none;
     border-radius: var(--radius);
-    padding: 10px 14px;
+    padding: 12px 16px;
     line-height: 1.5;
   }
   .hsv2-lesson {
     font-size: 13px;
     font-weight: 600;
-    color: var(--accent-text);
-    background: rgba(255,173,0,0.06);
-    border: 1px solid rgba(255,173,0,0.2);
+    color: var(--accent-ink);
+    background: var(--accent-soft);
+    border: none;
     border-radius: var(--radius);
     padding: 12px 14px;
     text-align: center;

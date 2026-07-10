@@ -4,10 +4,10 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const LINKS = [
-  { href: '/admin', label: '📊 Übersicht' },
-  { href: '/admin/players', label: '👤 Spieler' },
-  { href: '/admin/scores', label: '🏆 Scores' },
-  { href: '/admin/games', label: '🎮 Games' },
+  { href: '/admin', label: 'Übersicht' },
+  { href: '/admin/players', label: 'Spieler' },
+  { href: '/admin/scores', label: 'Scores' },
+  { href: '/admin/games', label: 'Games' },
 ]
 
 export default function AdminNav() {

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { X } from 'lucide-react'
 
 interface Props {
   open: boolean
@@ -79,7 +80,7 @@ export default function GamePopup({ open, onClose, variant = 'neutral', title, c
               {title && <div className="gpop-title">{title}</div>}
               {onClose && (
                 <button type="button" className="gpop-close" onClick={onClose} aria-label="Schließen">
-                  ×
+                  <X size={16} strokeWidth={2} />
                 </button>
               )}
             </div>
@@ -95,30 +96,30 @@ const popupStyles = `
   .gpop-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(2,6,15,0.65);
+    background: rgba(5,22,77,.38);
+    backdrop-filter: blur(2px);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 200;
     padding: 20px;
-    animation: gpop-fade-in 0.18s ease;
+    animation: gpop-fade-in 0.2s ease-out;
   }
   .gpop-dialog {
     position: relative;
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: var(--radius-lg);
     max-width: 480px;
     width: 100%;
     max-height: 85vh;
     overflow-y: auto;
     padding: 24px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.45);
-    animation: gpop-pop-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: var(--shadow-lg);
+    animation: gpop-pop-in 0.24s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .gpop-dialog.gpop-celebratory {
-    border-color: var(--accent);
-    box-shadow: 0 20px 60px rgba(255,173,0,0.25);
+    border-top: 3px solid var(--lh-yellow);
   }
   .gpop-dialog.gpop-no-anim { animation: none; }
   .gpop-header {
@@ -131,10 +132,12 @@ const popupStyles = `
   .gpop-title {
     font-size: 17px;
     font-weight: 700;
+    font-family: var(--font-head);
     color: var(--text);
   }
   .gpop-close {
     flex-shrink: 0;
+    margin-left: auto;
     width: 32px;
     height: 32px;
     min-width: 32px;
@@ -142,19 +145,23 @@ const popupStyles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--bg);
-    color: var(--text-muted);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-strong);
+    background: var(--bg-card);
+    color: var(--text-dim);
     font-size: 20px;
     line-height: 1;
     cursor: pointer;
     font-family: inherit;
-    transition: border-color 0.15s ease, color 0.15s ease;
+    transition: border-color 0.2s ease-out, color 0.2s ease-out;
   }
   .gpop-close:hover {
     border-color: var(--accent);
     color: var(--text);
+  }
+  .gpop-close:focus-visible {
+    box-shadow: var(--focus-ring);
+    outline: none;
   }
   .gpop-content {
     display: flex;

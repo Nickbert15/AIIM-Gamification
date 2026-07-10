@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import { ChevronDown, Info } from 'lucide-react'
 
 interface Props {
   isOpen: boolean
@@ -281,7 +282,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
         .ggm-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(0, 0, 0, 0.75);
+          background: rgba(5,22,77,.38);
           backdrop-filter: blur(4px);
           display: flex;
           align-items: center;
@@ -293,6 +294,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
           background: var(--bg-card);
           border: 1px solid var(--border);
           border-radius: var(--radius);
+          box-shadow: var(--shadow-lg);
           width: 100%;
           max-width: 560px;
           max-height: 90vh;
@@ -305,6 +307,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
         .ggm-title {
           font-size: 18px;
           font-weight: 700;
+          font-family: var(--font-head);
           color: var(--text);
           margin: 0;
         }
@@ -321,20 +324,21 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
           letter-spacing: 0.04em;
         }
         .ggm-input, .ggm-select {
-          background: var(--bg);
+          background: var(--surface-sunken);
           border: 1px solid var(--border);
           border-radius: var(--radius);
           color: var(--text);
           font-size: 14px;
           padding: 10px 12px;
           outline: none;
-          transition: border-color 0.15s;
+          transition: border-color 0.2s ease-out, box-shadow 0.2s ease-out;
           font-family: inherit;
           width: 100%;
           box-sizing: border-box;
         }
         .ggm-input:focus, .ggm-select:focus {
           border-color: var(--accent);
+          box-shadow: var(--focus-ring);
         }
         .ggm-select option {
           background: var(--bg-card);
@@ -343,7 +347,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
         /* Custom Technologie-Dropdown (native select kann keine Info-Icons/Tooltips pro Eintrag) */
         .ggm-combo { position: relative; width: 100%; }
         .ggm-combo-trigger {
-          background: var(--bg);
+          background: var(--surface-sunken);
           border: 1px solid var(--border);
           border-radius: var(--radius);
           color: var(--text);
@@ -359,11 +363,12 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
           align-items: center;
           justify-content: space-between;
           gap: 8px;
-          transition: border-color 0.15s;
+          transition: border-color 0.2s ease-out;
         }
         .ggm-combo-trigger:hover, .ggm-combo-trigger:focus { border-color: var(--accent); }
+        .ggm-combo-trigger:focus { box-shadow: var(--focus-ring); }
         .ggm-combo-trigger[data-placeholder="true"] { color: var(--text-muted); }
-        .ggm-combo-caret { color: var(--text-muted); flex-shrink: 0; }
+        .ggm-combo-caret { color: var(--text-muted); flex-shrink: 0; display: flex; }
         .ggm-combo-list {
           position: absolute;
           top: calc(100% + 4px);
@@ -376,7 +381,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
           padding: 4px;
           max-height: 280px;
           overflow-y: auto;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+          box-shadow: var(--shadow-lg);
         }
         .ggm-combo-row {
           display: flex;
@@ -384,8 +389,8 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
           gap: 6px;
           border-radius: 8px;
         }
-        .ggm-combo-row:hover { background: rgba(148,163,184,0.08); }
-        .ggm-combo-row[data-selected="true"] { background: rgba(255,173,0,0.1); }
+        .ggm-combo-row:hover { background: var(--bg-card-hover); }
+        .ggm-combo-row[data-selected="true"] { background: var(--accent-soft); }
         .ggm-combo-option {
           flex: 1;
           background: transparent;
@@ -408,17 +413,14 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
           width: 18px;
           height: 18px;
           border-radius: 50%;
-          border: 1px solid var(--border);
+          border: 1px solid var(--border-strong);
           color: var(--text-muted);
-          font-size: 11px;
-          font-style: normal;
-          font-weight: 700;
           cursor: help;
         }
         .ggm-info-wrap:hover .ggm-info-icon,
         .ggm-info-wrap:focus-within .ggm-info-icon {
           border-color: var(--accent);
-          color: var(--accent-text);
+          color: var(--accent-ink);
         }
         .ggm-tooltip {
           display: none;
@@ -427,11 +429,12 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
           right: calc(100% + 8px);
           transform: translateY(-50%);
           width: 240px;
-          background: var(--bg);
+          background: var(--bg-card);
           border: 1px solid var(--border);
+          border-top: 3px solid var(--lh-yellow);
           border-radius: var(--radius);
           padding: 10px 12px;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+          box-shadow: var(--shadow-lg);
           z-index: 30;
         }
         .ggm-info-wrap:hover .ggm-tooltip,
@@ -445,7 +448,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
         .ggm-tooltip-link {
           font-size: 12px;
           font-weight: 600;
-          color: var(--accent-text);
+          color: var(--accent-ink);
           text-decoration: none;
         }
         .ggm-tooltip-link:hover { text-decoration: underline; }
@@ -463,12 +466,12 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
           line-height: 1.5;
         }
         .ggm-clarify--warn {
-          background: rgba(255,173,0,0.1);
-          border: 1px solid rgba(255,173,0,0.35);
-          color: var(--accent-text);
+          background: var(--attention-soft);
+          border: 1px solid var(--attention);
+          color: var(--attention-ink);
         }
         .ggm-clarify--block {
-          background: rgba(239,68,68,0.1);
+          background: var(--danger-soft);
           border: 1px solid var(--danger);
           color: var(--danger);
         }
@@ -484,7 +487,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
           display: inline-block;
           width: 14px;
           height: 14px;
-          border: 2px solid rgba(255,255,255,0.3);
+          border: 2px solid rgba(255,255,255,0.4);
           border-top-color: #fff;
           border-radius: 50%;
           animation: ggm-spin 0.7s linear infinite;
@@ -493,17 +496,17 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
         }
         @keyframes ggm-spin { to { transform: rotate(360deg); } }
         .ggm-success {
-          background: rgba(16, 185, 129, 0.12);
+          background: var(--success-soft);
           border: 1px solid var(--success);
           border-radius: var(--radius);
-          color: var(--success);
+          color: var(--success-ink);
           padding: 14px 16px;
           font-size: 14px;
           font-weight: 500;
           text-align: center;
         }
         .ggm-error {
-          background: rgba(239, 68, 68, 0.1);
+          background: var(--danger-soft);
           border: 1px solid var(--danger);
           border-radius: var(--radius);
           color: var(--danger);
@@ -567,7 +570,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                     <span>
                       {techStatus === 'loading' ? 'Lade Technologien…' : techLabel}
                     </span>
-                    <span className="ggm-combo-caret">▾</span>
+                    <span className="ggm-combo-caret"><ChevronDown size={16} strokeWidth={2} /></span>
                   </button>
 
                   {techOpen && (
@@ -589,7 +592,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                           </button>
                           {(t.whats_new || t.source_url) && (
                             <span className="ggm-info-wrap" tabIndex={0}>
-                              <span className="ggm-info-icon" aria-hidden="true">i</span>
+                              <span className="ggm-info-icon" aria-hidden="true"><Info size={12} strokeWidth={2.5} /></span>
                               <span className="ggm-tooltip" role="tooltip">
                                 {t.whats_new && (
                                   <p className="ggm-tooltip-text">{t.whats_new}</p>
@@ -668,7 +671,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                     onClick={() => setGoalOpen((o) => !o)}
                   >
                     <span>{goalLabel}</span>
-                    <span className="ggm-combo-caret">▾</span>
+                    <span className="ggm-combo-caret"><ChevronDown size={16} strokeWidth={2} /></span>
                   </button>
 
                   {goalOpen && (
