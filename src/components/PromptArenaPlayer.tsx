@@ -761,7 +761,6 @@ const paStyles = `
     padding: 36px 24px 32px;
     gap: 8px;
     text-align: center;
-    overflow: hidden;
   }
   .pa-score-trophy {
     position: relative;
