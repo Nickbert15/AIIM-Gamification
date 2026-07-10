@@ -118,13 +118,11 @@ body {
   font-family: var(--font-head);
   font-size: 16px;
 }
+/* Never pair the crane mark with yellow — brand guidelines only approve
+   white/silver-on-white or white/silver-on-blue (navy) combinations. */
 .logo-icon {
-  font-size: 15px;
-  width: 30px;
-  height: 30px;
-  border-radius: var(--radius-pill);
-  background: var(--lh-yellow);
-  color: var(--accent);
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;

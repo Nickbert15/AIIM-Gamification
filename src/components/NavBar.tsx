@@ -59,7 +59,7 @@ export default function NavBar() {
       <div className="nav-inner">
         <Link href="/" className="nav-logo">
           <span className="logo-icon">
-            <Image src="/lufthansa-crane.svg" alt="" width={22} height={22} priority />
+            <Image src="/lufthansa-crane-white.svg" alt="" width={22} height={22} priority />
           </span>
           <span className="logo-text">AI Enablement</span>
         </Link>
