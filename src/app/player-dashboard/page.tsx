@@ -6,6 +6,7 @@ import Avatar from '@/components/Avatar'
 import GamePlayerModal from '@/components/GamePlayerModal'
 import { recommendGames } from '@/lib/recommendations'
 import { Game } from '@/types/game'
+import { HelpCircle, Gamepad2, LucideIcon } from 'lucide-react'
 
 type PlayerData = {
   player: { id: string; email: string; display_name: string; role: string; is_admin: boolean }
@@ -13,16 +14,16 @@ type PlayerData = {
   history: { id: string; score: number; completed_at: string; games: { id: string; title: string } | null }[]
 }
 
-function gameKind(game: Game): { icon: string; label: string; count: string } {
+function gameKind(game: Game): { icon: LucideIcon; label: string; count: string } {
   const questionCount = game.game_json?.questions?.length ?? 0
   if (questionCount > 0) {
     return {
-      icon: '❓',
+      icon: HelpCircle,
       label: 'Quiz',
       count: `${questionCount} ${questionCount === 1 ? 'Frage' : 'Fragen'}`,
     }
   }
-  return { icon: '🎮', label: game.format ?? 'Spiel', count: '' }
+  return { icon: Gamepad2, label: game.format ?? 'Spiel', count: '' }
 }
 
 function gameSubtitle(game: Game): string {
@@ -93,6 +94,8 @@ export default function PlayerDashboardPage() {
 
   if (loading || !data) return <div className="loading-spinner">Lade…</div>
 
+  const GotwIcon = recommendations?.gameOfTheWeek ? gameKind(recommendations.gameOfTheWeek).icon : Gamepad2
+
   const { player, stats, history } = data
 
   return (
@@ -135,14 +138,14 @@ export default function PlayerDashboardPage() {
           <>
             <div className="card-title">Verfügbare Spiele</div>
             <div className="empty-state">
-              <div className="empty-state-icon">🕹️</div>
+              <div className="empty-state-icon"><Gamepad2 size={26} strokeWidth={1.5} /></div>
               <div className="empty-state-text">Aktuell sind keine Spiele verfügbar. Schau später wieder vorbei!</div>
             </div>
           </>
         ) : (
           <>
             <div className="gotw-card">
-              <span className="gotw-icon">{gameKind(recommendations.gameOfTheWeek).icon}</span>
+              <span className="gotw-icon"><GotwIcon size={28} strokeWidth={1.75} /></span>
               <div className="gotw-body">
                 <div className="gotw-eyebrow">Game of the Week</div>
                 <div className="gotw-title">{recommendations.gameOfTheWeek.title}</div>
@@ -165,10 +168,11 @@ export default function PlayerDashboardPage() {
                 <div className="game-grid">
                   {recommendations.alsoLike.map((game) => {
                     const kind = gameKind(game)
+                    const KindIcon = kind.icon
                     return (
                       <div key={game.id} className="game-card">
                         <div className="game-card-top">
-                          <span className="game-card-icon">{kind.icon}</span>
+                          <span className="game-card-icon"><KindIcon size={20} strokeWidth={1.75} /></span>
                           <div style={{ minWidth: 0 }}>
                             <div className="game-card-title">{game.title}</div>
                             <div className="game-card-meta">{gameSubtitle(game)}</div>
@@ -194,7 +198,7 @@ export default function PlayerDashboardPage() {
         <div className="card-title">Meine Spiele</div>
         {history.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-state-icon">🎮</div>
+            <div className="empty-state-icon"><Gamepad2 size={26} strokeWidth={1.5} /></div>
             <div className="empty-state-text">Noch keine Spiele — viel Erfolg beim ersten Game!</div>
           </div>
         ) : (

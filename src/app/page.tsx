@@ -7,15 +7,6 @@ import { Gamepad2 } from 'lucide-react'
 
 type Row = { rank: number; display_name: string; role: string; total_score: number; games_played: number }
 
-// Demo-Daten zum lokalen Testen ohne echte Supabase-Anbindung (greift nur,
-// wenn die echte Abfrage leer zurückkommt). Vor dem Merge nach main wieder entfernen.
-const DEMO_ENTRIES: Row[] = [
-  { rank: 1, display_name: 'Lena Braun', role: 'Controller', total_score: 1840, games_played: 6 },
-  { rank: 2, display_name: 'Markus Kessler', role: 'Finance Manager', total_score: 1655, games_played: 5 },
-  { rank: 3, display_name: 'Amir Novak', role: 'Analyst', total_score: 1470, games_played: 5 },
-  { rank: 4, display_name: 'Sofia Rossi', role: 'CFO', total_score: 1290, games_played: 4 },
-]
-
 export default function LeaderboardPage() {
   const [entries, setEntries] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
@@ -24,31 +15,9 @@ export default function LeaderboardPage() {
     let cancelled = false
 
     async function load() {
-      // See admin/page.tsx for why this race exists: a placeholder Supabase
-      // project's DNS never resolves, so the client hangs instead of
-      // rejecting - this timeout keeps the demo fallback reachable for local
-      // testing without a real backend.
-      const timeout = new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 4000))
-      const fetchPromise = supabase.from('leaderboard').select('*').order('rank')
-
-      const result = await Promise.race([fetchPromise, timeout])
+      const { data: lb } = await supabase.from('leaderboard').select('*').order('rank')
       if (cancelled) return
-
-      if (result === 'timeout') {
-        setEntries(DEMO_ENTRIES)
-        setLoading(false)
-        return
-      }
-
-      const { data: lb } = result
-
-      if (!lb || lb.length === 0) {
-        setEntries(DEMO_ENTRIES)
-        setLoading(false)
-        return
-      }
-
-      setEntries(lb)
+      setEntries(lb ?? [])
       setLoading(false)
     }
     load()

@@ -103,7 +103,7 @@ const popupStyles = `
     justify-content: center;
     z-index: 200;
     padding: 20px;
-    animation: gpop-fade-in 0.2s ease-out;
+    animation: gpop-fade-in var(--duration) var(--ease);
   }
   .gpop-dialog {
     position: relative;
@@ -153,7 +153,7 @@ const popupStyles = `
     line-height: 1;
     cursor: pointer;
     font-family: inherit;
-    transition: border-color 0.2s ease-out, color 0.2s ease-out;
+    transition: border-color var(--duration) var(--ease), color var(--duration) var(--ease);
   }
   .gpop-close:hover {
     border-color: var(--accent);

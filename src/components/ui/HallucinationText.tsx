@@ -129,7 +129,7 @@ const htStyles = `
     cursor: pointer;
     border-radius: 4px;
     padding: 1px 2px;
-    transition: background-color 0.2s ease-out, box-shadow 0.2s ease-out;
+    transition: background-color var(--duration) var(--ease), box-shadow var(--duration) var(--ease);
     outline-offset: 2px;
   }
   .ht-sentence:hover, .ht-sentence.ht-hovered {

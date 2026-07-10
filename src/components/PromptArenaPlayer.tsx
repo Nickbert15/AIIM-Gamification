@@ -530,7 +530,7 @@ const paStyles = `
     outline: none;
     width: 100%;
     box-sizing: border-box;
-    transition: border-color 0.2s ease-out, box-shadow 0.2s ease-out;
+    transition: border-color var(--duration) var(--ease), box-shadow var(--duration) var(--ease);
   }
   .pa-textarea:focus { border-color: var(--accent); box-shadow: var(--focus-ring); }
   .pa-submit-row { display: flex; justify-content: flex-end; }
@@ -573,7 +573,7 @@ const paStyles = `
     background: var(--bg-card);
     box-shadow: var(--shadow-sm);
     cursor: grab;
-    transition: border-color 0.2s ease-out, background-color 0.2s ease-out, box-shadow 0.2s ease-out, transform 0.2s ease-out, opacity 0.2s ease-out;
+    transition: border-color var(--duration) var(--ease), background-color var(--duration) var(--ease), box-shadow var(--duration) var(--ease), transform var(--duration) var(--ease), opacity var(--duration) var(--ease);
   }
   .pa-card-enter { animation: pa-card-fade-in 0.35s ease both; }
   @keyframes pa-card-fade-in {

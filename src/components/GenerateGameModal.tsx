@@ -332,7 +332,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
           font-size: 14px;
           padding: 10px 12px;
           outline: none;
-          transition: border-color 0.2s ease-out, box-shadow 0.2s ease-out;
+          transition: border-color var(--duration) var(--ease), box-shadow var(--duration) var(--ease);
           font-family: inherit;
           width: 100%;
           box-sizing: border-box;
@@ -364,7 +364,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
           align-items: center;
           justify-content: space-between;
           gap: 8px;
-          transition: border-color 0.2s ease-out;
+          transition: border-color var(--duration) var(--ease);
         }
         .ggm-combo-trigger:hover, .ggm-combo-trigger:focus { border-color: var(--accent); }
         .ggm-combo-trigger:focus { box-shadow: var(--focus-ring); }

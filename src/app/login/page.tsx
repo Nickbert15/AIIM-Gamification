@@ -77,7 +77,7 @@ export default function LoginPage() {
 
           {error && <div className="alert alert-error">{error}</div>}
 
-          <button type="submit" className="btn btn-primary" disabled={submitting}>
+          <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={submitting}>
             {submitting ? 'Anmelden…' : 'Anmelden →'}
           </button>
         </form>

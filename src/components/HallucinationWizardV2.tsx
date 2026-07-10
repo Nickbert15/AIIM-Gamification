@@ -362,7 +362,7 @@ const wz2Styles = `
     padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border);
     background: var(--bg-card); color: var(--text-muted); cursor: pointer;
     font-size: 12px; font-weight: 600; font-family: inherit;
-    transition: border-color 0.2s ease-out, color 0.2s ease-out, background-color 0.2s ease-out;
+    transition: border-color var(--duration) var(--ease), color var(--duration) var(--ease), background-color var(--duration) var(--ease);
   }
   .wz2-verdict-btn.active-fact { border-color: var(--success); color: var(--success-ink); background: var(--success-soft); }
   .wz2-verdict-btn.active-hallu { border-color: var(--attention); color: var(--attention-ink); background: var(--attention-soft); }

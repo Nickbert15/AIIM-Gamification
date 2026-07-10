@@ -61,7 +61,7 @@ const stepStyles = `
     font-weight: 700;
     font-size: 13px;
     flex-shrink: 0;
-    transition: background-color 0.2s ease-out, color 0.2s ease-out;
+    transition: background-color var(--duration) var(--ease), color var(--duration) var(--ease);
   }
   .step-circle-active { background: var(--accent); color: #fff; }
   .step-circle-done { background: var(--success); color: #fff; }
