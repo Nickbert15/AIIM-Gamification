@@ -12,7 +12,7 @@ interface Props {
 type Status = 'idle' | 'loading' | 'success' | 'error'
 type TechStatus = 'loading' | 'success' | 'empty' | 'error'
 type Difficulty = 'easy' | 'medium' | 'hard'
-type GameType = 'excel_challenge' | 'hallucination_spotter_v2' | 'prompt_arena'
+type GameType = 'excel_challenge' | 'hallucination_spotter_v2' | 'prompt_arena' | 'prompt_branching'
 
 interface Technology {
   id: string
@@ -48,6 +48,7 @@ const GAME_TYPES: { value: GameType; label: string }[] = [
   { value: 'excel_challenge', label: 'Excel Challenge' },
   { value: 'hallucination_spotter_v2', label: 'Hallucination Spotter' },
   { value: 'prompt_arena', label: 'Prompt Arena' },
+  { value: 'prompt_branching', label: 'Prompt-Navigator' },
 ]
 
 // Neueste zuerst, dann pro label nur den ersten (= neuesten) Eintrag behalten.

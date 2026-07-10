@@ -303,6 +303,31 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
               </div>
             )}
 
+            {game.game_json.branching && (
+              <div>
+                <p className="grm-section-title">
+                  Prompt-Navigator · Prompt-Optionen ({(game.game_json.branching.nodes[game.game_json.branching.startNode]?.options ?? []).length})
+                </p>
+                <div className="grm-objective" style={{ marginBottom: 10 }}>
+                  {game.game_json.branching.scenario.intro}
+                </div>
+                <div className="grm-question-list">
+                  {(game.game_json.branching.nodes[game.game_json.branching.startNode]?.options ?? []).map((o, i) => (
+                    <div key={o.id} className="grm-question-item">
+                      <div className="grm-q-text">{i + 1}. {o.label}</div>
+                      {o.promptText && (
+                        <div className="grm-q-explanation" style={{ marginBottom: 6 }}>{o.promptText}</div>
+                      )}
+                      <div className="grm-q-answer" style={{ color: o.points > 0 ? 'var(--success)' : 'var(--text-muted)' }}>
+                        <span>{o.points > 0 ? '✓' : '·'}</span>
+                        <span>{o.points} Punkte</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {game.format === 'excel_challenge' && (
               <div>
                 <p className="grm-section-title">Excel Challenge</p>
@@ -335,7 +360,7 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
               </div>
             )}
 
-            {!game.game_json.questions && !game.game_json.halluRound && !game.game_json.arenaRounds && game.format !== 'excel_challenge' && (
+            {!game.game_json.questions && !game.game_json.halluRound && !game.game_json.arenaRounds && !game.game_json.branching && game.format !== 'excel_challenge' && (
               <div>
                 <p className="grm-section-title">Spieltyp nicht verfügbar</p>
                 <div className="grm-objective">
