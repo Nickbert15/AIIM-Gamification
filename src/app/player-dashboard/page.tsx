@@ -1,8 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Avatar from '@/components/Avatar'
 import GamePlayerModal from '@/components/GamePlayerModal'
+import { recommendGames } from '@/lib/recommendations'
 import { Game } from '@/types/game'
 
 type Step = 'email' | 'set-password' | 'login'
@@ -11,6 +12,22 @@ type PlayerData = {
   player: { id: string; email: string; display_name: string; role: string }
   stats: { games_played: number; total_score: number; avg_score: number; best_score: number }
   history: { id: string; score: number; completed_at: string; games: { id: string; title: string } | null }[]
+}
+
+function gameKind(game: Game): { icon: string; label: string; count: string } {
+  const questionCount = game.game_json?.questions?.length ?? 0
+  if (questionCount > 0) {
+    return {
+      icon: '❓',
+      label: 'Quiz',
+      count: `${questionCount} ${questionCount === 1 ? 'Frage' : 'Fragen'}`,
+    }
+  }
+  return { icon: '🎮', label: game.format ?? 'Spiel', count: '' }
+}
+
+function gameSubtitle(game: Game): string {
+  return [gameKind(game).label, game.difficulty, game.topic].filter(Boolean).join(' · ')
 }
 
 export default function PlayerDashboardPage() {
@@ -45,6 +62,36 @@ export default function PlayerDashboardPage() {
     window.addEventListener('auth-changed', refresh)
     return () => window.removeEventListener('auth-changed', refresh)
   }, [refresh])
+
+  // Deep-Link aus der Weekly-Mail: /player-dashboard?game=<gameId> öffnet das Spiel
+  // automatisch, sobald Login UND Spieleliste da sind — der Link überlebt also auch
+  // den Passwort-anlegen-Flow neuer Nutzer. Bewusst window.location statt
+  // useSearchParams: letzteres erzwingt eine Suspense-Boundary beim Prerender.
+  const [deepLinkDone, setDeepLinkDone] = useState(false)
+  useEffect(() => {
+    if (deepLinkDone || !data || games.length === 0) return
+    setDeepLinkDone(true)
+    const wanted = new URLSearchParams(window.location.search).get('game')
+    if (!wanted) return
+    const match = games.find((g) => g.id === wanted)
+    if (match) setActiveGame(match)
+  }, [deepLinkDone, data, games])
+
+  const playedIds = useMemo(
+    () => new Set(data?.history.flatMap(h => (h.games ? [h.games.id] : [])) ?? []),
+    [data]
+  )
+
+  const recommendations = useMemo(() => {
+    if (!data) return null
+    const played = data.history.flatMap(h => (h.games ? [{ gameId: h.games.id, score: h.score }] : []))
+    return recommendGames(games, {
+      playerId: data.player.id,
+      role: data.player.role,
+      played,
+      now: new Date(),
+    })
+  }, [data, games])
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -152,40 +199,62 @@ export default function PlayerDashboardPage() {
         </div>
 
         <div className="card" style={{ marginBottom: 24 }}>
-          <div className="card-title">Verfügbare Spiele</div>
-          {games.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-state-icon">🕹️</div>
-              <div className="empty-state-text">Aktuell sind keine Spiele verfügbar. Schau später wieder vorbei!</div>
-            </div>
+          {!recommendations?.gameOfTheWeek ? (
+            <>
+              <div className="card-title">Verfügbare Spiele</div>
+              <div className="empty-state">
+                <div className="empty-state-icon">🕹️</div>
+                <div className="empty-state-text">Aktuell sind keine Spiele verfügbar. Schau später wieder vorbei!</div>
+              </div>
+            </>
           ) : (
-            <div className="game-grid">
-              {games.map((game) => {
-                const questionCount = game.game_json?.questions?.length ?? 0
-                const kind = questionCount > 0
-                  ? { icon: '❓', label: 'Quiz', count: `${questionCount} ${questionCount === 1 ? 'Frage' : 'Fragen'}` }
-                  : { icon: '🎮', label: game.format ?? 'Spiel', count: '' }
-                return (
-                  <div key={game.id} className="game-card">
-                    <div className="game-card-top">
-                      <span className="game-card-icon">{kind.icon}</span>
-                      <div style={{ minWidth: 0 }}>
-                        <div className="game-card-title">{game.title}</div>
-                        <div className="game-card-meta">
-                          {[kind.label, game.difficulty, game.topic].filter(Boolean).join(' · ')}
+            <>
+              <div className="gotw-card">
+                <span className="gotw-icon">{gameKind(recommendations.gameOfTheWeek).icon}</span>
+                <div className="gotw-body">
+                  <div className="gotw-eyebrow">Game of the Week</div>
+                  <div className="gotw-title">{recommendations.gameOfTheWeek.title}</div>
+                  <div className="gotw-meta">{gameSubtitle(recommendations.gameOfTheWeek)}</div>
+                </div>
+                <button className="btn btn-primary" onClick={() => setActiveGame(recommendations.gameOfTheWeek!)}>
+                  Jetzt spielen →
+                </button>
+              </div>
+
+              {recommendations.replaying && (
+                <div className="gotw-meta" style={{ marginTop: 12 }}>
+                  Du hast schon alle Spiele abgeschlossen — Zeit für eine Wiederholung.
+                </div>
+              )}
+
+              {recommendations.alsoLike.length > 0 && (
+                <>
+                  <div className="section-heading">Das könnte dir auch gefallen</div>
+                  <div className="game-grid">
+                    {recommendations.alsoLike.map((game) => {
+                      const kind = gameKind(game)
+                      return (
+                        <div key={game.id} className="game-card">
+                          <div className="game-card-top">
+                            <span className="game-card-icon">{kind.icon}</span>
+                            <div style={{ minWidth: 0 }}>
+                              <div className="game-card-title">{game.title}</div>
+                              <div className="game-card-meta">{gameSubtitle(game)}</div>
+                            </div>
+                          </div>
+                          <div className="game-card-footer">
+                            <span className="game-card-count">{kind.count}</span>
+                            <button className="btn btn-primary" onClick={() => setActiveGame(game)}>
+                              {playedIds.has(game.id) ? 'Nochmal spielen →' : 'Spielen →'}
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                    <div className="game-card-footer">
-                      <span className="game-card-count">{kind.count}</span>
-                      <button className="btn btn-primary" onClick={() => setActiveGame(game)}>
-                        Spielen →
-                      </button>
-                    </div>
+                      )
+                    })}
                   </div>
-                )
-              })}
-            </div>
+                </>
+              )}
+            </>
           )}
         </div>
 
@@ -234,6 +303,7 @@ export default function PlayerDashboardPage() {
           <GamePlayerModal
             key={activeGame.id}
             game={activeGame}
+            playerId={player.id}
             onClose={() => setActiveGame(null)}
             onSaved={refresh}
           />

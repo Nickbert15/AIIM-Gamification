@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase'
 import { callKiconnect } from '@/lib/kiconnect'
 import { CriterionResult, evaluateExcelChallenge, extractExcelChallengeData } from '@/lib/excelEvaluation'
 import { computeExcelPoints } from '@/lib/excelScoring'
+import { applyPlayGamification } from '@/lib/playerGamification'
 import { ExcelTableState, GameJson } from '@/types/game'
 
 const FEEDBACK_SYSTEM_PROMPT = `Du gibst kurzes, konstruktives Feedback auf Deutsch (2-3 Sätze) zu einer abgeschlossenen "Excel-Prompt-Challenge". Du bekommst die Aufgabenstellung, den erreichten Score in Prozent, und pro Kriterium ob es erfüllt wurde. Formuliere freundlich und konkret, was gut war und was noch fehlt. Gib NUR den Feedbacktext zurück, keine Überschriften, keine Aufzählungszeichen, keine Anführungszeichen.`
@@ -62,6 +63,10 @@ export async function POST(request: Request) {
 
     if (playerId !== null) {
       await supabase.from('scores').insert([{ player_id: playerId, game_id: gameId, score: pointsEarned }])
+      // Punkte-Quelle laut Vorgabe: maxPoints des Spiels bei Bestehen (alle Kriterien
+      // erfüllt), sonst 0 — bewusst NICHT das attempt-gewichtete `pointsEarned`,
+      // das nur in die `scores`-Historie fließt.
+      await applyPlayGamification(playerId, criteriaResults.every(c => c.passed) ? maxPoints : 0)
     }
 
     return Response.json({

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { getSessionToken, verifyToken } from '@/lib/auth'
+import { applyPlayGamification } from '@/lib/playerGamification'
 
 export async function POST(req: NextRequest) {
   const token = getSessionToken()
@@ -26,5 +27,11 @@ export async function POST(req: NextRequest) {
   })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Zählt den Play für Streak & Weekly-Score. Quiz/Hallucination/Arena haben kein
+  // Bestanden-Kriterium wie die Excel-Challenge (dort: maxPoints bei Bestehen) —
+  // gutgeschrieben werden deshalb die tatsächlich erreichten Punkte.
+  await applyPlayGamification(playerId, score)
+
   return NextResponse.json({ ok: true })
 }

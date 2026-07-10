@@ -2,9 +2,14 @@
 
 import { useCallback, useState } from 'react'
 import { Game, Question } from '@/types/game'
+import ExcelGamePlayer from './ExcelGamePlayer'
+import HallucinationSpotterPlayerV2 from './HallucinationSpotterPlayerV2'
+import PromptArenaPlayer from './PromptArenaPlayer'
 
 interface Props {
   game: Game
+  /** Eingeloggter Spieler — der Excel-Player braucht ihn für seine eigenen API-Calls. */
+  playerId: string
   onClose: () => void
   /** Called once a completed run has been persisted, so the dashboard can refresh. */
   onSaved: () => void
@@ -12,7 +17,7 @@ interface Props {
 
 const QUIZ_POINTS_PER_CORRECT = 10
 
-export default function GamePlayerModal({ game, onClose, onSaved }: Props) {
+export default function GamePlayerModal({ game, playerId, onClose, onSaved }: Props) {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
   const saveScore = useCallback(async (score: number) => {
@@ -31,21 +36,33 @@ export default function GamePlayerModal({ game, onClose, onSaved }: Props) {
     }
   }, [game.id, onSaved])
 
+  // Format-Erkennung deckungsgleich mit GamePreviewModal, damit Admin-Vorschau und
+  // Spieler-Ansicht nie auseinanderlaufen (dort spielbar => hier spielbar).
+  const isExcel = game.format === 'excel_challenge' && Boolean(game.game_json?.task) && Boolean(game.game_json?.initialData)
+  const isHallu = game.game_json?.format === 'hallucination_spotter_v2' && Boolean(game.game_json?.halluRound)
+  const isArena = game.game_json?.format === 'prompt_arena' && (game.game_json?.arenaRounds?.length ?? 0) > 0
   const isQuiz = (game.game_json?.questions?.length ?? 0) > 0
-  const mode: 'quiz' | 'unsupported' = isQuiz ? 'quiz' : 'unsupported'
+  const mode: 'excel' | 'hallu' | 'arena' | 'quiz' | 'unsupported' =
+    isExcel ? 'excel' : isHallu ? 'hallu' : isArena ? 'arena' : isQuiz ? 'quiz' : 'unsupported'
+
+  const modeLabel =
+    mode === 'excel' ? 'Excel Challenge'
+    : mode === 'hallu' ? 'Hallucination Spotter'
+    : mode === 'arena' ? 'Prompt Arena'
+    : mode === 'quiz' ? 'Quiz'
+    : game.format
+  const cardWidth = mode === 'excel' ? '96vw' : mode === 'hallu' || mode === 'arena' ? 680 : 620
 
   return (
     <>
       <style>{gplStyles}</style>
       <div className="gpl-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
-        <div className="gpl-card" style={{ maxWidth: 620 }}>
+        <div className="gpl-card" style={{ maxWidth: cardWidth }}>
           <div className="gpl-header">
             <div>
               <h2 className="gpl-title">{game.title}</h2>
               <div className="gpl-subtitle">
-                {[mode === 'quiz' ? 'Quiz' : game.format, game.difficulty, game.topic]
-                  .filter(Boolean)
-                  .join(' · ')}
+                {[modeLabel, game.difficulty, game.topic].filter(Boolean).join(' · ')}
               </div>
             </div>
             <button className="gpl-close" onClick={onClose}>×</button>
@@ -59,6 +76,23 @@ export default function GamePlayerModal({ game, onClose, onSaved }: Props) {
             </div>
           )}
 
+          {mode === 'excel' && (
+            <ExcelGamePlayer
+              gameId={game.id}
+              task={game.game_json.task ?? ''}
+              initialData={game.game_json.initialData!}
+              maxAttempts={game.game_json.maxAttempts ?? 3}
+              playerId={playerId}
+              // /api/excel/finish hat das Ergebnis bereits persistiert (scores +
+              // Gamification) — hier nur noch Status zeigen, kein zweiter Insert.
+              onComplete={() => { setSaveState('saved'); onSaved() }}
+              onClose={onClose}
+            />
+          )}
+          {mode === 'hallu' && (
+            <HallucinationSpotterPlayerV2 game={game} onComplete={(result) => saveScore(result.score)} />
+          )}
+          {mode === 'arena' && <PromptArenaPlayer game={game} onComplete={saveScore} />}
           {mode === 'quiz' && <QuizPlayer game={game} onComplete={saveScore} onClose={onClose} />}
           {mode === 'unsupported' && (
             <div className="gpl-body">

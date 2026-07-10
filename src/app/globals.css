@@ -640,6 +640,55 @@ select option { background: var(--bg-card); }
 .game-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .game-card-count { font-size: 12px; color: var(--text-dim); }
 
+/* GAME OF THE WEEK */
+.gotw-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.10), rgba(14, 165, 233, 0.02));
+  border: 1px solid rgba(14, 165, 233, 0.35);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.gotw-card:hover { border-color: rgba(14, 165, 233, 0.6); transform: translateY(-2px); }
+.gotw-icon {
+  font-size: 30px;
+  line-height: 1;
+  width: 60px;
+  height: 60px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: var(--bg-card-hover);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.gotw-body { flex: 1; min-width: 0; }
+.gotw-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.gotw-title { font-weight: 700; font-size: 19px; line-height: 1.3; margin-top: 6px; }
+.gotw-meta { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
+.gotw-card .btn { flex-shrink: 0; }
+
+.section-heading {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 28px 0 14px;
+}
+
+@media (max-width: 560px) {
+  .gotw-card { flex-direction: column; align-items: flex-start; }
+  .gotw-card .btn { width: 100%; }
+}
+
 /* AUTH CARD */
 .auth-wrapper { display: flex; justify-content: center; padding-top: 24px; }
 .auth-card { max-width: 420px; width: 100%; }
