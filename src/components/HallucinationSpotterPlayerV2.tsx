@@ -333,7 +333,7 @@ const hsv2Styles = `
     font-size: 14px;
     line-height: 1.5;
     font-family: inherit;
-    transition: border-color 0.2s ease-out, background-color 0.2s ease-out, box-shadow 0.2s ease-out, opacity 0.2s ease-out;
+    transition: border-color var(--duration) var(--ease), background-color var(--duration) var(--ease), box-shadow var(--duration) var(--ease), opacity var(--duration) var(--ease);
   }
   .hsv2-prompt-eyebrow {
     display: block;

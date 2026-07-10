@@ -105,7 +105,7 @@ const sliderStyles = `
     height: 10px;
     border-radius: var(--radius-pill);
     background: var(--accent-soft);
-    transition: width 0.15s ease-out;
+    transition: width var(--duration-fast) var(--ease);
   }
   .conf-slider-thumb {
     position: absolute;
@@ -115,7 +115,7 @@ const sliderStyles = `
     background: var(--accent);
     box-shadow: var(--shadow-sm), 0 0 0 4px var(--bg-card);
     transform: translateX(-50%);
-    transition: left 0.15s ease-out;
+    transition: left var(--duration-fast) var(--ease);
   }
   .conf-slider-input {
     position: absolute;

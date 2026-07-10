@@ -5,6 +5,7 @@ import { Game, Question } from '@/types/game'
 import ExcelGamePlayer from './ExcelGamePlayer'
 import HallucinationSpotterPlayerV2 from './HallucinationSpotterPlayerV2'
 import PromptArenaPlayer from './PromptArenaPlayer'
+import { X, CheckCircle2, XCircle, AlertTriangle, Construction } from 'lucide-react'
 
 interface Props {
   game: Game
@@ -65,14 +66,20 @@ export default function GamePlayerModal({ game, playerId, onClose, onSaved }: Pr
                 {[modeLabel, game.difficulty, game.topic].filter(Boolean).join(' · ')}
               </div>
             </div>
-            <button className="gpl-close" onClick={onClose}>×</button>
+            <button className="gpl-close" onClick={onClose} aria-label="Schließen">
+              <X size={16} strokeWidth={2} />
+            </button>
           </div>
 
           {saveState !== 'idle' && (
             <div className={`gpl-savebar gpl-save-${saveState}`}>
               {saveState === 'saving' && 'Speichere dein Ergebnis…'}
-              {saveState === 'saved' && '✓ Ergebnis gespeichert — es zählt jetzt fürs Leaderboard.'}
-              {saveState === 'error' && '⚠ Ergebnis konnte nicht gespeichert werden.'}
+              {saveState === 'saved' && (
+                <><CheckCircle2 size={14} strokeWidth={2.25} className="gpl-savebar-icon" /> Ergebnis gespeichert — es zählt jetzt fürs Leaderboard.</>
+              )}
+              {saveState === 'error' && (
+                <><AlertTriangle size={14} strokeWidth={2.25} className="gpl-savebar-icon" /> Ergebnis konnte nicht gespeichert werden.</>
+              )}
             </div>
           )}
 
@@ -97,7 +104,7 @@ export default function GamePlayerModal({ game, playerId, onClose, onSaved }: Pr
           {mode === 'unsupported' && (
             <div className="gpl-body">
               <div className="empty-state" style={{ padding: '32px 20px' }}>
-                <div className="empty-state-icon">🚧</div>
+                <div className="empty-state-icon"><Construction size={26} strokeWidth={1.5} /></div>
                 <div className="empty-state-text">
                   Dieses Spielformat kann hier noch nicht gespielt werden.
                 </div>
@@ -195,8 +202,10 @@ function QuizPlayer({ game, onComplete, onClose }: { game: Game; onComplete: (sc
       {answered && (
         <>
           <div className={`gpl-feedback ${isCorrect ? 'fb-correct' : 'fb-wrong'}`}>
-            {isCorrect ? '✓ Richtig! ' : '✗ Falsch. '}
-            {current.explanation}
+            {isCorrect
+              ? <CheckCircle2 size={16} strokeWidth={2} className="gpl-feedback-icon" />
+              : <XCircle size={16} strokeWidth={2} className="gpl-feedback-icon" />}
+            <span>{isCorrect ? 'Richtig! ' : 'Falsch. '}{current.explanation}</span>
           </div>
           <div className="gpl-next-row">
             <button className="btn btn-primary" onClick={handleNext}>
@@ -211,14 +220,14 @@ function QuizPlayer({ game, onComplete, onClose }: { game: Game; onComplete: (sc
 
 const gplStyles = `
   .gpl-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+    position: fixed; inset: 0; background: rgba(5,22,77,.42);
     backdrop-filter: blur(4px); display: flex;
     align-items: center; justify-content: center;
     z-index: 1000; padding: 16px;
   }
   .gpl-card {
     background: var(--bg-card); border: 1px solid var(--border);
-    border-radius: var(--radius); width: 100%;
+    border-radius: var(--radius-lg); width: 100%; box-shadow: var(--shadow-lg);
     max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column;
   }
   .gpl-header {
@@ -226,39 +235,47 @@ const gplStyles = `
     gap: 16px; padding: 20px 24px 16px; border-bottom: 1px solid var(--border);
     position: sticky; top: 0; background: var(--bg-card); z-index: 1;
   }
-  .gpl-title { font-size: 16px; font-weight: 700; color: var(--text); margin: 0; line-height: 1.4; }
+  .gpl-title { font-size: 16px; font-weight: 700; font-family: var(--font-head); color: var(--text); margin: 0; line-height: 1.4; }
   .gpl-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
   .gpl-close {
-    background: none; border: 1px solid var(--border); border-radius: 6px;
-    color: var(--text-muted); cursor: pointer; font-size: 18px; line-height: 1;
-    padding: 4px 10px; flex-shrink: 0; font-family: inherit;
+    background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+    color: var(--text-dim); cursor: pointer; line-height: 1;
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-family: inherit;
+    transition: border-color var(--duration) var(--ease), color var(--duration) var(--ease);
   }
   .gpl-close:hover { color: var(--text); border-color: var(--accent); }
-  .gpl-savebar { padding: 10px 24px; font-size: 13px; border-bottom: 1px solid var(--border); }
+  .gpl-savebar { display: flex; align-items: center; gap: 8px; padding: 10px 24px; font-size: 13px; border-bottom: 1px solid var(--border); }
+  .gpl-savebar-icon { flex-shrink: 0; }
   .gpl-save-saving { color: var(--text-muted); }
-  .gpl-save-saved { color: var(--success); background: rgba(16,185,129,0.08); }
-  .gpl-save-error { color: var(--danger); background: rgba(239,68,68,0.08); }
+  .gpl-save-saved { color: var(--success-ink); background: var(--success-soft); }
+  .gpl-save-error { color: var(--danger); background: var(--danger-soft); }
   .gpl-body { padding: 24px; display: flex; flex-direction: column; gap: 20px; flex: 1; }
   .gpl-progress { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--text-muted); }
   .gpl-progress-bar { flex: 1; height: 4px; background: var(--border); border-radius: 9999px; overflow: hidden; }
-  .gpl-progress-fill { height: 100%; background: var(--accent); border-radius: 9999px; transition: width 0.3s ease; }
+  .gpl-progress-fill { height: 100%; background: var(--accent); border-radius: 9999px; transition: width 0.4s var(--ease); }
   .gpl-question { font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.5; margin: 0; }
   .gpl-options { display: flex; flex-direction: column; gap: 8px; }
   .gpl-option {
     display: block; width: 100%; text-align: left; padding: 12px 16px;
     border-radius: var(--radius); border: 1px solid var(--border);
-    background: var(--bg); color: var(--text); cursor: pointer;
-    font-size: 14px; font-family: inherit; transition: border-color 0.15s, background 0.15s;
+    background: var(--bg-card); color: var(--text); cursor: pointer;
+    font-size: 14px; font-family: inherit;
+    transition: border-color var(--duration) var(--ease), background-color var(--duration) var(--ease), box-shadow var(--duration) var(--ease);
   }
-  .gpl-option:hover:not(:disabled) { border-color: var(--accent); background: rgba(14,165,233,0.06); }
+  .gpl-option:hover:not(:disabled) { border-color: var(--accent); background: var(--bg-card-hover); box-shadow: var(--shadow-sm); }
   .gpl-option:disabled { cursor: default; }
-  .gpl-option.opt-correct { border-color: var(--success); background: rgba(16,185,129,0.1); color: var(--success); }
-  .gpl-option.opt-wrong { border-color: var(--danger); background: rgba(239,68,68,0.08); color: var(--danger); }
-  .gpl-feedback { padding: 12px 16px; border-radius: var(--radius); font-size: 14px; line-height: 1.5; }
-  .gpl-feedback.fb-correct { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); color: var(--success); }
-  .gpl-feedback.fb-wrong { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); color: var(--danger); }
+  .gpl-option.opt-correct { border-color: var(--success); background: var(--success-soft); color: var(--success-ink); }
+  .gpl-option.opt-wrong { border-color: var(--danger); background: var(--danger-soft); color: var(--danger); }
+  .gpl-feedback { display: flex; align-items: flex-start; gap: 8px; padding: 12px 16px; border-radius: var(--radius); font-size: 14px; line-height: 1.5; }
+  .gpl-feedback-icon { flex-shrink: 0; margin-top: 2px; }
+  .gpl-feedback.fb-correct { background: var(--success-soft); border: 1px solid var(--success); color: var(--success-ink); }
+  .gpl-feedback.fb-wrong { background: var(--danger-soft); border: 1px solid var(--danger); color: var(--danger); }
   .gpl-next-row { display: flex; justify-content: flex-end; }
   .gpl-score { display: flex; flex-direction: column; align-items: center; padding: 32px 0 16px; gap: 8px; }
-  .gpl-score-number { font-size: 52px; font-weight: 800; color: var(--accent); line-height: 1; }
+  .gpl-score-number { font-size: 52px; font-weight: 800; font-family: var(--font-head); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; color: var(--accent); line-height: 1; }
   .gpl-score-label { font-size: 15px; color: var(--text-muted); }
+  @media (prefers-reduced-motion: reduce) {
+    .gpl-progress-fill { transition: none; }
+  }
 `

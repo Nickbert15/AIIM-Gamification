@@ -17,16 +17,6 @@ function formatRelativeTime(iso: string): string {
   return `vor ${days} ${days === 1 ? 'Tag' : 'Tagen'}`
 }
 
-// Demo-Daten zum lokalen Testen ohne echte Supabase-Anbindung (greift nur,
-// wenn die echte Abfrage leer zurückkommt). Vor dem Merge nach main wieder entfernen.
-const DEMO_STATS = { players: 128, scores: 642, games: 2, avgScore: 285 }
-const DEMO_RECENT_SCORES = [
-  { score: 340, game_id: 'demo-hallucination-spotter-v2', completed_at: new Date(Date.now() - 2 * 60000).toISOString(), players: { display_name: 'M. Kessler', role: 'Controller' } },
-  { score: 210, game_id: 'demo-prompt-arena', completed_at: new Date(Date.now() - 8 * 60000).toISOString(), players: { display_name: 'A. Novak', role: 'Finance Manager' } },
-  { score: 410, game_id: 'demo-hallucination-spotter-v2', completed_at: new Date(Date.now() - 21 * 60000).toISOString(), players: { display_name: 'L. Braun', role: 'Analyst' } },
-  { score: 180, game_id: 'demo-prompt-arena', completed_at: new Date(Date.now() - 55 * 60000).toISOString(), players: { display_name: 'S. Rossi', role: 'CFO' } },
-]
-
 export default function AdminPage() {
   const [stats, setStats] = useState({ players: 0, scores: 0, games: 0, avgScore: 0 })
   const [recentScores, setRecentScores] = useState<any[]>([])
@@ -37,40 +27,17 @@ export default function AdminPage() {
     let cancelled = false
 
     async function load() {
-      // Local dev often points at a placeholder Supabase project (see
-      // .env.local.example) whose DNS never resolves - the client then hangs
-      // instead of rejecting quickly. Racing it against a timeout means the
-      // demo fallback below still kicks in so the dashboard is testable
-      // without a real backend, while a real, reachable Supabase project
-      // (production) always resolves long before this fires.
-      const timeout = new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 4000))
-      const fetchPromise = Promise.all([
+      const [{ count: players }, { data: scores }] = await Promise.all([
         supabase.from('players').select('*', { count: 'exact', head: true }),
         supabase.from('scores').select('score, game_id, completed_at, players(display_name, role)').order('completed_at', { ascending: false }).limit(8),
       ])
-
-      const result = await Promise.race([fetchPromise, timeout])
       if (cancelled) return
 
-      if (result === 'timeout') {
-        setStats(DEMO_STATS)
-        setRecentScores(DEMO_RECENT_SCORES)
-        setLoading(false)
-        return
-      }
-
-      const [{ count: players }, { data: scores }] = result
       const scoreList = scores ?? []
-
-      if (scoreList.length === 0) {
-        setStats(DEMO_STATS)
-        setRecentScores(DEMO_RECENT_SCORES)
-        setLoading(false)
-        return
-      }
-
       const uniqueGames = new Set(scoreList.map((s: any) => s.game_id)).size
-      const avg = Math.round(scoreList.reduce((s: number, r: any) => s + r.score, 0) / scoreList.length)
+      const avg = scoreList.length
+        ? Math.round(scoreList.reduce((s: number, r: any) => s + r.score, 0) / scoreList.length)
+        : 0
 
       setStats({ players: players ?? 0, scores: scoreList.length, games: uniqueGames, avgScore: avg })
       setRecentScores(scoreList)
