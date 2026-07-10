@@ -22,6 +22,7 @@ export interface GameJson {
   outputVariants?: HallucinationOutputVariant[]
   halluRound?: HalluRoundV2
   arenaRounds?: ArenaRound[]
+  branching?: BranchingContent
   contextIntro?: string
   scoring?: { maxPoints: number; passingScore: number }
   aiContextNote?: string
@@ -150,4 +151,54 @@ export interface ArenaEvaluation {
   whatWasGood: string
   improvement: string
   comparison: string
+}
+
+// --- Prompt-Navigator (prompt_branching) ---
+// Ein Szenario, in dem die Spielerin aus mehreren Prompt-Optionen wählt und den
+// simulierten KI-Output anschließend über ein kleines Zustandsdiagramm (Knoten +
+// Optionen) bewertet bekommt. Die Knotentypen sind bewusst generisch gehalten,
+// damit ein Szenario mehrere Runden (Auswahl -> Diagnose -> Nachsteuern) abbilden
+// kann, ohne dass der Player-Code pro Runde neuen Code braucht.
+
+export type BranchNodeType = 'prompt_choice' | 'output_review' | 'diagnosis' | 'info' | 'end'
+
+export interface BranchOption {
+  id: string
+  label: string
+  /** Nur bei prompt_choice: der vollständige Prompt-Text, der der Spielerin angezeigt wird */
+  promptText?: string | null
+  points: number
+  /** Erklärung, die bei diagnosis-Knoten nach der Wahl eingeblendet wird */
+  feedback?: string
+  nextNode: string
+}
+
+export interface BranchRecapLesson {
+  craftElement: string
+  text: string
+}
+
+export interface BranchNode {
+  type: BranchNodeType
+  /** Frage/Aufgabenstellung (prompt_choice, diagnosis) oder Erklärtext (info) */
+  text?: string
+  /** Simulierter KI-Output (output_review) */
+  aiOutput?: string
+  /** Kurzes Bewertungs-Label für den Ergebnis-Popup (output_review), z. B. "Ausgezeichnet" */
+  ratingLabel?: string
+  /** Begründung, warum der Prompt/Output gut oder weniger gut war (output_review) */
+  explanation?: string
+  options?: BranchOption[]
+  /** Bei info-/output_review-Knoten: direkter Folgeknoten */
+  nextNode?: string
+  /** Nur bei end-Knoten */
+  recapIntro?: string
+  lessons?: BranchRecapLesson[]
+}
+
+export interface BranchingContent {
+  scenario: { intro: string; personaNote?: string }
+  startNode: string
+  nodes: Record<string, BranchNode>
+  scoring: { maxPoints: number; passingScore: number }
 }
