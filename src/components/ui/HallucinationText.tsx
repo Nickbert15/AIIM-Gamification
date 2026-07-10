@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Flag, Check, Info, AlertTriangle } from 'lucide-react'
 
 export interface HalluTextSentence {
   id: number
@@ -80,10 +81,10 @@ export default function HallucinationText({ sentences, markedIds, onToggle, reve
                 }
               >
                 {s.text}
-                {!revealMode && isMarked && <span className="ht-icon" aria-hidden="true">✎</span>}
-                {state === 'correct' && <span className="ht-icon" aria-hidden="true"> ✓</span>}
-                {state === 'incorrect' && <span className="ht-icon" aria-hidden="true"> ✗</span>}
-                {state === 'missed' && <span className="ht-icon" aria-hidden="true"> ⚠</span>}
+                {!revealMode && isMarked && <Flag className="ht-icon" size={12} strokeWidth={2.5} fill="currentColor" aria-hidden="true" />}
+                {state === 'correct' && <Check className="ht-icon" size={13} strokeWidth={2.75} aria-hidden="true" />}
+                {state === 'incorrect' && <Info className="ht-icon" size={13} strokeWidth={2.5} aria-hidden="true" />}
+                {state === 'missed' && <AlertTriangle className="ht-icon" size={13} strokeWidth={2.5} aria-hidden="true" />}
               </span>{' '}
               {revealMode && openExplanationId === s.id && (
                 <span className="ht-popover" role="note">
@@ -94,12 +95,17 @@ export default function HallucinationText({ sentences, markedIds, onToggle, reve
           )
         })}
       </div>
-      {revealMode && (
+      {revealMode ? (
         <div className="ht-legend">
           <span className="ht-legend-item"><span className="ht-dot ht-state-correct" /> Richtig erkannt</span>
           <span className="ht-legend-item"><span className="ht-dot ht-state-incorrect" /> Fälschlich markiert</span>
           <span className="ht-legend-item"><span className="ht-dot ht-state-missed" /> Übersehen</span>
           <span className="ht-legend-hint">Klicke einen Satz für die Erklärung ("Warum?").</span>
+        </div>
+      ) : (
+        <div className="ht-legend">
+          <span className="ht-legend-swatch-item"><span className="ht-swatch ht-swatch-marked" /> markiert</span>
+          <span className="ht-legend-swatch-item"><span className="ht-swatch ht-swatch-hovered" /> hervorgehoben</span>
         </div>
       )}
     </>
@@ -108,80 +114,117 @@ export default function HallucinationText({ sentences, markedIds, onToggle, reve
 
 const htStyles = `
   .ht-passage {
-    font-size: 14px;
-    line-height: 1.9;
+    font-size: 18px;
+    line-height: 1.85;
     color: var(--text);
-    background: var(--bg);
+    background: var(--bg-card);
     border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
     border-radius: var(--radius);
-    padding: 18px 20px;
+    padding: 34px 38px;
+    max-width: 66ch;
   }
   .ht-sentence-wrap { display: inline; }
   .ht-sentence {
     cursor: pointer;
     border-radius: 4px;
     padding: 1px 2px;
-    transition: background-color 0.12s ease, box-shadow 0.12s ease;
+    transition: background-color 0.2s ease-out, box-shadow 0.2s ease-out;
     outline-offset: 2px;
   }
   .ht-sentence:hover, .ht-sentence.ht-hovered {
-    background: rgba(10,29,61,0.05);
+    background: var(--lh-yellow-soft);
+    box-shadow: inset 0 0 0 1px var(--lh-yellow);
   }
   .ht-sentence:focus-visible {
-    outline: 2px solid var(--accent);
+    outline: none;
+    box-shadow: var(--focus-ring);
   }
   .ht-sentence.ht-marked {
-    background: rgba(255,173,0,0.18);
-    box-shadow: inset 0 -2px 0 #FFAD00;
+    background: var(--accent-soft);
+    box-shadow: inset 0 -2px 0 var(--accent);
   }
   .ht-icon {
-    font-weight: 800;
-    font-size: 12px;
+    display: inline-block;
+    vertical-align: -1px;
+    margin-left: 4px;
   }
-  .ht-sentence.ht-marked .ht-icon { color: var(--accent-text); }
+  .ht-sentence.ht-marked .ht-icon { color: var(--accent-ink); }
+  /* Caught: a suspected sentence that really was made up. */
   .ht-sentence.ht-state-correct {
-    background: rgba(16,185,129,0.16);
+    background: var(--success-soft);
     box-shadow: inset 0 -2px 0 var(--success);
   }
-  .ht-sentence.ht-state-correct .ht-icon { color: var(--success); }
+  .ht-sentence.ht-state-correct .ht-icon { color: var(--success-ink); }
+  /* False flag: marked, but the sentence was actually true. Deliberately
+     neutral/muted, not red — this is a learning game, not an error state. */
   .ht-sentence.ht-state-incorrect {
-    background: rgba(239,68,68,0.14);
-    box-shadow: inset 0 -2px 0 var(--danger);
+    background: none;
+    box-shadow: none;
+    text-decoration: underline;
+    text-decoration-color: var(--text-muted);
+    text-decoration-style: dotted;
+    text-underline-offset: 4px;
   }
-  .ht-sentence.ht-state-incorrect .ht-icon { color: var(--danger); }
+  .ht-sentence.ht-state-incorrect .ht-icon {
+    color: var(--text-muted);
+    display: inline-flex;
+    width: 16px;
+    height: 16px;
+    border-radius: var(--radius-pill);
+    background: var(--surface-sunken);
+    align-items: center;
+    justify-content: center;
+    vertical-align: -3px;
+    padding: 2px;
+  }
+  /* Missed: an actual hallucination the player didn't flag. Amber, distinct
+     from Crane Yellow, and not red — a missed answer isn't an "error". */
   .ht-sentence.ht-state-missed {
-    background: rgba(255,173,0,0.12);
-    box-shadow: inset 0 -2px 0 #FFAD00;
-    border-bottom: 1px dashed #FFAD00;
+    background: none;
+    box-shadow: none;
+    text-decoration: underline;
+    text-decoration-color: var(--attention);
+    text-decoration-style: dotted;
+    text-underline-offset: 4px;
   }
-  .ht-sentence.ht-state-missed .ht-icon { color: var(--accent-text); }
+  .ht-sentence.ht-state-missed .ht-icon { color: var(--attention-ink); }
   .ht-popover {
     display: inline-block;
-    font-size: 12px;
+    font-size: 15px;
     color: var(--text-dim);
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 12px;
-    margin: 4px 0;
-    line-height: 1.5;
+    border-top: 3px solid var(--lh-yellow);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    padding: 12px 16px;
+    margin: 6px 0;
+    line-height: 1.6;
   }
   .ht-legend {
     display: flex;
     flex-wrap: wrap;
-    gap: 14px;
-    margin-top: 10px;
-    font-size: 12px;
-    color: var(--text-muted);
+    gap: 10px;
+    margin-top: 20px;
+    font-size: 14px;
+    color: var(--text-dim);
     align-items: center;
   }
   .ht-legend-item {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: var(--radius-pill);
+    background: var(--surface-sunken);
   }
+  .ht-legend-item:nth-child(1) { background: var(--success-soft); color: var(--success-ink); }
+  .ht-legend-item:nth-child(2) { background: var(--surface-sunken); color: var(--text-dim); }
+  .ht-legend-item:nth-child(3) { background: var(--attention-soft); color: var(--attention-ink); }
   .ht-legend-hint {
     font-style: italic;
+    color: var(--text-muted);
   }
   .ht-dot {
     width: 9px;
@@ -190,8 +233,23 @@ const htStyles = `
     display: inline-block;
   }
   .ht-dot.ht-state-correct { background: var(--success); }
-  .ht-dot.ht-state-incorrect { background: var(--danger); }
-  .ht-dot.ht-state-missed { background: #FFAD00; }
+  .ht-dot.ht-state-incorrect { background: var(--text-muted); }
+  .ht-dot.ht-state-missed { background: var(--attention); }
+  .ht-legend-swatch-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .ht-swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+  .ht-swatch-marked { background: var(--accent-soft); box-shadow: inset 0 -2px 0 var(--accent); }
+  .ht-swatch-hovered { background: var(--lh-yellow-soft); box-shadow: inset 0 0 0 1px var(--lh-yellow); }
   @media (prefers-reduced-motion: reduce) {
     .ht-sentence { transition: none; }
   }

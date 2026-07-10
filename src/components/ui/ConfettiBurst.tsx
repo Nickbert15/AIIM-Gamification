@@ -11,7 +11,8 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false
 }
 
-const COLORS = ['#FFAD00', '#FBBB04', '#0A1D3D', '#DCDCDC', '#3B5C8F']
+// Mirrors --confetti-1..5 in globals.css (brand palette, no neon).
+const COLORS = ['#05164D', '#FFB81C', '#0B2E7A', '#FFD37A', '#C3CAD6']
 
 // Self-built canvas confetti (no npm package): a one-shot burst of falling,
 // rotating rectangles that fades out on its own. Skipped entirely under

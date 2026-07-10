@@ -142,7 +142,7 @@ const lmStyles = `
     color: #0A1D3D;
   }
   .lm-line.lm-marked .lm-marker-icon {
-    color: var(--accent-text);
+    color: var(--accent-ink);
   }
   .lm-line.lm-state-correct {
     border-color: var(--success);
@@ -162,7 +162,7 @@ const lmStyles = `
     border-style: dashed;
     animation: lm-pulse-missed 0.9s ease;
   }
-  .lm-line.lm-state-missed .lm-marker-icon { color: var(--accent-text); }
+  .lm-line.lm-state-missed .lm-marker-icon { color: var(--accent-ink); }
   @keyframes lm-pulse-correct {
     0% { background: rgba(16,185,129,0.5); }
     100% { background: rgba(16,185,129,0.1); }

@@ -5,8 +5,10 @@ import { ArenaEvaluation, ArenaRound, Game } from '@/types/game'
 import ThinkingDots from './ThinkingDots'
 import GamePopup from './ui/GamePopup'
 import ConfettiBurst from './ui/ConfettiBurst'
+import SparkleBurst from './ui/SparkleBurst'
 import ScoreCounter from './ui/ScoreCounter'
 import Badge from './ui/Badge'
+import { Target, ArrowUp, ArrowDown, CheckCircle2, AlertCircle, Trophy } from 'lucide-react'
 import HowToPlay from './ui/HowToPlay'
 
 interface Props {
@@ -246,6 +248,8 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
       <>
         <style>{paStyles}</style>
         <div className="pa-score-screen">
+          <SparkleBurst />
+          <span className="pa-score-trophy" aria-hidden="true"><Trophy size={28} strokeWidth={2.25} /></span>
           <div className="pa-score-number">
             {score}
             <span style={{ fontSize: '0.45em', color: 'var(--text-muted)', fontWeight: 400 }}>/{maxPoints}</span>
@@ -280,9 +284,9 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
           'desto besser und zuverlässiger fällt meist die Antwort der KI aus.'
         }
         steps={[
-          { icon: '1️⃣', text: 'Du liest eine Finance-Situation und schreibst deinen eigenen Prompt dazu.' },
-          { icon: '2️⃣', text: 'Die KI antwortet live auf deinen Prompt. Du siehst drei Antworten — deine und zwei Referenzantworten, aber nicht, welche welche ist.' },
-          { icon: '3️⃣', text: 'Du sortierst alle drei von der besten zur schwächsten. Danach bekommst du eine Auswertung inklusive Feedback zu deinem Prompt.' },
+          { text: 'Du liest eine Finance-Situation und schreibst deinen eigenen Prompt dazu.' },
+          { text: 'Die KI antwortet live auf deinen Prompt. Du siehst drei Antworten — deine und zwei Referenzantworten, aber nicht, welche welche ist.' },
+          { text: 'Du sortierst alle drei von der besten zur schwächsten. Danach bekommst du eine Auswertung inklusive Feedback zu deinem Prompt.' },
         ]}
         onDismiss={() => setHowToPlayOpen(false)}
       />
@@ -369,8 +373,12 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
                   <span className="pa-card-text">{card.text}</span>
                   {phase === 'ranking' && (
                     <div className="pa-move-buttons">
-                      <button className="pa-move-btn" onClick={() => moveUp(i)} disabled={i === 0} aria-label="nach oben">↑</button>
-                      <button className="pa-move-btn" onClick={() => moveDown(i)} disabled={i === order.length - 1} aria-label="nach unten">↓</button>
+                      <button className="pa-move-btn" onClick={() => moveUp(i)} disabled={i === 0} aria-label="nach oben">
+                        <ArrowUp size={16} strokeWidth={2.25} />
+                      </button>
+                      <button className="pa-move-btn" onClick={() => moveDown(i)} disabled={i === order.length - 1} aria-label="nach unten">
+                        <ArrowDown size={16} strokeWidth={2.25} />
+                      </button>
                     </div>
                   )}
                   {phase === 'revealed' && (
@@ -407,14 +415,15 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
             <div className="pa-eval-score-card">
               <ScoreCounter value={evaluation.scorePercent} suffix="%" className="pa-eval-percent" />
               <div className="pa-eval-percent-label">so gut wie die beste Vergleichsantwort</div>
-              {evaluation.scorePercent >= 70 && <Badge label="Prompt-Profi" icon="🎯" />}
+              {evaluation.scorePercent >= 70 && <Badge label="Prompt-Profi" icon={Target} />}
             </div>
             {evaluationStatus === 'done' && <p className="pa-eval-text">{evaluation.explanation}</p>}
 
             <div className={`pa-result ${roundCorrect ? 'result-correct' : 'result-wrong'}`}>
+              {roundCorrect ? <CheckCircle2 size={16} strokeWidth={2} /> : <AlertCircle size={16} strokeWidth={2} />}
               {roundCorrect
-                ? '✓ Richtig! Du hast die stärkere Referenzantwort vor die schwächere einsortiert.'
-                : '✗ Nicht ganz — die schwächere Referenzantwort stand bei dir vor der stärkeren.'}
+                ? 'Richtig! Du hast die stärkere Referenzantwort vor die schwächere einsortiert.'
+                : 'Nicht ganz — die schwächere Referenzantwort stand bei dir vor der stärkeren.'}
             </div>
 
             <div className="pa-notes">
@@ -499,15 +508,17 @@ const paStyles = `
     font-weight: 600;
     color: var(--text);
     line-height: 1.5;
-    background: var(--bg);
+    background: var(--bg-card);
     border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
     border-radius: var(--radius);
     padding: 16px;
   }
   .pa-instruction { font-size: 13px; color: var(--text-dim); margin: 0; }
   .pa-hint { font-size: 11px; color: var(--text-muted); margin: -6px 0 0; font-style: italic; }
   .pa-textarea {
-    background: var(--bg);
+    background: var(--surface-sunken);
+    box-shadow: inset 0 1px 2px rgba(5,22,77,.08);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     color: var(--text);
@@ -519,13 +530,13 @@ const paStyles = `
     outline: none;
     width: 100%;
     box-sizing: border-box;
-    transition: border-color 0.15s ease;
+    transition: border-color 0.2s ease-out, box-shadow 0.2s ease-out;
   }
-  .pa-textarea:focus { border-color: var(--accent); }
+  .pa-textarea:focus { border-color: var(--accent); box-shadow: var(--focus-ring); }
   .pa-submit-row { display: flex; justify-content: flex-end; }
   .pa-error {
-    background: rgba(239,68,68,0.08);
-    border: 1px solid rgba(239,68,68,0.25);
+    background: var(--danger-soft);
+    border: 1px solid var(--danger);
     border-radius: var(--radius);
     padding: 12px 16px;
     font-size: 13px;
@@ -559,9 +570,10 @@ const paStyles = `
     padding: 14px 16px;
     border-radius: var(--radius);
     border: 1px solid var(--border);
-    background: var(--bg);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
     cursor: grab;
-    transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
+    transition: border-color 0.2s ease-out, background-color 0.2s ease-out, box-shadow 0.2s ease-out, transform 0.2s ease-out, opacity 0.2s ease-out;
   }
   .pa-card-enter { animation: pa-card-fade-in 0.35s ease both; }
   @keyframes pa-card-fade-in {
@@ -569,9 +581,17 @@ const paStyles = `
     to { opacity: 1; transform: translateY(0); }
   }
   .pa-card:active { cursor: grabbing; }
-  .pa-card:hover { border-color: var(--accent); }
-  .pa-card.dragging { opacity: 0.4; }
-  .pa-card.drag-over { border-color: var(--accent); background: rgba(255,173,0,0.08); transform: scale(1.01); }
+  .pa-card:hover { box-shadow: var(--shadow-md); background: var(--bg-card-hover); }
+  .pa-card.dragging {
+    opacity: 0.5;
+    border: 1px solid var(--accent);
+    border-left: 3px solid var(--lh-yellow);
+  }
+  .pa-card.drag-over {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    box-shadow: var(--shadow-lg);
+  }
   .pa-rank-badge {
     flex-shrink: 0;
     width: 26px;
@@ -582,12 +602,13 @@ const paStyles = `
     justify-content: center;
     font-size: 12px;
     font-weight: 800;
+    font-family: var(--font-head);
     color: #fff;
     background: var(--text-muted);
   }
-  .pa-rank-badge.pa-rank-0 { background: var(--accent); color: var(--lh-blue); }
-  .pa-rank-badge.pa-rank-1 { background: #9B9B9B; }
-  .pa-rank-badge.pa-rank-2 { background: #B4B4B4; color: var(--lh-blue); }
+  .pa-rank-badge.pa-rank-0 { background: var(--accent); }
+  .pa-rank-badge.pa-rank-1 { background: var(--text-dim); }
+  .pa-rank-badge.pa-rank-2 { background: var(--text-muted); }
   .pa-card-text {
     flex: 1;
     font-size: 13px;
@@ -603,17 +624,20 @@ const paStyles = `
   .pa-move-btn {
     width: 44px;
     height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 8px;
     border: 1px solid var(--border);
     background: var(--bg-card);
     color: var(--text-muted);
     cursor: pointer;
-    font-size: 16px;
     line-height: 1;
     font-family: inherit;
   }
-  .pa-move-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-text); }
+  .pa-move-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-ink); }
   .pa-move-btn:disabled { opacity: 0.3; cursor: default; }
+  .pa-move-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
   .pa-reveal-tag {
     flex-shrink: 0;
     font-size: 10px;
@@ -624,24 +648,28 @@ const paStyles = `
     border-radius: 6px;
     white-space: nowrap;
   }
-  .pa-reveal-tag.tag-own { background: rgba(255,173,0,0.12); color: var(--accent-text); }
-  .pa-reveal-tag.tag-strong { background: rgba(16,185,129,0.12); color: var(--success); }
-  .pa-reveal-tag.tag-weak { background: rgba(239,68,68,0.1); color: var(--danger); }
+  .pa-reveal-tag.tag-own { background: var(--accent-soft); color: var(--accent-ink); }
+  .pa-reveal-tag.tag-strong { background: var(--success-soft); color: var(--success-ink); }
+  .pa-reveal-tag.tag-weak { background: var(--surface-sunken); color: var(--text-dim); }
   .pa-result {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
     padding: 12px 16px;
     border-radius: var(--radius);
     font-size: 14px;
     line-height: 1.5;
   }
+  .pa-result svg { flex-shrink: 0; margin-top: 2px; }
   .pa-result.result-correct {
-    background: rgba(16,185,129,0.1);
-    border: 1px solid rgba(16,185,129,0.3);
-    color: var(--success);
+    background: var(--success-soft);
+    border: 1px solid var(--success);
+    color: var(--success-ink);
   }
   .pa-result.result-wrong {
-    background: rgba(239,68,68,0.08);
-    border: 1px solid rgba(239,68,68,0.25);
-    color: var(--danger);
+    background: var(--attention-soft);
+    border: 1px solid var(--attention);
+    color: var(--attention-ink);
   }
   .pa-notes {
     display: flex;
@@ -649,8 +677,8 @@ const paStyles = `
     gap: 6px;
     font-size: 12px;
     color: var(--text-dim);
-    background: var(--bg);
-    border: 1px solid var(--border);
+    background: var(--surface-sunken);
+    border: none;
     border-radius: var(--radius);
     padding: 12px 14px;
   }
@@ -663,14 +691,20 @@ const paStyles = `
     padding: 4px 0;
   }
   .pa-eval-percent {
-    font-size: 40px;
+    font-size: 56px;
     font-weight: 800;
-    color: var(--accent-text);
+    font-family: var(--font-head);
+    color: var(--accent);
     line-height: 1;
   }
-  .pa-eval-percent-label { font-size: 12px; color: var(--text-muted); }
+  .pa-eval-percent-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
   .pa-eval-text {
-    font-size: 13px;
+    font-size: 15px;
     color: var(--text-dim);
     line-height: 1.6;
     text-align: center;
@@ -680,8 +714,8 @@ const paStyles = `
     display: flex;
     flex-direction: column;
     gap: 8px;
-    background: rgba(255,173,0,0.05);
-    border: 1px solid rgba(255,173,0,0.2);
+    background: var(--accent-soft);
+    border: none;
     border-radius: var(--radius);
     padding: 14px 16px;
   }
@@ -693,32 +727,34 @@ const paStyles = `
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--accent-text);
+    color: var(--accent-ink);
+    font-family: var(--font-head);
   }
   .pa-feedback-icon {
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #FFAD00, #FBBB04 60%, #FFD877);
+    background: var(--lh-yellow);
     flex-shrink: 0;
   }
   .pa-feedback-text {
     font-size: 13px;
-    color: var(--text-dim);
+    color: var(--text);
     line-height: 1.5;
   }
   .pa-lesson {
     font-size: 13px;
     font-weight: 600;
-    color: var(--accent-text);
-    background: rgba(255,173,0,0.06);
-    border: 1px solid rgba(255,173,0,0.2);
+    color: var(--accent-ink);
+    background: var(--accent-soft);
+    border: none;
     border-radius: var(--radius);
     padding: 12px 14px;
     text-align: center;
   }
   .pa-next-row { display: flex; justify-content: flex-end; }
   .pa-score-screen {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -726,14 +762,39 @@ const paStyles = `
     gap: 8px;
     text-align: center;
   }
+  .pa-score-trophy {
+    position: relative;
+    z-index: 1;
+    width: 52px;
+    height: 52px;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-md);
+    margin-bottom: 4px;
+    animation: pa-trophy-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  @keyframes pa-trophy-pop {
+    0% { transform: scale(0.3) rotate(-10deg); opacity: 0; }
+    60% { transform: scale(1.15) rotate(4deg); opacity: 1; }
+    100% { transform: scale(1) rotate(0deg); }
+  }
   .pa-score-number {
+    position: relative;
+    z-index: 1;
     font-size: 52px;
     font-weight: 800;
-    color: var(--accent-text);
+    font-family: var(--font-head);
+    color: var(--accent);
     line-height: 1;
   }
-  .pa-score-label { font-size: 14px; color: var(--text-muted); }
+  .pa-score-label { position: relative; z-index: 1; font-size: 14px; color: var(--text-muted); }
   .pa-score-msg {
+    position: relative;
+    z-index: 1;
     font-size: 14px;
     color: var(--text-dim);
     max-width: 380px;
@@ -742,5 +803,6 @@ const paStyles = `
   }
   @media (prefers-reduced-motion: reduce) {
     .pa-card-enter { animation: none; }
+    .pa-score-trophy { animation: none; }
   }
 `
