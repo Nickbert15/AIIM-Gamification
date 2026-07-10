@@ -234,26 +234,108 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
               </div>
             </div>
 
-            <div>
-              <p className="grm-section-title">Fragen ({game.game_json.questions.length})</p>
-              <div className="grm-question-list">
-                {game.game_json.questions.map((q, i) => {
-                  const correctOption = q.options.find(o => o.id === q.correctAnswer)
-                  return (
-                    <div key={q.id} className="grm-question-item">
-                      <div className="grm-q-text">{i + 1}. {q.question}</div>
-                      <div className="grm-q-answer">
-                        <span>✓</span>
-                        <span>{correctOption?.text ?? q.correctAnswer}</span>
+            {game.game_json.questions && (
+              <div>
+                <p className="grm-section-title">Fragen ({game.game_json.questions.length})</p>
+                <div className="grm-question-list">
+                  {game.game_json.questions.map((q, i) => {
+                    const correctOption = q.options.find(o => o.id === q.correctAnswer)
+                    return (
+                      <div key={q.id} className="grm-question-item">
+                        <div className="grm-q-text">{i + 1}. {q.question}</div>
+                        <div className="grm-q-answer">
+                          <span>✓</span>
+                          <span>{correctOption?.text ?? q.correctAnswer}</span>
+                        </div>
+                        {q.explanation && (
+                          <div className="grm-q-explanation">{q.explanation}</div>
+                        )}
                       </div>
-                      {q.explanation && (
-                        <div className="grm-q-explanation">{q.explanation}</div>
-                      )}
-                    </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
               </div>
-            </div>
+            )}
+
+            {game.game_json.halluRound && (
+              <div>
+                <p className="grm-section-title">
+                  Prompt-Varianten ({game.game_json.halluRound.promptOptions.length})
+                </p>
+                <div className="grm-q-text" style={{ marginBottom: 8 }}>{game.game_json.halluRound.situation}</div>
+                <div className="grm-question-list">
+                  {game.game_json.halluRound.promptOptions.map((p, i) => (
+                    <div key={p.id} className="grm-question-item">
+                      <div className="grm-q-text">{i + 1}. {p.text}</div>
+                      <div className="grm-q-answer" style={{ color: p.isRecommended ? 'var(--success)' : 'var(--text-muted)' }}>
+                        <span>{p.isRecommended ? '★' : '○'}</span>
+                        <span>{p.isRecommended ? `Empfohlen · ${p.approach}` : `Alternative · ${p.approach}`}</span>
+                      </div>
+                      {p.feedback && <div className="grm-q-explanation">{p.feedback}</div>}
+                    </div>
+                  ))}
+                </div>
+                <div className="grm-q-explanation" style={{ marginTop: 10 }}>
+                  Antworttext: {game.game_json.halluRound.answer.sentences.length} Sätze, davon{' '}
+                  {game.game_json.halluRound.answer.sentences.filter(s => s.isHallucination).length} Halluzination(en)
+                </div>
+              </div>
+            )}
+
+            {game.game_json.arenaRounds && (
+              <div>
+                <p className="grm-section-title">Arena-Runden ({game.game_json.arenaRounds.length})</p>
+                <div className="grm-question-list">
+                  {game.game_json.arenaRounds.map((r, i) => (
+                    <div key={r.id} className="grm-question-item">
+                      <div className="grm-q-text">{i + 1}. {r.taskDescription}</div>
+                      <div className="grm-q-explanation">{r.referenceOutputs.length} Referenzantworten hinterlegt</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {game.format === 'excel_challenge' && (
+              <div>
+                <p className="grm-section-title">Excel Challenge</p>
+                <div className="grm-question-list">
+                  <div className="grm-question-item">
+                    <div className="grm-q-text">{game.game_json.task}</div>
+                    <div className="grm-q-explanation">
+                      Ausgangsdaten: {game.game_json.initialData?.rows.length ?? 0} Zeilen × {game.game_json.initialData?.headers.length ?? 0} Spalten
+                      {' · '}
+                      Musterlösung: {game.game_json.solutionData?.rows.length ?? 0} Zeilen × {game.game_json.solutionData?.headers.length ?? 0} Spalten
+                      {' · '}
+                      Max. Versuche: {game.game_json.maxAttempts ?? '—'}
+                    </div>
+                  </div>
+                  {(game.game_json.evaluationCriteria ?? []).map(c => (
+                    <div key={c.id} className="grm-question-item">
+                      <div className="grm-q-text">{c.description}</div>
+                      <div className="grm-q-explanation">
+                        Gewicht: {c.weight} · Spalten: {c.columns.join(', ')}
+                      </div>
+                    </div>
+                  ))}
+                  {game.game_json.samplePrompt && (
+                    <div className="grm-question-item">
+                      <div className="grm-q-text">Beispiel-Prompt</div>
+                      <div className="grm-q-explanation">{game.game_json.samplePrompt}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {!game.game_json.questions && !game.game_json.halluRound && !game.game_json.arenaRounds && game.format !== 'excel_challenge' && (
+              <div>
+                <p className="grm-section-title">Spieltyp nicht verfügbar</p>
+                <div className="grm-objective">
+                  Für das Format „{game.format || '—'}" ist keine Detailansicht verfügbar.
+                </div>
+              </div>
+            )}
 
             {game.source_attribution && (
               <div>
