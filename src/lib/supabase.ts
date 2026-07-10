@@ -11,6 +11,7 @@ export type Player = {
   email: string
   display_name: string
   role: string
+  is_admin: boolean
   created_at: string
 }
 

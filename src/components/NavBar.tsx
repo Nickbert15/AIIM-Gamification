@@ -2,16 +2,17 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import Avatar from './Avatar'
 
-type Player = { display_name: string; email: string; role: string }
+type Player = { display_name: string; email: string; role: string; is_admin: boolean }
 
 export default function NavBar() {
   const [player, setPlayer] = useState<Player | null>(null)
   const [open, setOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
+  const router = useRouter()
 
   const loadMe = useCallback(() => {
     fetch('/api/auth/me')
@@ -42,9 +43,14 @@ export default function NavBar() {
     setPlayer(null)
     setOpen(false)
     window.dispatchEvent(new Event('auth-changed'))
+    router.replace('/login')
+    router.refresh()
   }
 
   const linkClass = (href: string) => `nav-link${pathname === href ? ' active' : ''}`
+
+  // Die Login-Seite ist die einzige Seite ohne Session — dort gibt es nichts zu navigieren.
+  if (pathname === '/login') return null
 
   return (
     <nav className="nav-bar">
@@ -57,6 +63,7 @@ export default function NavBar() {
         <div className="nav-links">
           <Link href="/" className={linkClass('/')}>Leaderboard</Link>
           <Link href="/player-dashboard" className={linkClass('/player-dashboard')}>Player Dashboard</Link>
+          {player?.is_admin && <Link href="/admin" className={linkClass('/admin')}>Admin</Link>}
 
           <div className="nav-user" ref={menuRef}>
             <button
@@ -91,24 +98,20 @@ export default function NavBar() {
                     <Link href="/player-dashboard" className="nav-dropdown-item" onClick={() => setOpen(false)}>
                       <span className="nav-dropdown-icon">🎮</span> Player Dashboard
                     </Link>
-                    <Link href="/admin" className="nav-dropdown-item" onClick={() => setOpen(false)}>
-                      <span className="nav-dropdown-icon">🛠️</span> Admin Dashboard
-                    </Link>
+                    {player.is_admin && (
+                      <Link href="/admin" className="nav-dropdown-item" onClick={() => setOpen(false)}>
+                        <span className="nav-dropdown-icon">🛠️</span> Admin Dashboard
+                      </Link>
+                    )}
                     <div className="nav-dropdown-divider" />
                     <button className="nav-dropdown-item nav-dropdown-danger" onClick={handleLogout}>
                       <span className="nav-dropdown-icon">↩</span> Abmelden
                     </button>
                   </>
                 ) : (
-                  <>
-                    <Link href="/player-dashboard" className="nav-dropdown-item" onClick={() => setOpen(false)}>
-                      <span className="nav-dropdown-icon">🔑</span> Anmelden
-                    </Link>
-                    <div className="nav-dropdown-divider" />
-                    <Link href="/admin" className="nav-dropdown-item" onClick={() => setOpen(false)}>
-                      <span className="nav-dropdown-icon">🛠️</span> Admin Dashboard
-                    </Link>
-                  </>
+                  <Link href="/login" className="nav-dropdown-item" onClick={() => setOpen(false)}>
+                    <span className="nav-dropdown-icon">🔑</span> Anmelden
+                  </Link>
                 )}
               </div>
             )}
