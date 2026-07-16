@@ -1,10 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
-import GenerateGameModal from '@/components/GenerateGameModal'
-import { CheckCircle2, Inbox, ArrowRight, UserPlus, Trophy, Gamepad2 } from 'lucide-react'
+import { CheckCircle2, Inbox, ArrowRight } from 'lucide-react'
 
 function formatRelativeTime(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime()
@@ -21,26 +19,27 @@ export default function AdminPage() {
   const [stats, setStats] = useState({ players: 0, scores: 0, games: 0, avgScore: 0 })
   const [recentScores, setRecentScores] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [modalOpen, setModalOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
 
     async function load() {
-      const [{ count: players }, { data: scores }] = await Promise.all([
-        supabase.from('players').select('*', { count: 'exact', head: true }),
-        supabase.from('scores').select('score, game_id, completed_at, players(display_name, role)').order('completed_at', { ascending: false }).limit(8),
-      ])
+      const res = await fetch('/api/admin/stats')
+      if (cancelled) return
+      if (!res.ok) {
+        setLoading(false)
+        return
+      }
+      const data = await res.json()
       if (cancelled) return
 
-      const scoreList = scores ?? []
-      const uniqueGames = new Set(scoreList.map((s: any) => s.game_id)).size
-      const avg = scoreList.length
-        ? Math.round(scoreList.reduce((s: number, r: any) => s + r.score, 0) / scoreList.length)
-        : 0
-
-      setStats({ players: players ?? 0, scores: scoreList.length, games: uniqueGames, avgScore: avg })
-      setRecentScores(scoreList)
+      setStats({
+        players: data.players ?? 0,
+        scores: data.gamesPlayed ?? 0,
+        games: data.distinctGames ?? 0,
+        avgScore: data.avgScore ?? 0,
+      })
+      setRecentScores(data.recent ?? [])
       setLoading(false)
     }
     load()
@@ -49,13 +48,6 @@ export default function AdminPage() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
-        <button className="btn btn-primary" onClick={() => setModalOpen(true)}>
-          + Spiel generieren
-        </button>
-      </div>
-      <GenerateGameModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
-
       <div className="stats-grid">
         {[
           { value: stats.players, label: 'Registrierte Spieler', accent: true },
@@ -90,7 +82,7 @@ export default function AdminPage() {
               <div key={i} className="activity-row">
                 <span className="activity-icon"><CheckCircle2 size={16} strokeWidth={2} /></span>
                 <span className="activity-text">
-                  <strong>{s.players?.display_name ?? '—'}</strong> hat <strong>{s.game_id}</strong> abgeschlossen
+                  <strong>{s.players?.display_name ?? '—'}</strong> hat <strong>{s.game_title ?? s.game_id}</strong> abgeschlossen
                 </span>
                 <span className="activity-score">{s.score} Pkt.</span>
                 <span className="activity-time">{formatRelativeTime(s.completed_at)}</span>
@@ -98,19 +90,6 @@ export default function AdminPage() {
             ))}
           </div>
         )}
-      </div>
-
-      <div className="quick-actions-grid">
-        {[
-          { href: '/admin/players', label: 'Spieler anlegen', icon: UserPlus },
-          { href: '/admin/scores', label: 'Score eintragen', icon: Trophy },
-          { href: '/admin/games', label: 'Game registrieren', icon: Gamepad2 },
-        ].map((a) => (
-          <Link key={a.href} href={a.href} className="quick-action-card">
-            <span className="quick-action-icon"><a.icon size={20} strokeWidth={2} /></span>
-            <span className="quick-action-label">{a.label}</span>
-          </Link>
-        ))}
       </div>
     </>
   )

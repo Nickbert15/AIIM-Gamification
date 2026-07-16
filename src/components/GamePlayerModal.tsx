@@ -6,7 +6,7 @@ import ExcelGamePlayer from './ExcelGamePlayer'
 import HallucinationSpotterPlayerV2 from './HallucinationSpotterPlayerV2'
 import PromptArenaPlayer from './PromptArenaPlayer'
 import BranchingGamePlayer from './BranchingGamePlayer'
-import { X, CheckCircle2, XCircle, AlertTriangle, Construction } from 'lucide-react'
+import { X, CheckCircle2, XCircle, AlertTriangle, Construction, Frown, Meh, Smile, Send } from 'lucide-react'
 
 interface Props {
   game: Game
@@ -21,6 +21,11 @@ const QUIZ_POINTS_PER_CORRECT = 10
 
 export default function GamePlayerModal({ game, playerId, onClose, onSaved }: Props) {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  // Sobald ein Durchlauf beendet ist, wird beim nächsten Schließen einmalig nach
+  // Feedback gefragt. `phase` schaltet den Modal-Body von Spiel auf Feedback um.
+  const [completed, setCompleted] = useState(false)
+  const [feedbackDone, setFeedbackDone] = useState(false)
+  const [phase, setPhase] = useState<'playing' | 'feedback'>('playing')
 
   const saveScore = useCallback(async (score: number) => {
     setSaveState('saving')
@@ -37,6 +42,22 @@ export default function GamePlayerModal({ game, playerId, onClose, onSaved }: Pr
       setSaveState('error')
     }
   }, [game.id, onSaved])
+
+  // Spielende für Quiz/Hallu/Arena/Branching: Score speichern + als beendet markieren.
+  const finishGame = useCallback((score: number) => {
+    setCompleted(true)
+    saveScore(score)
+  }, [saveScore])
+
+  // Schließen fängt einen beendeten Durchlauf ab und zeigt zuerst den Feedback-Schritt.
+  // In der Feedback-Phase zählt Schließen als "Überspringen".
+  const handleRequestClose = useCallback(() => {
+    if (completed && !feedbackDone && phase !== 'feedback') {
+      setPhase('feedback')
+    } else {
+      onClose()
+    }
+  }, [completed, feedbackDone, phase, onClose])
 
   // Format-Erkennung deckungsgleich mit GamePreviewModal, damit Admin-Vorschau und
   // Spieler-Ansicht nie auseinanderlaufen (dort spielbar => hier spielbar).
@@ -60,8 +81,8 @@ export default function GamePlayerModal({ game, playerId, onClose, onSaved }: Pr
   return (
     <>
       <style>{gplStyles}</style>
-      <div className="gpl-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
-        <div className="gpl-card" style={{ maxWidth: cardWidth }}>
+      <div className="gpl-overlay" onClick={(e) => { if (e.target === e.currentTarget) handleRequestClose() }}>
+        <div className="gpl-card" style={{ maxWidth: phase === 'feedback' ? 520 : cardWidth }}>
           <div className="gpl-header">
             <div>
               <h2 className="gpl-title">{game.title}</h2>
@@ -69,11 +90,18 @@ export default function GamePlayerModal({ game, playerId, onClose, onSaved }: Pr
                 {[modeLabel, game.difficulty, game.topic].filter(Boolean).join(' · ')}
               </div>
             </div>
-            <button className="gpl-close" onClick={onClose} aria-label="Schließen">
+            <button className="gpl-close" onClick={handleRequestClose} aria-label="Schließen">
               <X size={16} strokeWidth={2} />
             </button>
           </div>
 
+          {phase === 'feedback' ? (
+            <FeedbackStep
+              game={game}
+              onDone={() => { setFeedbackDone(true); onClose() }}
+            />
+          ) : (
+          <>
           {saveState !== 'idle' && (
             <div className={`gpl-savebar gpl-save-${saveState}`}>
               {saveState === 'saving' && 'Speichere dein Ergebnis…'}
@@ -95,16 +123,16 @@ export default function GamePlayerModal({ game, playerId, onClose, onSaved }: Pr
               playerId={playerId}
               // /api/excel/finish hat das Ergebnis bereits persistiert (scores +
               // Gamification) — hier nur noch Status zeigen, kein zweiter Insert.
-              onComplete={() => { setSaveState('saved'); onSaved() }}
-              onClose={onClose}
+              onComplete={() => { setSaveState('saved'); setCompleted(true); onSaved() }}
+              onClose={handleRequestClose}
             />
           )}
           {mode === 'hallu' && (
-            <HallucinationSpotterPlayerV2 game={game} onComplete={(result) => saveScore(result.score)} />
+            <HallucinationSpotterPlayerV2 game={game} onComplete={(result) => finishGame(result.score)} />
           )}
-          {mode === 'arena' && <PromptArenaPlayer game={game} onComplete={saveScore} />}
-          {mode === 'branching' && <BranchingGamePlayer game={game} onComplete={saveScore} />}
-          {mode === 'quiz' && <QuizPlayer game={game} onComplete={saveScore} onClose={onClose} />}
+          {mode === 'arena' && <PromptArenaPlayer game={game} onComplete={finishGame} />}
+          {mode === 'branching' && <BranchingGamePlayer game={game} onComplete={finishGame} />}
+          {mode === 'quiz' && <QuizPlayer game={game} onComplete={finishGame} onClose={handleRequestClose} />}
           {mode === 'unsupported' && (
             <div className="gpl-body">
               <div className="empty-state" style={{ padding: '32px 20px' }}>
@@ -114,9 +142,11 @@ export default function GamePlayerModal({ game, playerId, onClose, onSaved }: Pr
                 </div>
               </div>
               <div className="gpl-next-row">
-                <button className="btn btn-primary" onClick={onClose}>Schließen</button>
+                <button className="btn btn-primary" onClick={handleRequestClose}>Schließen</button>
               </div>
             </div>
+          )}
+          </>
           )}
         </div>
       </div>
@@ -222,6 +252,88 @@ function QuizPlayer({ game, onComplete, onClose }: { game: Game; onComplete: (sc
   )
 }
 
+const RATING_OPTIONS = [
+  { value: 1, label: 'Ging so', Icon: Frown, cls: 'fb-r1' },
+  { value: 2, label: 'Gut', Icon: Meh, cls: 'fb-r2' },
+  { value: 3, label: 'Super', Icon: Smile, cls: 'fb-r3' },
+] as const
+
+function FeedbackStep({ game, onDone }: { game: Game; onDone: () => void }) {
+  const [rating, setRating] = useState<number | null>(null)
+  const [comment, setComment] = useState('')
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState(false)
+
+  async function submit() {
+    if (rating === null || sending) return
+    setSending(true)
+    setError(false)
+    try {
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ game_id: game.id, game_title: game.title, rating, comment }),
+      })
+      if (!res.ok) throw new Error()
+      onDone()
+    } catch {
+      setError(true)
+      setSending(false)
+    }
+  }
+
+  return (
+    <div className="gpl-body gpl-fb-step">
+      <div>
+        <h3 className="gpl-fb-title">Wie hat dir das Spiel gefallen?</h3>
+        <p className="gpl-fb-sub">Dein Feedback hilft uns, die Spiele besser zu machen.</p>
+      </div>
+
+      <div className="gpl-fb-ratings" role="radiogroup" aria-label="Bewertung">
+        {RATING_OPTIONS.map(({ value, label, Icon, cls }) => (
+          <button
+            key={value}
+            type="button"
+            role="radio"
+            aria-checked={rating === value}
+            className={`gpl-fb-rating ${cls} ${rating === value ? 'is-selected' : ''}`}
+            onClick={() => setRating(value)}
+          >
+            <Icon size={30} strokeWidth={1.75} />
+            <span>{label}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="gpl-fb-comment">
+        <label htmlFor="gpl-fb-comment">Kommentar <span>(optional)</span></label>
+        <textarea
+          id="gpl-fb-comment"
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          maxLength={1000}
+          rows={3}
+          placeholder="Was hat dir gefallen, was können wir verbessern?"
+        />
+      </div>
+
+      {error && (
+        <div className="gpl-fb-error">
+          <AlertTriangle size={14} strokeWidth={2.25} /> Feedback konnte nicht gesendet werden.
+        </div>
+      )}
+
+      <div className="gpl-fb-actions">
+        <button className="btn btn-ghost" onClick={onDone} disabled={sending}>Überspringen</button>
+        <button className="btn btn-primary" onClick={submit} disabled={rating === null || sending}>
+          {!sending && <Send size={15} strokeWidth={2} />}
+          {sending ? 'Senden…' : 'Feedback senden'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 const gplStyles = `
   .gpl-overlay {
     position: fixed; inset: 0; background: rgba(5,22,77,.42);
@@ -279,7 +391,35 @@ const gplStyles = `
   .gpl-score { display: flex; flex-direction: column; align-items: center; padding: 32px 0 16px; gap: 8px; }
   .gpl-score-number { font-size: 52px; font-weight: 800; font-family: var(--font-head); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; color: var(--accent); line-height: 1; }
   .gpl-score-label { font-size: 15px; color: var(--text-muted); }
+  .gpl-fb-step { gap: 22px; }
+  .gpl-fb-title { font-size: 17px; font-weight: 700; font-family: var(--font-head); color: var(--text); margin: 0 0 4px; }
+  .gpl-fb-sub { font-size: 13px; color: var(--text-muted); margin: 0; line-height: 1.5; }
+  .gpl-fb-ratings { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .gpl-fb-rating {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 16px 8px; border-radius: var(--radius); border: 1px solid var(--border);
+    background: var(--bg-card); color: var(--text-muted); cursor: pointer;
+    font-size: 13px; font-weight: 600; font-family: inherit;
+    transition: border-color var(--duration) var(--ease), background-color var(--duration) var(--ease), color var(--duration) var(--ease), transform var(--duration) var(--ease);
+  }
+  .gpl-fb-rating:hover { border-color: var(--border-strong); color: var(--text); }
+  .gpl-fb-rating.is-selected { border-width: 2px; color: var(--text); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+  .gpl-fb-rating.fb-r1.is-selected { border-color: var(--danger); background: var(--danger-soft); color: var(--danger); }
+  .gpl-fb-rating.fb-r2.is-selected { border-color: var(--accent); background: var(--bg-card-hover); color: var(--accent); }
+  .gpl-fb-rating.fb-r3.is-selected { border-color: var(--success); background: var(--success-soft); color: var(--success-ink); }
+  .gpl-fb-comment { display: flex; flex-direction: column; gap: 6px; }
+  .gpl-fb-comment label { font-size: 12px; font-weight: 600; color: var(--text); }
+  .gpl-fb-comment label span { color: var(--text-muted); font-weight: 400; }
+  .gpl-fb-comment textarea {
+    width: 100%; resize: vertical; padding: 10px 12px; font: inherit; font-size: 14px;
+    border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg-card);
+    color: var(--text); line-height: 1.5;
+  }
+  .gpl-fb-comment textarea:focus { outline: none; border-color: var(--accent); }
+  .gpl-fb-error { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--danger); }
+  .gpl-fb-actions { display: flex; justify-content: flex-end; gap: 10px; }
   @media (prefers-reduced-motion: reduce) {
     .gpl-progress-fill { transition: none; }
+    .gpl-fb-rating { transition: none; }
   }
 `

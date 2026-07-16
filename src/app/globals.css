@@ -588,12 +588,12 @@ input[type="checkbox"], input[type="radio"] {
   background: transparent;
   border: 1px solid var(--border);
   border-radius: 999px;
-  color: var(--text);
+  color: rgba(255,255,255,.82);
   cursor: pointer;
   font: inherit;
   transition: all var(--duration-fast) var(--ease);
 }
-.nav-user-btn:hover { background: var(--bg-card); border-color: var(--accent-dim); }
+.nav-user-btn:hover { background: var(--bg-card); border-color: var(--accent-dim); color: var(--text); }
 .nav-user-name {
   font-size: 14px;
   font-weight: 600;

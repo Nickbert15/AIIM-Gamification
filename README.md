@@ -36,8 +36,18 @@ npx vercel --prod
 | `/` | Öffentliches Leaderboard (Realtime) |
 | `/admin` | Admin-Übersicht mit Stats |
 | `/admin/players` | Spieler anlegen / verwalten |
-| `/admin/scores` | Scores manuell eintragen |
+| `/admin/scores` | Scores einsehen & einzelne Einträge löschen |
 | `/admin/games` | Gespielte Games & Engagement-Stats |
+| `/admin/feedback` | Spieler-Feedback (Bewertung 1–3 + Kommentar) pro Spiel |
+
+## Datenbank
+
+Für das Spiel-Feedback wird eine Tabelle `game_feedback` benötigt. Einmalig im
+Supabase-Dashboard unter **SQL Editor** ausführen:
+
+```
+supabase/game_feedback.sql
+```
 
 ## n8n-Integration
 
