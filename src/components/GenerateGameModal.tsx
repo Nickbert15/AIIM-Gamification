@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import { ChevronDown, Info } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 
 interface Props {
   isOpen: boolean
@@ -44,11 +44,31 @@ const DIFFICULTIES: { value: Difficulty; label: string }[] = [
 ]
 
 // Werte identisch mit der Spalte games.format.
-const GAME_TYPES: { value: GameType; label: string }[] = [
-  { value: 'excel_challenge', label: 'Excel Challenge' },
-  { value: 'hallucination_spotter_v2', label: 'Hallucination Spotter' },
-  { value: 'prompt_arena', label: 'Prompt Arena' },
-  { value: 'prompt_branching', label: 'Prompt-Navigator' },
+const GAME_TYPES: { value: GameType; label: string; description: string }[] = [
+  {
+    value: 'excel_challenge',
+    label: 'Excel Challenge',
+    description:
+      'Datenaufgabe in einer simulierten Excel-Oberfläche: Die Spielerin steuert einen KI-Copiloten per Prompt, um die Tabelle korrekt umzubauen.',
+  },
+  {
+    value: 'hallucination_spotter_v2',
+    label: 'Hallucination Spotter',
+    description:
+      'Erst den besten Prompt wählen, dann in der KI-Antwort die halluzinierten (erfundenen) Aussagen erkennen und markieren.',
+  },
+  {
+    value: 'prompt_arena',
+    label: 'Prompt Arena',
+    description:
+      'Die Spielerin formuliert selbst eine Antwort/einen Prompt; die KI bewertet sie im Vergleich zu hinterlegten Referenzlösungen und gibt Feedback.',
+  },
+  {
+    value: 'prompt_branching',
+    label: 'Prompt-Navigator',
+    description:
+      'Szenario mit Verzweigungen: Aus mehreren Prompt-Optionen wählen und den simulierten KI-Output Schritt für Schritt bewerten und nachsteuern.',
+  },
 ]
 
 // Neueste zuerst, dann pro label nur den ersten (= neuesten) Eintrag behalten.
@@ -79,6 +99,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
   const [goalOpen, setGoalOpen] = useState(false)
 
   const [gameType, setGameType] = useState<GameType>('excel_challenge')
+  const [gameTypeOpen, setGameTypeOpen] = useState(false)
   const [difficulty, setDifficulty] = useState<Difficulty>('easy')
 
   const [status, setStatus] = useState<Status>('idle')
@@ -93,6 +114,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
 
   const techRef = useRef<HTMLDivElement | null>(null)
   const goalRef = useRef<HTMLDivElement | null>(null)
+  const gameTypeRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (!isOpen) return
@@ -139,6 +161,18 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [goalOpen])
 
+  // Klick außerhalb schließt das Spieltyp-Dropdown.
+  useEffect(() => {
+    if (!gameTypeOpen) return
+    function handleClick(e: MouseEvent) {
+      if (gameTypeRef.current && !gameTypeRef.current.contains(e.target as Node)) {
+        setGameTypeOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [gameTypeOpen])
+
   if (!isOpen) return null
 
   const selectedTech = technologies.find((t) => t.id === technologyId)
@@ -152,6 +186,8 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
     learningGoal === OTHER
       ? 'Sonstiges'
       : selectedGoal?.label ?? 'Lernziel wählen…'
+
+  const gameTypeLabel = GAME_TYPES.find((g) => g.value === gameType)?.label ?? 'Spieltyp wählen…'
 
   const technologyValid =
     technologyId === OTHER
@@ -173,6 +209,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
     setLearningGoalCustom('')
     setGoalOpen(false)
     setGameType('excel_challenge')
+    setGameTypeOpen(false)
     setDifficulty('easy')
     setErrorMessage('')
     setFieldErrors({})
@@ -205,6 +242,11 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
     if (value !== OTHER) setLearningGoalCustom('')
     setGoalOpen(false)
     clearFeedback()
+  }
+
+  function handleSelectGameType(value: GameType) {
+    setGameType(value)
+    setGameTypeOpen(false)
   }
 
   async function handleGenerate(acknowledgedWarning = false) {
@@ -384,6 +426,9 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
           overflow-y: auto;
           box-shadow: var(--shadow-lg);
         }
+        /* Für kurze Listen (z. B. Spieltyp): nicht scrollen/clippen, damit die
+           per-Zeile-Tooltips nach oben/unten frei überstehen können. */
+        .ggm-combo-list--flush { max-height: none; overflow: visible; }
         .ggm-combo-row {
           display: flex;
           align-items: center;
@@ -593,7 +638,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                           </button>
                           {(t.whats_new || t.source_url) && (
                             <span className="ggm-info-wrap" tabIndex={0}>
-                              <span className="ggm-info-icon" aria-hidden="true"><Info size={12} strokeWidth={2.5} /></span>
+                              <span className="ggm-info-icon" aria-hidden="true">i</span>
                               <span className="ggm-tooltip" role="tooltip">
                                 {t.whats_new && (
                                   <p className="ggm-tooltip-text">{t.whats_new}</p>
@@ -739,17 +784,44 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
               {/* ── 3. Spieltyp ── */}
               <div className="ggm-field">
                 <label className="ggm-label">Spieltyp</label>
-                <select
-                  className="ggm-select"
-                  value={gameType}
-                  onChange={(e) => setGameType(e.target.value as GameType)}
-                >
-                  {GAME_TYPES.map((g) => (
-                    <option key={g.value} value={g.value}>
-                      {g.label}
-                    </option>
-                  ))}
-                </select>
+                <div className="ggm-combo" ref={gameTypeRef}>
+                  <button
+                    type="button"
+                    className="ggm-combo-trigger"
+                    onClick={() => setGameTypeOpen((o) => !o)}
+                  >
+                    <span>{gameTypeLabel}</span>
+                    <span className="ggm-combo-caret"><ChevronDown size={16} strokeWidth={2} /></span>
+                  </button>
+
+                  {gameTypeOpen && (
+                    <div className="ggm-combo-list ggm-combo-list--flush" role="listbox">
+                      {GAME_TYPES.map((g) => (
+                        <div
+                          key={g.value}
+                          className="ggm-combo-row"
+                          data-selected={gameType === g.value ? 'true' : 'false'}
+                        >
+                          <button
+                            type="button"
+                            role="option"
+                            aria-selected={gameType === g.value}
+                            className="ggm-combo-option"
+                            onClick={() => handleSelectGameType(g.value)}
+                          >
+                            {g.label}
+                          </button>
+                          <span className="ggm-info-wrap" tabIndex={0}>
+                            <span className="ggm-info-icon" aria-hidden="true">i</span>
+                            <span className="ggm-tooltip" role="tooltip">
+                              <p className="ggm-tooltip-text">{g.description}</p>
+                            </span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* ── 4. Schwierigkeit ── */}

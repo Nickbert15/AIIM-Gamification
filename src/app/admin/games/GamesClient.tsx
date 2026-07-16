@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Game } from '@/types/game'
 import GamePreviewModal from '@/components/GamePreviewModal'
 import GameReviewModal from '@/components/GameReviewModal'
+import GenerateGameModal from '@/components/GenerateGameModal'
 import { Gamepad2, User } from 'lucide-react'
 
 interface Props {
@@ -38,6 +39,7 @@ export default function GamesClient({ games: initialGames }: Props) {
   const [filter, setFilter] = useState<Filter>('all')
   const [previewGame, setPreviewGame] = useState<Game | null>(null)
   const [reviewGame, setReviewGame] = useState<Game | null>(null)
+  const [generateOpen, setGenerateOpen] = useState(false)
 
   const counts: Record<Filter, number> = {
     all: games.length,
@@ -153,6 +155,12 @@ export default function GamesClient({ games: initialGames }: Props) {
         }
       `}</style>
 
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
+        <button className="btn btn-primary" onClick={() => setGenerateOpen(true)}>
+          + Spiel generieren
+        </button>
+      </div>
+
       <div className="gp-layout">
         <div>
           <div className="gp-filter-bar">
@@ -173,7 +181,7 @@ export default function GamesClient({ games: initialGames }: Props) {
               <div className="empty-state-icon"><Gamepad2 size={26} strokeWidth={1.5} /></div>
               <div className="empty-state-text">
                 {games.length === 0
-                  ? 'Noch keine Spiele generiert. Nutze den + Spiel generieren Button im Admin-Dashboard.'
+                  ? 'Noch keine Spiele generiert. Nutze den Button „+ Spiel generieren" oben rechts.'
                   : `Keine Games mit Status „${STATUS_LABEL[filter]}".`}
               </div>
             </div>
@@ -234,6 +242,7 @@ export default function GamesClient({ games: initialGames }: Props) {
         onClose={() => setReviewGame(null)}
         onStatusChange={handleStatusChange}
       />
+      <GenerateGameModal isOpen={generateOpen} onClose={() => setGenerateOpen(false)} />
     </>
   )
 }

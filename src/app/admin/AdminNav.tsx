@@ -8,6 +8,7 @@ const LINKS = [
   { href: '/admin/players', label: 'Spieler' },
   { href: '/admin/scores', label: 'Scores' },
   { href: '/admin/games', label: 'Games' },
+  { href: '/admin/feedback', label: 'Feedback' },
 ]
 
 export default function AdminNav() {

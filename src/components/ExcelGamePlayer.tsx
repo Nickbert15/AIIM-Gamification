@@ -9,6 +9,7 @@ import ExcelFormulaBar from './excel-ui/ExcelFormulaBar'
 import ExcelSheet, { CellPosition } from './excel-ui/ExcelSheet'
 import CopilotSidebar, { ChatMessage, PlayerStatus } from './excel-ui/CopilotSidebar'
 import ResultDialog from './excel-ui/ResultDialog'
+import HowToPlay from './ui/HowToPlay'
 
 interface Props {
   gameId: string
@@ -44,6 +45,7 @@ export default function ExcelGamePlayer({ gameId, task, initialData, maxAttempts
   const [result, setResult] = useState<FinishResult | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([{ role: 'assistant', text: task }])
   const [selectedCell, setSelectedCell] = useState<CellPosition>({ row: 0, col: 0 })
+  const [howToPlayOpen, setHowToPlayOpen] = useState(true)
 
   const pendingAfterAnimation = useRef<PendingDecision | null>(null)
 
@@ -152,6 +154,23 @@ export default function ExcelGamePlayer({ gameId, task, initialData, maxAttempts
   return (
     <>
       <style>{workspaceStyles}</style>
+
+      <HowToPlay
+        open={howToPlayOpen}
+        title="So funktioniert die Excel Challenge"
+        termExplanation={
+          'Du arbeitest mit einem KI-Copiloten direkt in einer Tabelle: Statt selbst Formeln zu tippen, ' +
+          'beschreibst du in normaler Sprache (einem „Prompt"), was mit den Daten passieren soll — die KI setzt es um.'
+        }
+        steps={[
+          { text: 'Du siehst eine Tabelle mit Ausgangsdaten; die Aufgabe dazu erklärt dir der Copilot im Chat rechts.' },
+          { text: 'Schreib dem Copiloten einen Prompt, wie die Tabelle umgebaut werden soll — er wendet ihn direkt auf die Tabelle an.' },
+          { text: `Du hast ${maxAttempts} ${maxAttempts === 1 ? 'Versuch' : 'Versuche'}. Passt die Lösung oder sind die Versuche aufgebraucht, wird ausgewertet.` },
+          { text: 'Zum Schluss bekommst du Punkte und Feedback zu deiner Lösung.' },
+        ]}
+        onDismiss={() => setHowToPlayOpen(false)}
+      />
+
       <div className="egw-workspace">
         <ExcelRibbon />
         <ExcelFormulaBar cellLabel={cellLabel} cellValue={cellValue} />
@@ -214,5 +233,31 @@ const workspaceStyles = `
   .egw-main > :last-child {
     flex: 0 1 320px;
     min-width: 240px;
+  }
+
+  /* Schmale Screens: Tabelle und Copilot untereinander statt nebeneinander,
+     damit beide nutzbar bleiben statt sich den knappen Platz zu teilen. */
+  @media (max-width: 760px) {
+    .egw-workspace {
+      height: auto;
+      min-height: 0;
+      max-height: none;
+    }
+    .egw-main {
+      flex-direction: column;
+    }
+    .egw-main .xs-workspace {
+      flex: none;
+      height: 42vh;
+      min-height: 220px;
+    }
+    .egw-main .cs-sidebar {
+      flex: none;
+      min-width: 0;
+      height: 48vh;
+      min-height: 300px;
+      border-left: none;
+      border-top: 1px solid #d0d0d0;
+    }
   }
 `
