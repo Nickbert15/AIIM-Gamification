@@ -226,11 +226,14 @@ const workspaceStyles = `
     min-height: 0;
     min-width: 0;
   }
-  .egw-main > :first-child {
+  /* Nach Klassen adressiert statt per Position: ExcelSheet und CopilotSidebar rendern
+     jeweils ein <style> vor ihrem <div>, sodass :first-child/:last-child je nach
+     React-Style-Hoisting (dev vs. prod build) den falschen Knoten trafen. */
+  .egw-main .xs-workspace {
     flex: 1;
     min-width: 0;
   }
-  .egw-main > :last-child {
+  .egw-main .cs-sidebar {
     flex: 0 1 320px;
     min-width: 240px;
   }
