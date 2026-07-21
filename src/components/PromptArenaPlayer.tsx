@@ -231,7 +231,8 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
   function handleNextRound() {
     if (isLast) {
       setDone(true)
-      onComplete(score)
+      // Leaderboard-Score einheitlich als Prozent (0–100), damit alle Spieltypen vergleichbar sind.
+      onComplete(maxPoints > 0 ? Math.round((score / maxPoints) * 100) : 0)
     } else {
       setRoundIndex(i => i + 1)
       setPhase('prompt-input')
@@ -253,8 +254,8 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
           <SparkleBurst />
           <span className="pa-score-trophy" aria-hidden="true"><Trophy size={28} strokeWidth={2.25} /></span>
           <div className="pa-score-number">
-            {score}
-            <span style={{ fontSize: '0.45em', color: 'var(--text-muted)', fontWeight: 400 }}>/{maxPoints}</span>
+            {pct}
+            <span style={{ fontSize: '0.45em', color: 'var(--text-muted)', fontWeight: 400 }}>/100</span>
           </div>
           <div className="pa-score-label">{t('pa.scoreLabel')}</div>
           <div className="pa-score-msg">

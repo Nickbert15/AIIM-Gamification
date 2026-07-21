@@ -56,7 +56,8 @@ export default function BranchingGamePlayer({ game, onComplete }: Props) {
     const target = branching!.nodes[targetId]
     if (target?.type === 'end' && !reported) {
       setReported(true)
-      onComplete(totalScore)
+      // Leaderboard-Score einheitlich als Prozent (0–100), damit alle Spieltypen vergleichbar sind.
+      onComplete(maxPoints > 0 ? Math.round((totalScore / maxPoints) * 100) : 0)
     }
   }
 
@@ -159,8 +160,7 @@ export default function BranchingGamePlayer({ game, onComplete }: Props) {
           <div className="pnav-container">
             {(pct >= 80 || volltreffer) && <ConfettiBurst />}
             <div className="pnav-score-screen">
-              <ScoreCounter value={totalScore} suffix={`/${maxPoints}`} className="pnav-score-number" />
-              <div className="pnav-score-pct">{pct}%</div>
+              <ScoreCounter value={pct} suffix="/100" className="pnav-score-number" />
               <div className="pnav-score-msg">
                 {pct >= 80
                   ? t('bn.scoreHigh')

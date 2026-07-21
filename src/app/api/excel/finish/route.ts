@@ -67,7 +67,9 @@ export async function POST(request: Request) {
       // stillschweigend nichts — Excel-Plays fehlten dadurch im Leaderboard.
       const { error: scoreError } = await supabaseAdmin
         .from('scores')
-        .insert([{ player_id: playerId, game_id: gameId, score: pointsEarned }])
+        // Leaderboard-Score einheitlich als Prozent (0–100) wie die anderen Spieltypen.
+        // Der attempt-gewichtete pointsEarned bleibt nur für die Anzeige (Response unten).
+        .insert([{ player_id: playerId, game_id: gameId, score: Math.round(score) }])
       if (scoreError) console.error('[excel/finish] Score-Insert fehlgeschlagen:', scoreError)
       // Punkte-Quelle laut Vorgabe: maxPoints des Spiels bei Bestehen (alle Kriterien
       // erfüllt), sonst 0 — bewusst NICHT das attempt-gewichtete `pointsEarned`,

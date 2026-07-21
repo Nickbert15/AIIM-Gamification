@@ -247,7 +247,7 @@ export default function HallucinationSpotterPlayerV2({ game, onComplete }: Props
             {t('hs.foundOf', { correct: correctCount, total: totalHallucinations })}
           </p>
           <StarRating stars={Math.round(scorePct * 5)} max={5} />
-          <ScoreCounter value={totalScore} className="hsv2-score-number" suffix={`/${maxPoints}`} />
+          <ScoreCounter value={Math.round(scorePct * 100)} className="hsv2-score-number" suffix="/100" />
           <div className="hsv2-score-label">{t('hs.pointsReached')}</div>
           {scorePct >= 0.7 && <Badge label={t('hs.badge')} icon={Search} />}
         </div>

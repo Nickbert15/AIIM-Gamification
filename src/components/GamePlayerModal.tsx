@@ -130,7 +130,7 @@ export default function GamePlayerModal({ game, playerId, onClose, onSaved }: Pr
             />
           )}
           {mode === 'hallu' && (
-            <HallucinationSpotterPlayerV2 game={game} onComplete={(result) => finishGame(result.score)} />
+            <HallucinationSpotterPlayerV2 game={game} onComplete={(result) => finishGame(result.maxPoints > 0 ? Math.round((result.score / result.maxPoints) * 100) : 0)} />
           )}
           {mode === 'arena' && <PromptArenaPlayer game={game} onComplete={finishGame} />}
           {mode === 'branching' && <BranchingGamePlayer game={game} onComplete={finishGame} />}
@@ -184,7 +184,8 @@ function QuizPlayer({ game, onComplete, onClose }: { game: Game; onComplete: (sc
   function handleNext() {
     if (currentIndex + 1 >= total) {
       setDone(true)
-      onComplete(score)
+      // Leaderboard-Score einheitlich als Prozent (0–100), damit alle Spieltypen vergleichbar sind.
+      onComplete(maxPoints > 0 ? Math.round((score / maxPoints) * 100) : 0)
     } else {
       setCurrentIndex(i => i + 1)
       setSelectedAnswer(null)
@@ -197,10 +198,10 @@ function QuizPlayer({ game, onComplete, onClose }: { game: Game; onComplete: (sc
       <div className="gpl-body">
         <div className="gpl-score">
           <div className="gpl-score-number">
-            {score}
-            <span style={{ fontSize: '0.45em', color: 'var(--text-muted)', fontWeight: 400 }}>/{maxPoints}</span>
+            {pct}
+            <span style={{ fontSize: '0.45em', color: 'var(--text-muted)', fontWeight: 400 }}>/100</span>
           </div>
-          <div className="gpl-score-label">{t('gpl.pointsReached')} · {pct}%</div>
+          <div className="gpl-score-label">{t('gpl.pointsReached')}</div>
           <div style={{ marginTop: 24 }}>
             <button className="btn btn-primary" onClick={onClose}>{t('common.done')}</button>
           </div>

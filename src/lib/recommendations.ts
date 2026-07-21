@@ -148,11 +148,16 @@ export function recommendGames(games: Game[], ctx: RecommendationContext): Recom
 
   const ranked = rank(candidates)
 
-  // Aus dem Feld der (nahezu) besten Kandidaten losen, statt immer den Spitzenreiter
-  // zu nehmen — sonst stünde bei unverändertem Katalog jede Woche dasselbe Spiel oben.
+  // Admin-Pin schlägt die Auslosung: ein als "Spiel der Woche" markiertes Spiel wird
+  // global für alle Spieler angezeigt — unabhängig von Affinität und Gespielt-Status.
+  const pinned = games.find(g => g.is_gotw) ?? null
+
+  // Ohne Pin: aus dem Feld der (nahezu) besten Kandidaten losen, statt immer den
+  // Spitzenreiter zu nehmen — sonst stünde bei unverändertem Katalog jede Woche
+  // dasselbe Spiel oben.
   const best = ranked[0].affinity
   const pool = ranked.filter(r => r.affinity >= best - 1)
-  const pick = pool[hash(seed) % pool.length]
+  const pick = pinned ? { game: pinned } : pool[hash(seed) % pool.length]
 
   // "Auch interessant" bevorzugt Ungespieltes, füllt aber mit bereits gespielten
   // Spielen auf — die drei Karten sollen auch stehen, wenn der Spieler fast alles

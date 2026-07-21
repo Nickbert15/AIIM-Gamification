@@ -13,6 +13,8 @@ export interface Game {
   status: 'draft' | 'approved' | 'rejected'
   source_attribution: Record<string, unknown> | null
   created_at: string
+  /** Admin-Pin: global als "Spiel der Woche" hervorgehoben. Höchstens ein Spiel true. */
+  is_gotw?: boolean
 }
 
 export interface GameJson {

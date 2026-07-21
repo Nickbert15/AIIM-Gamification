@@ -196,7 +196,6 @@ export default function ExcelGamePlayer({ gameId, task, initialData, maxAttempts
         {status === 'done' && result && (
           <ResultDialog
             score={result.score}
-            pointsEarned={result.pointsEarned}
             criteriaResults={result.criteriaResults}
             feedback={result.feedback}
             samplePrompt={result.samplePrompt}

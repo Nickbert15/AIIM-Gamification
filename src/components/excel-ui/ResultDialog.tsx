@@ -6,14 +6,13 @@ import { useI18n } from '@/lib/i18n'
 
 interface Props {
   score: number
-  pointsEarned: number
   criteriaResults: CriterionResult[]
   feedback: string
   samplePrompt: string
   onClose: () => void
 }
 
-export default function ResultDialog({ score, pointsEarned, criteriaResults, feedback, samplePrompt, onClose }: Props) {
+export default function ResultDialog({ score, criteriaResults, feedback, samplePrompt, onClose }: Props) {
   const { t } = useI18n()
   const [showSamplePrompt, setShowSamplePrompt] = useState(false)
 
@@ -28,7 +27,7 @@ export default function ResultDialog({ score, pointsEarned, criteriaResults, fee
           </div>
           <div className="rd-body">
             <div className="rd-score-row">
-              <div className="rd-score-number">{pointsEarned}<span className="rd-score-unit">{t('common.points_short')}</span></div>
+              <div className="rd-score-number">{score}<span className="rd-score-unit">{t('common.points_short')}</span></div>
               <div className="rd-score-pct">{t('excel.correctPct', { pct: score })}</div>
             </div>
 
