@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { HalluPromptOptionV2, HalluSentenceV2 } from '@/types/game'
 import ThinkingDots from './ThinkingDots'
 import { X, Star, Check, AlertTriangle } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
 
 interface Props {
   learningObjective: string
@@ -23,6 +24,7 @@ type Step =
   | 'error'
 
 export default function HallucinationWizardV2({ learningObjective, topic, difficulty, onClose }: Props) {
+  const { t } = useI18n()
   const [step, setStep] = useState<Step>('loading-prompts')
   const [situation, setSituation] = useState('')
   const [prompts, setPrompts] = useState<HalluPromptOptionV2[]>([])
@@ -44,12 +46,12 @@ export default function HallucinationWizardV2({ learningObjective, topic, diffic
         body: JSON.stringify({ learningObjective, topic, difficulty }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Fehler beim Laden der Prompt-Vorschläge')
+      if (!res.ok) throw new Error(data.error ?? t('wz.errLoadPrompts'))
       setSituation(data.situation)
       setPrompts(data.prompts)
       setStep('review-prompts')
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Netzwerkfehler')
+      setErrorMessage(err instanceof Error ? err.message : t('excel.networkError'))
       setStep('error')
     }
   }
@@ -64,11 +66,11 @@ export default function HallucinationWizardV2({ learningObjective, topic, diffic
         body: JSON.stringify({ learningObjective, topic, difficulty, situation }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Fehler beim Generieren des Antworttexts')
+      if (!res.ok) throw new Error(data.error ?? t('wz.errGenSentences'))
       setSentences(data.sentences)
       setStep('review-sentences')
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Netzwerkfehler')
+      setErrorMessage(err instanceof Error ? err.message : t('excel.networkError'))
       setStep('error')
     }
   }
@@ -113,7 +115,7 @@ export default function HallucinationWizardV2({ learningObjective, topic, diffic
       if (error) throw error
       setStep('success')
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Fehler beim Speichern')
+      setErrorMessage(err instanceof Error ? err.message : t('grm.saveError'))
       setStep('error')
     }
   }
@@ -127,26 +129,26 @@ export default function HallucinationWizardV2({ learningObjective, topic, diffic
         <div className="wz2-card">
           <div className="wz2-header">
             <div>
-              <h2 className="wz2-title">Hallucination Spotter v2 erstellen</h2>
+              <h2 className="wz2-title">{t('wz.title')}</h2>
               <div className="wz2-subtitle">
-                {(step === 'loading-prompts' || step === 'review-prompts') && 'Schritt 1/2 — 5 Prompt-Varianten'}
-                {(step === 'loading-sentences' || step === 'review-sentences') && 'Schritt 2/2 — Antworttext prüfen'}
+                {(step === 'loading-prompts' || step === 'review-prompts') && t('wz.step1')}
+                {(step === 'loading-sentences' || step === 'review-sentences') && t('wz.step2')}
               </div>
             </div>
-            <button className="wz2-close" onClick={onClose} aria-label="Schließen"><X size={16} strokeWidth={2} /></button>
+            <button className="wz2-close" onClick={onClose} aria-label={t('common.close')}><X size={16} strokeWidth={2} /></button>
           </div>
 
           <div className="wz2-body">
             {(step === 'loading-prompts' || step === 'loading-sentences') && (
               <div className="wz2-loading">
-                <ThinkingDots label={step === 'loading-prompts' ? 'KI generiert Situation und 5 Prompts' : 'KI generiert den vollständigen Antworttext'} />
+                <ThinkingDots label={step === 'loading-prompts' ? t('wz.loadingPrompts') : t('wz.loadingSentences')} />
               </div>
             )}
 
             {step === 'review-prompts' && (
               <>
                 <div className="wz2-field">
-                  <label className="wz2-label">Situation für den Spieler</label>
+                  <label className="wz2-label">{t('wz.situationLabel')}</label>
                   <textarea
                     className="wz2-textarea"
                     style={{ minHeight: 50 }}
@@ -155,13 +157,12 @@ export default function HallucinationWizardV2({ learningObjective, topic, diffic
                   />
                 </div>
                 <p className="wz2-hint">
-                  Diese 5 Prompts werden dem Spieler zur Auswahl gestellt. Jeder zeigt ein anderes
-                  Prompt-Prinzip (siehe Tag). Markiere den empfohlenen und passe Text/Feedback bei Bedarf an.
+                  {t('wz.promptsHint')}
                 </p>
                 {prompts.map((p, i) => (
                   <div key={p.id} className="wz2-prompt-card">
                     <div className="wz2-field">
-                      <label className="wz2-label">Prompt {i + 1} · {p.approach}</label>
+                      <label className="wz2-label">{t('wz.promptLabel', { n: i + 1, approach: p.approach })}</label>
                       <textarea
                         className="wz2-textarea"
                         style={{ minHeight: 50 }}
@@ -170,7 +171,7 @@ export default function HallucinationWizardV2({ learningObjective, topic, diffic
                       />
                     </div>
                     <div className="wz2-quality-row">
-                      <label className="wz2-label">Qualität (0-100)</label>
+                      <label className="wz2-label">{t('wz.quality')}</label>
                       <input
                         type="number"
                         min={0}
@@ -185,10 +186,10 @@ export default function HallucinationWizardV2({ learningObjective, topic, diffic
                       onClick={() => setRecommended(p.id)}
                     >
                       {p.isRecommended && <Star size={13} strokeWidth={2} fill="currentColor" />}
-                      {p.isRecommended ? 'Empfohlener Prompt' : 'Als empfohlen markieren'}
+                      {p.isRecommended ? t('wz.recommendedPrompt') : t('wz.markRecommended')}
                     </button>
                     <div className="wz2-field">
-                      <label className="wz2-label">Feedback-Text</label>
+                      <label className="wz2-label">{t('wz.feedbackText')}</label>
                       <textarea
                         className="wz2-textarea"
                         style={{ minHeight: 40 }}
@@ -199,9 +200,9 @@ export default function HallucinationWizardV2({ learningObjective, topic, diffic
                   </div>
                 ))}
                 <div className="wz2-actions">
-                  <button className="btn btn-ghost" onClick={onClose}>Abbrechen</button>
+                  <button className="btn btn-ghost" onClick={onClose}>{t('common.cancel')}</button>
                   <button className="btn btn-primary" onClick={generateSentences}>
-                    Antworttext generieren →
+                    {t('wz.genAnswerText')}
                   </button>
                 </div>
               </>
@@ -210,13 +211,12 @@ export default function HallucinationWizardV2({ learningObjective, topic, diffic
             {(step === 'review-sentences' || step === 'saving') && (
               <>
                 <p className="wz2-hint">
-                  {sentences.length} Sätze, davon {hallucinationCount} als Halluzination markiert.
-                  Passe Text, Wahrheitsgehalt und Erklärung je Satz bei Bedarf an.
+                  {t('wz.sentencesHint', { n: sentences.length, hallu: hallucinationCount })}
                 </p>
                 {sentences.map((s, i) => (
                   <div key={s.id} className="wz2-statement-card">
                     <div className="wz2-field">
-                      <label className="wz2-label">Satz {i + 1}</label>
+                      <label className="wz2-label">{t('wz.sentenceLabel', { n: i + 1 })}</label>
                       <textarea
                         className="wz2-textarea"
                         style={{ minHeight: 45 }}
@@ -231,18 +231,18 @@ export default function HallucinationWizardV2({ learningObjective, topic, diffic
                         onClick={() => updateSentence(s.id, { isHallucination: false })}
                         disabled={step === 'saving'}
                       >
-                        <Check size={14} strokeWidth={2.25} /> Fakt
+                        <Check size={14} strokeWidth={2.25} /> {t('wz.fact')}
                       </button>
                       <button
                         className={`wz2-verdict-btn ${s.isHallucination ? 'active-hallu' : ''}`}
                         onClick={() => updateSentence(s.id, { isHallucination: true })}
                         disabled={step === 'saving'}
                       >
-                        <AlertTriangle size={14} strokeWidth={2.25} /> Halluzination
+                        <AlertTriangle size={14} strokeWidth={2.25} /> {t('wz.hallucination')}
                       </button>
                     </div>
                     <div className="wz2-field">
-                      <label className="wz2-label">Erklärung</label>
+                      <label className="wz2-label">{t('wz.explanation')}</label>
                       <textarea
                         className="wz2-textarea"
                         style={{ minHeight: 36 }}
@@ -256,10 +256,10 @@ export default function HallucinationWizardV2({ learningObjective, topic, diffic
 
                 <div className="wz2-actions">
                   <button className="btn btn-ghost" onClick={onClose} disabled={step === 'saving'}>
-                    Abbrechen
+                    {t('common.cancel')}
                   </button>
                   <button className="btn btn-primary" onClick={handleSave} disabled={step === 'saving'}>
-                    {step === 'saving' ? 'Speichert…' : 'Speichern'}
+                    {step === 'saving' ? t('common.saving') : t('common.save')}
                   </button>
                 </div>
               </>
@@ -268,10 +268,10 @@ export default function HallucinationWizardV2({ learningObjective, topic, diffic
             {step === 'success' && (
               <>
                 <div className="wz2-success">
-                  Spiel gespeichert (Status: Draft) — erscheint unter Games zur Freigabe.
+                  {t('wz.savedDraft')}
                 </div>
                 <div className="wz2-actions">
-                  <button className="btn btn-primary" onClick={onClose}>Schließen</button>
+                  <button className="btn btn-primary" onClick={onClose}>{t('common.close')}</button>
                 </div>
               </>
             )}
@@ -280,12 +280,12 @@ export default function HallucinationWizardV2({ learningObjective, topic, diffic
               <>
                 <div className="wz2-error">{errorMessage}</div>
                 <div className="wz2-actions">
-                  <button className="btn btn-ghost" onClick={onClose}>Abbrechen</button>
+                  <button className="btn btn-ghost" onClick={onClose}>{t('common.cancel')}</button>
                   <button
                     className="btn btn-primary"
                     onClick={() => (prompts.length ? generateSentences() : loadPrompts())}
                   >
-                    Erneut versuchen
+                    {t('common.retry')}
                   </button>
                 </div>
               </>

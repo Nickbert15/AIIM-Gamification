@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase, Player } from '@/lib/supabase'
 import ExcelGamePlayer from '@/components/ExcelGamePlayer'
 import { ExcelTableState } from '@/types/game'
+import { useI18n } from '@/lib/i18n'
 
 interface Props {
   gameId: string
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export default function PlayClient({ gameId, title, difficulty, task, initialData, maxAttempts }: Props) {
+  const { t } = useI18n()
   const router = useRouter()
   const [players, setPlayers] = useState<Player[]>([])
   const [selectedPlayerId, setSelectedPlayerId] = useState('')
@@ -34,16 +36,16 @@ export default function PlayClient({ gameId, title, difficulty, task, initialDat
           <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>{difficulty}</p>
         )}
         <div className="form-group" style={{ marginBottom: 16 }}>
-          <label>Wer bist du?</label>
+          <label>{t('play.whoAreYou')}</label>
           <select value={selectedPlayerId} onChange={(e) => setSelectedPlayerId(e.target.value)}>
-            <option value="">— Spieler wählen —</option>
+            <option value="">{t('play.selectPlayer')}</option>
             {players.map(p => (
               <option key={p.id} value={p.id}>{p.display_name} ({p.role})</option>
             ))}
           </select>
         </div>
         <button className="btn btn-primary" disabled={!selectedPlayerId} onClick={() => setStarted(true)}>
-          Los geht&apos;s →
+          {t('play.start')}
         </button>
       </div>
     )
@@ -58,7 +60,7 @@ export default function PlayClient({ gameId, title, difficulty, task, initialDat
           initialData={initialData}
           maxAttempts={maxAttempts}
           playerId={selectedPlayerId}
-          onComplete={() => setCompletedMsg('Dein Score wurde gespeichert und erscheint im Leaderboard.')}
+          onComplete={() => setCompletedMsg(t('play.scoreSaved'))}
           onClose={() => router.push('/')}
         />
       </div>

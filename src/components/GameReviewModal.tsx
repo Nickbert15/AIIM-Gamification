@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Game } from '@/types/game'
 import { X, Check, XCircle, Star, Circle } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
 
 interface Props {
   game: Game | null
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function GameReviewModal({ game, onClose, onStatusChange }: Props) {
+  const { t } = useI18n()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -29,7 +31,7 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
       if (dbError) throw dbError
       onStatusChange(game.id, status)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Fehler beim Speichern')
+      setError(err instanceof Error ? err.message : t('grm.saveError'))
       setLoading(false)
     }
   }
@@ -208,28 +210,28 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
       >
         <div className="grm-card">
           <div className="grm-header">
-            <h2 className="grm-title">Review: {game.title}</h2>
-            <button className="grm-close" onClick={onClose} aria-label="Schließen"><X size={16} strokeWidth={2} /></button>
+            <h2 className="grm-title">{t('grm.reviewPrefix')}: {game.title}</h2>
+            <button className="grm-close" onClick={onClose} aria-label={t('common.close')}><X size={16} strokeWidth={2} /></button>
           </div>
 
           <div className="grm-body">
             {game.learning_objective && (
               <div>
-                <p className="grm-section-title">Lernziel</p>
+                <p className="grm-section-title">{t('grm.learningObjective')}</p>
                 <div className="grm-objective">{game.learning_objective}</div>
               </div>
             )}
 
             <div>
-              <p className="grm-section-title">Metadaten</p>
+              <p className="grm-section-title">{t('grm.metadata')}</p>
               <div className="grm-meta-grid">
                 {([
-                  { label: 'Thema', value: game.topic },
-                  { label: 'Zielrolle', value: game.target_role },
-                  { label: 'Schwierigkeit', value: game.difficulty },
-                  { label: 'Persona', value: game.persona_key },
-                  { label: 'Format', value: game.format },
-                  { label: 'Sprache', value: game.language },
+                  { label: t('grm.metaTopic'), value: game.topic },
+                  { label: t('grm.metaRole'), value: game.target_role },
+                  { label: t('grm.metaDifficulty'), value: game.difficulty },
+                  { label: t('grm.metaPersona'), value: game.persona_key },
+                  { label: t('grm.metaFormat'), value: game.format },
+                  { label: t('grm.metaLanguage'), value: game.language },
                 ] as { label: string; value: string | null }[])
                   .filter(m => m.value)
                   .map(m => (
@@ -243,7 +245,7 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
 
             {game.game_json.questions && (
               <div>
-                <p className="grm-section-title">Fragen ({game.game_json.questions.length})</p>
+                <p className="grm-section-title">{t('grm.questions', { n: game.game_json.questions.length })}</p>
                 <div className="grm-question-list">
                   {game.game_json.questions.map((q, i) => {
                     const correctOption = q.options.find(o => o.id === q.correctAnswer)
@@ -267,7 +269,7 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
             {game.game_json.halluRound && (
               <div>
                 <p className="grm-section-title">
-                  Prompt-Varianten ({game.game_json.halluRound.promptOptions.length})
+                  {t('grm.promptVariants', { n: game.game_json.halluRound.promptOptions.length })}
                 </p>
                 <div className="grm-q-text" style={{ marginBottom: 8 }}>{game.game_json.halluRound.situation}</div>
                 <div className="grm-question-list">
@@ -276,27 +278,29 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
                       <div className="grm-q-text">{i + 1}. {p.text}</div>
                       <div className="grm-q-answer" style={{ color: p.isRecommended ? 'var(--success-ink)' : 'var(--text-muted)' }}>
                         {p.isRecommended ? <Star size={13} strokeWidth={2} fill="currentColor" /> : <Circle size={9} strokeWidth={2} fill="currentColor" />}
-                        <span>{p.isRecommended ? `Empfohlen · ${p.approach}` : `Alternative · ${p.approach}`}</span>
+                        <span>{p.isRecommended ? `${t('grm.recommended')} · ${p.approach}` : `${t('grm.alternative')} · ${p.approach}`}</span>
                       </div>
                       {p.feedback && <div className="grm-q-explanation">{p.feedback}</div>}
                     </div>
                   ))}
                 </div>
                 <div className="grm-q-explanation" style={{ marginTop: 10 }}>
-                  Antworttext: {game.game_json.halluRound.answer.sentences.length} Sätze, davon{' '}
-                  {game.game_json.halluRound.answer.sentences.filter(s => s.isHallucination).length} Halluzination(en)
+                  {t('grm.answerText', {
+                    sentences: game.game_json.halluRound.answer.sentences.length,
+                    hallu: game.game_json.halluRound.answer.sentences.filter(s => s.isHallucination).length,
+                  })}
                 </div>
               </div>
             )}
 
             {game.game_json.arenaRounds && (
               <div>
-                <p className="grm-section-title">Arena-Runden ({game.game_json.arenaRounds.length})</p>
+                <p className="grm-section-title">{t('grm.arenaRounds', { n: game.game_json.arenaRounds.length })}</p>
                 <div className="grm-question-list">
                   {game.game_json.arenaRounds.map((r, i) => (
                     <div key={r.id} className="grm-question-item">
                       <div className="grm-q-text">{i + 1}. {r.taskDescription}</div>
-                      <div className="grm-q-explanation">{r.referenceOutputs.length} Referenzantworten hinterlegt</div>
+                      <div className="grm-q-explanation">{t('grm.refAnswers', { n: r.referenceOutputs.length })}</div>
                     </div>
                   ))}
                 </div>
@@ -306,7 +310,7 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
             {game.game_json.branching && (
               <div>
                 <p className="grm-section-title">
-                  Prompt-Navigator · Prompt-Optionen ({(game.game_json.branching.nodes[game.game_json.branching.startNode]?.options ?? []).length})
+                  {t('grm.pnavOptions', { n: (game.game_json.branching.nodes[game.game_json.branching.startNode]?.options ?? []).length })}
                 </p>
                 <div className="grm-objective" style={{ marginBottom: 10 }}>
                   {game.game_json.branching.scenario.intro}
@@ -320,7 +324,7 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
                       )}
                       <div className="grm-q-answer" style={{ color: o.points > 0 ? 'var(--success)' : 'var(--text-muted)' }}>
                         <span>{o.points > 0 ? '✓' : '·'}</span>
-                        <span>{o.points} Punkte</span>
+                        <span>{o.points} {t('grm.pointsWord')}</span>
                       </div>
                     </div>
                   ))}
@@ -335,24 +339,26 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
                   <div className="grm-question-item">
                     <div className="grm-q-text">{game.game_json.task}</div>
                     <div className="grm-q-explanation">
-                      Ausgangsdaten: {game.game_json.initialData?.rows.length ?? 0} Zeilen × {game.game_json.initialData?.headers.length ?? 0} Spalten
-                      {' · '}
-                      Musterlösung: {game.game_json.solutionData?.rows.length ?? 0} Zeilen × {game.game_json.solutionData?.headers.length ?? 0} Spalten
-                      {' · '}
-                      Max. Versuche: {game.game_json.maxAttempts ?? '—'}
+                      {t('grm.excelStats', {
+                        ir: game.game_json.initialData?.rows.length ?? 0,
+                        ic: game.game_json.initialData?.headers.length ?? 0,
+                        sr: game.game_json.solutionData?.rows.length ?? 0,
+                        sc: game.game_json.solutionData?.headers.length ?? 0,
+                        max: game.game_json.maxAttempts ?? '—',
+                      })}
                     </div>
                   </div>
                   {(game.game_json.evaluationCriteria ?? []).map(c => (
                     <div key={c.id} className="grm-question-item">
                       <div className="grm-q-text">{c.description}</div>
                       <div className="grm-q-explanation">
-                        Gewicht: {c.weight} · Spalten: {c.columns.join(', ')}
+                        {t('grm.criteriaStats', { weight: c.weight, columns: c.columns.join(', ') })}
                       </div>
                     </div>
                   ))}
                   {game.game_json.samplePrompt && (
                     <div className="grm-question-item">
-                      <div className="grm-q-text">Beispiel-Prompt</div>
+                      <div className="grm-q-text">{t('excel.samplePromptLabel')}</div>
                       <div className="grm-q-explanation">{game.game_json.samplePrompt}</div>
                     </div>
                   )}
@@ -362,16 +368,16 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
 
             {!game.game_json.questions && !game.game_json.halluRound && !game.game_json.arenaRounds && !game.game_json.branching && game.format !== 'excel_challenge' && (
               <div>
-                <p className="grm-section-title">Spieltyp nicht verfügbar</p>
+                <p className="grm-section-title">{t('grm.unavailableTitle')}</p>
                 <div className="grm-objective">
-                  Für das Format „{game.format || '—'}" ist keine Detailansicht verfügbar.
+                  {t('grm.noDetail', { format: game.format || '—' })}
                 </div>
               </div>
             )}
 
             {game.source_attribution && (
               <div>
-                <p className="grm-section-title">Quellennachweis</p>
+                <p className="grm-section-title">{t('grm.sourceAttribution')}</p>
                 <div className="grm-attribution">
                   {JSON.stringify(game.source_attribution, null, 2)}
                 </div>
@@ -382,7 +388,7 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
           <div className="grm-footer">
             {error && <span className="grm-error">{error}</span>}
             <button className="btn btn-ghost" onClick={onClose} disabled={loading}>
-              Abbrechen
+              {t('common.cancel')}
             </button>
             <button
               className="btn btn-danger"
@@ -390,7 +396,7 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
               disabled={loading}
             >
               {!loading && <XCircle size={15} strokeWidth={2} />}
-              {loading ? '…' : 'Ablehnen'}
+              {loading ? '…' : t('grm.reject')}
             </button>
             <button
               className="btn btn-primary"
@@ -398,7 +404,7 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
               disabled={loading}
             >
               {!loading && <Check size={15} strokeWidth={2.25} />}
-              {loading ? '…' : 'Freigeben'}
+              {loading ? '…' : t('grm.approve')}
             </button>
           </div>
         </div>

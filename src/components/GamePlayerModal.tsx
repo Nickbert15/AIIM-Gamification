@@ -7,6 +7,7 @@ import HallucinationSpotterPlayerV2 from './HallucinationSpotterPlayerV2'
 import PromptArenaPlayer from './PromptArenaPlayer'
 import BranchingGamePlayer from './BranchingGamePlayer'
 import { X, CheckCircle2, XCircle, AlertTriangle, Construction, Frown, Meh, Smile, Send } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
 
 interface Props {
   game: Game
@@ -20,6 +21,7 @@ interface Props {
 const QUIZ_POINTS_PER_CORRECT = 10
 
 export default function GamePlayerModal({ game, playerId, onClose, onSaved }: Props) {
+  const { t } = useI18n()
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   // Sobald ein Durchlauf beendet ist, wird beim nächsten Schließen einmalig nach
   // Feedback gefragt. `phase` schaltet den Modal-Body von Spiel auf Feedback um.
@@ -90,7 +92,7 @@ export default function GamePlayerModal({ game, playerId, onClose, onSaved }: Pr
                 {[modeLabel, game.difficulty, game.topic].filter(Boolean).join(' · ')}
               </div>
             </div>
-            <button className="gpl-close" onClick={handleRequestClose} aria-label="Schließen">
+            <button className="gpl-close" onClick={handleRequestClose} aria-label={t('common.close')}>
               <X size={16} strokeWidth={2} />
             </button>
           </div>
@@ -104,12 +106,12 @@ export default function GamePlayerModal({ game, playerId, onClose, onSaved }: Pr
           <>
           {saveState !== 'idle' && (
             <div className={`gpl-savebar gpl-save-${saveState}`}>
-              {saveState === 'saving' && 'Speichere dein Ergebnis…'}
+              {saveState === 'saving' && t('gpl.saving')}
               {saveState === 'saved' && (
-                <><CheckCircle2 size={14} strokeWidth={2.25} className="gpl-savebar-icon" /> Ergebnis gespeichert — es zählt jetzt fürs Leaderboard.</>
+                <><CheckCircle2 size={14} strokeWidth={2.25} className="gpl-savebar-icon" /> {t('gpl.saved')}</>
               )}
               {saveState === 'error' && (
-                <><AlertTriangle size={14} strokeWidth={2.25} className="gpl-savebar-icon" /> Ergebnis konnte nicht gespeichert werden.</>
+                <><AlertTriangle size={14} strokeWidth={2.25} className="gpl-savebar-icon" /> {t('gpl.saveError')}</>
               )}
             </div>
           )}
@@ -138,11 +140,11 @@ export default function GamePlayerModal({ game, playerId, onClose, onSaved }: Pr
               <div className="empty-state" style={{ padding: '32px 20px' }}>
                 <div className="empty-state-icon"><Construction size={26} strokeWidth={1.5} /></div>
                 <div className="empty-state-text">
-                  Dieses Spielformat kann hier noch nicht gespielt werden.
+                  {t('gpl.unsupported')}
                 </div>
               </div>
               <div className="gpl-next-row">
-                <button className="btn btn-primary" onClick={handleRequestClose}>Schließen</button>
+                <button className="btn btn-primary" onClick={handleRequestClose}>{t('common.close')}</button>
               </div>
             </div>
           )}
@@ -155,6 +157,7 @@ export default function GamePlayerModal({ game, playerId, onClose, onSaved }: Pr
 }
 
 function QuizPlayer({ game, onComplete, onClose }: { game: Game; onComplete: (score: number) => void; onClose: () => void }) {
+  const { t } = useI18n()
   const questions = (game.game_json.questions ?? []) as Question[]
   const total = questions.length
   const maxPoints = questions.reduce((s, q) => s + (q.points ?? QUIZ_POINTS_PER_CORRECT), 0)
@@ -165,7 +168,7 @@ function QuizPlayer({ game, onComplete, onClose }: { game: Game; onComplete: (sc
   const [done, setDone] = useState(false)
 
   if (total === 0) {
-    return <div className="gpl-body"><div className="empty-state-text">Dieses Spiel enthält keine Fragen.</div></div>
+    return <div className="gpl-body"><div className="empty-state-text">{t('gpl.noQuestions')}</div></div>
   }
 
   const current = questions[currentIndex]
@@ -197,9 +200,9 @@ function QuizPlayer({ game, onComplete, onClose }: { game: Game; onComplete: (sc
             {score}
             <span style={{ fontSize: '0.45em', color: 'var(--text-muted)', fontWeight: 400 }}>/{maxPoints}</span>
           </div>
-          <div className="gpl-score-label">Punkte erreicht · {pct}%</div>
+          <div className="gpl-score-label">{t('gpl.pointsReached')} · {pct}%</div>
           <div style={{ marginTop: 24 }}>
-            <button className="btn btn-primary" onClick={onClose}>Fertig</button>
+            <button className="btn btn-primary" onClick={onClose}>{t('common.done')}</button>
           </div>
         </div>
       </div>
@@ -209,11 +212,11 @@ function QuizPlayer({ game, onComplete, onClose }: { game: Game; onComplete: (sc
   return (
     <div className="gpl-body">
       <div className="gpl-progress">
-        <span>Frage {currentIndex + 1} von {total}</span>
+        <span>{t('gpl.questionOf', { current: currentIndex + 1, total })}</span>
         <div className="gpl-progress-bar">
           <div className="gpl-progress-fill" style={{ width: `${((currentIndex + 1) / total) * 100}%` }} />
         </div>
-        <span style={{ whiteSpace: 'nowrap' }}>{score} Pkt.</span>
+        <span style={{ whiteSpace: 'nowrap' }}>{score} {t('common.points_short')}</span>
       </div>
 
       <p className="gpl-question">{current.question}</p>
@@ -239,11 +242,11 @@ function QuizPlayer({ game, onComplete, onClose }: { game: Game; onComplete: (sc
             {isCorrect
               ? <CheckCircle2 size={16} strokeWidth={2} className="gpl-feedback-icon" />
               : <XCircle size={16} strokeWidth={2} className="gpl-feedback-icon" />}
-            <span>{isCorrect ? 'Richtig! ' : 'Falsch. '}{current.explanation}</span>
+            <span>{isCorrect ? t('gpl.correct') : t('gpl.wrong')}{current.explanation}</span>
           </div>
           <div className="gpl-next-row">
             <button className="btn btn-primary" onClick={handleNext}>
-              {currentIndex + 1 >= total ? 'Ergebnis anzeigen' : 'Nächste Frage →'}
+              {currentIndex + 1 >= total ? t('gpl.showResult') : t('gpl.nextQuestion')}
             </button>
           </div>
         </>
@@ -253,12 +256,13 @@ function QuizPlayer({ game, onComplete, onClose }: { game: Game; onComplete: (sc
 }
 
 const RATING_OPTIONS = [
-  { value: 1, label: 'Ging so', Icon: Frown, cls: 'fb-r1' },
-  { value: 2, label: 'Gut', Icon: Meh, cls: 'fb-r2' },
-  { value: 3, label: 'Super', Icon: Smile, cls: 'fb-r3' },
+  { value: 1, labelKey: 'gpl.fbR1', Icon: Frown, cls: 'fb-r1' },
+  { value: 2, labelKey: 'gpl.fbR2', Icon: Meh, cls: 'fb-r2' },
+  { value: 3, labelKey: 'gpl.fbR3', Icon: Smile, cls: 'fb-r3' },
 ] as const
 
 function FeedbackStep({ game, onDone }: { game: Game; onDone: () => void }) {
+  const { t } = useI18n()
   const [rating, setRating] = useState<number | null>(null)
   const [comment, setComment] = useState('')
   const [sending, setSending] = useState(false)
@@ -285,12 +289,12 @@ function FeedbackStep({ game, onDone }: { game: Game; onDone: () => void }) {
   return (
     <div className="gpl-body gpl-fb-step">
       <div>
-        <h3 className="gpl-fb-title">Wie hat dir das Spiel gefallen?</h3>
-        <p className="gpl-fb-sub">Dein Feedback hilft uns, die Spiele besser zu machen.</p>
+        <h3 className="gpl-fb-title">{t('gpl.fbTitle')}</h3>
+        <p className="gpl-fb-sub">{t('gpl.fbSub')}</p>
       </div>
 
-      <div className="gpl-fb-ratings" role="radiogroup" aria-label="Bewertung">
-        {RATING_OPTIONS.map(({ value, label, Icon, cls }) => (
+      <div className="gpl-fb-ratings" role="radiogroup" aria-label={t('gpl.fbRatingLabel')}>
+        {RATING_OPTIONS.map(({ value, labelKey, Icon, cls }) => (
           <button
             key={value}
             type="button"
@@ -300,34 +304,34 @@ function FeedbackStep({ game, onDone }: { game: Game; onDone: () => void }) {
             onClick={() => setRating(value)}
           >
             <Icon size={30} strokeWidth={1.75} />
-            <span>{label}</span>
+            <span>{t(labelKey)}</span>
           </button>
         ))}
       </div>
 
       <div className="gpl-fb-comment">
-        <label htmlFor="gpl-fb-comment">Kommentar <span>(optional)</span></label>
+        <label htmlFor="gpl-fb-comment">{t('gpl.fbComment')} <span>{t('gpl.fbOptional')}</span></label>
         <textarea
           id="gpl-fb-comment"
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           maxLength={1000}
           rows={3}
-          placeholder="Was hat dir gefallen, was können wir verbessern?"
+          placeholder={t('gpl.fbPlaceholder')}
         />
       </div>
 
       {error && (
         <div className="gpl-fb-error">
-          <AlertTriangle size={14} strokeWidth={2.25} /> Feedback konnte nicht gesendet werden.
+          <AlertTriangle size={14} strokeWidth={2.25} /> {t('gpl.fbError')}
         </div>
       )}
 
       <div className="gpl-fb-actions">
-        <button className="btn btn-ghost" onClick={onDone} disabled={sending}>Überspringen</button>
+        <button className="btn btn-ghost" onClick={onDone} disabled={sending}>{t('gpl.fbSkip')}</button>
         <button className="btn btn-primary" onClick={submit} disabled={rating === null || sending}>
           {!sending && <Send size={15} strokeWidth={2} />}
-          {sending ? 'Senden…' : 'Feedback senden'}
+          {sending ? t('gpl.fbSending') : t('gpl.fbSend')}
         </button>
       </div>
     </div>

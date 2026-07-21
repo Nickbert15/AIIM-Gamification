@@ -10,6 +10,7 @@ import ExcelSheet, { CellPosition } from './excel-ui/ExcelSheet'
 import CopilotSidebar, { ChatMessage, PlayerStatus } from './excel-ui/CopilotSidebar'
 import ResultDialog from './excel-ui/ResultDialog'
 import HowToPlay from './ui/HowToPlay'
+import { useI18n } from '@/lib/i18n'
 
 interface Props {
   gameId: string
@@ -37,6 +38,7 @@ interface PendingDecision {
 }
 
 export default function ExcelGamePlayer({ gameId, task, initialData, maxAttempts, playerId, onComplete, onClose }: Props) {
+  const { t } = useI18n()
   const [currentTable, setCurrentTable] = useState<ExcelTableState>(initialData)
   const [prompt, setPrompt] = useState('')
   const [attemptsUsed, setAttemptsUsed] = useState(0)
@@ -68,7 +70,7 @@ export default function ExcelGamePlayer({ gameId, task, initialData, maxAttempts
       setStatus('done')
       onComplete({ score: data.score, pointsEarned: data.pointsEarned })
     } catch (err) {
-      setApiError(err instanceof Error ? err.message : 'Netzwerkfehler')
+      setApiError(err instanceof Error ? err.message : t('excel.networkError'))
       setStatus('idle')
     }
   }
@@ -116,7 +118,7 @@ export default function ExcelGamePlayer({ gameId, task, initialData, maxAttempts
       setStatus('animating')
       setCurrentTable(data.table)
     } catch (err) {
-      setApiError(err instanceof Error ? err.message : 'Netzwerkfehler')
+      setApiError(err instanceof Error ? err.message : t('excel.networkError'))
       setStatus('idle')
     }
   }
@@ -126,7 +128,7 @@ export default function ExcelGamePlayer({ gameId, task, initialData, maxAttempts
     pendingAfterAnimation.current = null
     if (!pending) return
 
-    setMessages(prev => [...prev, { role: 'assistant', text: 'Fertig – ich habe die Tabelle angepasst.' }])
+    setMessages(prev => [...prev, { role: 'assistant', text: t('excel.applied') }])
 
     if (pending.allPassed || pending.attemptsRemaining <= 0) {
       await finalize(pending.table, pending.attemptsUsed)
@@ -157,16 +159,13 @@ export default function ExcelGamePlayer({ gameId, task, initialData, maxAttempts
 
       <HowToPlay
         open={howToPlayOpen}
-        title="So funktioniert die Excel Challenge"
-        termExplanation={
-          'Du arbeitest mit einem KI-Copiloten direkt in einer Tabelle: Statt selbst Formeln zu tippen, ' +
-          'beschreibst du in normaler Sprache (einem „Prompt"), was mit den Daten passieren soll — die KI setzt es um.'
-        }
+        title={t('excel.htpTitle')}
+        termExplanation={t('excel.htpTerm')}
         steps={[
-          { text: 'Du siehst eine Tabelle mit Ausgangsdaten; die Aufgabe dazu erklärt dir der Copilot im Chat rechts.' },
-          { text: 'Schreib dem Copiloten einen Prompt, wie die Tabelle umgebaut werden soll — er wendet ihn direkt auf die Tabelle an.' },
-          { text: `Du hast ${maxAttempts} ${maxAttempts === 1 ? 'Versuch' : 'Versuche'}. Passt die Lösung oder sind die Versuche aufgebraucht, wird ausgewertet.` },
-          { text: 'Zum Schluss bekommst du Punkte und Feedback zu deiner Lösung.' },
+          { text: t('excel.htpStep1') },
+          { text: t('excel.htpStep2') },
+          { text: t('excel.htpStep3', { attempts: maxAttempts, attemptWord: maxAttempts === 1 ? t('excel.attempt') : t('excel.attempts') }) },
+          { text: t('excel.htpStep4') },
         ]}
         onDismiss={() => setHowToPlayOpen(false)}
       />

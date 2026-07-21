@@ -6,6 +6,7 @@ import GamePreviewModal from '@/components/GamePreviewModal'
 import GameReviewModal from '@/components/GameReviewModal'
 import GenerateGameModal from '@/components/GenerateGameModal'
 import { Gamepad2, User } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
 
 interface Props {
   games: Game[]
@@ -27,14 +28,14 @@ function statusBadgeStyle(status: string): React.CSSProperties {
   }
 }
 
-const FILTERS: { key: Filter; label: string }[] = [
-  { key: 'all', label: 'Alle' },
-  { key: 'draft', label: 'Draft' },
-  { key: 'approved', label: 'Approved' },
-  { key: 'rejected', label: 'Rejected' },
-]
-
 export default function GamesClient({ games: initialGames }: Props) {
+  const { t } = useI18n()
+  const FILTERS: { key: Filter; label: string }[] = [
+    { key: 'all', label: t('admin.games.filterAll') },
+    { key: 'draft', label: 'Draft' },
+    { key: 'approved', label: 'Approved' },
+    { key: 'rejected', label: 'Rejected' },
+  ]
   const [games, setGames] = useState<Game[]>(initialGames)
   const [filter, setFilter] = useState<Filter>('all')
   const [previewGame, setPreviewGame] = useState<Game | null>(null)
@@ -157,7 +158,7 @@ export default function GamesClient({ games: initialGames }: Props) {
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
         <button className="btn btn-primary" onClick={() => setGenerateOpen(true)}>
-          + Spiel generieren
+          {t('admin.games.generate')}
         </button>
       </div>
 
@@ -181,8 +182,8 @@ export default function GamesClient({ games: initialGames }: Props) {
               <div className="empty-state-icon"><Gamepad2 size={26} strokeWidth={1.5} /></div>
               <div className="empty-state-text">
                 {games.length === 0
-                  ? 'Noch keine Spiele generiert. Nutze den Button „+ Spiel generieren" oben rechts.'
-                  : `Keine Games mit Status „${STATUS_LABEL[filter]}".`}
+                  ? t('admin.games.emptyNone')
+                  : t('admin.games.emptyFilter', { status: STATUS_LABEL[filter] })}
               </div>
             </div>
           ) : (
@@ -217,10 +218,10 @@ export default function GamesClient({ games: initialGames }: Props) {
                     </span>
                     <div className="gp-actions">
                       <button className="btn btn-ghost" onClick={() => setPreviewGame(game)}>
-                        Vorschau
+                        {t('admin.games.preview')}
                       </button>
                       <button className="btn btn-primary" onClick={() => setReviewGame(game)}>
-                        Review
+                        {t('admin.games.review')}
                       </button>
                     </div>
                   </div>

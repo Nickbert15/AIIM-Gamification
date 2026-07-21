@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { Trophy } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
 
 export default function ScoresPage() {
+  const { t } = useI18n()
   const [scores, setScores] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -16,7 +18,7 @@ export default function ScoresPage() {
   useEffect(() => { loadAll() }, [])
 
   async function handleDelete(id: string) {
-    if (!confirm('Score wirklich löschen?')) return
+    if (!confirm(t('admin.scores.confirmDelete'))) return
     const res = await fetch(`/api/admin/scores?id=${id}`, { method: 'DELETE' })
     if (res.ok) loadAll()
   }
@@ -24,27 +26,27 @@ export default function ScoresPage() {
   return (
     <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
       <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-        <span className="card-title" style={{ margin: 0 }}>Letzte 50 Scores</span>
+        <span className="card-title" style={{ margin: 0 }}>{t('admin.scores.title')}</span>
         <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '4px 0 0' }}>
-          Scores entstehen automatisch beim Spielen. Hier kannst du sie einsehen und einzelne Einträge (z.&nbsp;B. Tests) entfernen.
+          {t('admin.scores.subtitle')}
         </p>
       </div>
       {loading ? (
-        <div className="loading-spinner">Lade…</div>
+        <div className="loading-spinner">{t('common.loading')}</div>
       ) : scores.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon"><Trophy size={26} strokeWidth={1.5} /></div>
-          <div className="empty-state-text">Noch keine Scores vorhanden.</div>
+          <div className="empty-state-text">{t('admin.noScores')}</div>
         </div>
       ) : (
         <div className="table-wrapper" style={{ border: 'none' }}>
           <table>
             <thead>
               <tr>
-                <th>Spieler</th>
-                <th>Game ID</th>
-                <th>Score</th>
-                <th>Datum</th>
+                <th>{t('admin.scores.colPlayer')}</th>
+                <th>{t('admin.scores.colGameId')}</th>
+                <th>{t('admin.scores.colScore')}</th>
+                <th>{t('admin.scores.colDate')}</th>
                 <th></th>
               </tr>
             </thead>
@@ -63,7 +65,7 @@ export default function ScoresPage() {
                   <td>
                     <button className="btn btn-danger" style={{ padding: '4px 10px', fontSize: 12 }}
                       onClick={() => handleDelete(s.id)}>
-                      Löschen
+                      {t('admin.delete')}
                     </button>
                   </td>
                 </tr>

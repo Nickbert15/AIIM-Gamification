@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { cookies } from 'next/headers'
 import './globals.css'
 import NavBar from '@/components/NavBar'
+import { LanguageProvider, LANG_COOKIE, type Lang } from '@/lib/i18n'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -15,13 +17,18 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  const cookieLang = cookies().get(LANG_COOKIE)?.value
+  const lang: Lang = cookieLang === 'en' ? 'en' : 'de'
+
   return (
-    <html lang="de">
+    <html lang={lang}>
       <body className={inter.className}>
-        <NavBar />
-        <main className="main-content">
-          {children}
-        </main>
+        <LanguageProvider initialLang={lang}>
+          <NavBar />
+          <main className="main-content">
+            {children}
+          </main>
+        </LanguageProvider>
       </body>
     </html>
   )

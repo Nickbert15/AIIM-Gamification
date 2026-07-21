@@ -9,6 +9,7 @@ import Badge from './ui/Badge'
 import ConfettiBurst from './ui/ConfettiBurst'
 import StepIndicator from './ui/StepIndicator'
 import HowToPlay from './ui/HowToPlay'
+import { useI18n } from '@/lib/i18n'
 
 interface Props {
   game: Game
@@ -26,6 +27,7 @@ interface PathEntry {
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
 
 export default function BranchingGamePlayer({ game, onComplete }: Props) {
+  const { t } = useI18n()
   const branching = game.game_json?.branching
 
   const [nodeId, setNodeId] = useState(branching?.startNode ?? '')
@@ -47,7 +49,7 @@ export default function BranchingGamePlayer({ game, onComplete }: Props) {
   const node: BranchNode | undefined = branching.nodes[nodeId]
 
   if (!node) {
-    return <div className="empty-state-text">Spielknoten „{nodeId}" nicht gefunden — game_json prüfen.</div>
+    return <div className="empty-state-text">{t('bn.nodeNotFound', { id: nodeId })}</div>
   }
 
   function finishIfEnd(targetId: string) {
@@ -133,12 +135,12 @@ export default function BranchingGamePlayer({ game, onComplete }: Props) {
 
       <HowToPlay
         open={howToPlayOpen}
-        title="So funktioniert der Prompt-Navigator"
-        termExplanation="Du bekommst ein Szenario aus dem Arbeitsalltag und wählst einen Prompt (eine Anfrage an die KI) aus mehreren Optionen. Manche Formulierungen liefern brauchbare Ergebnisse, andere nicht — genau das lernst du hier zu unterscheiden."
+        title={t('bn.htpTitle')}
+        termExplanation={t('bn.htpTerm')}
         steps={[
-          { text: 'Du liest das Szenario und wählst einen von mehreren möglichen Prompts.' },
-          { text: 'Ein Popup zeigt dir, was die KI daraus macht. Du bestätigst oder wählst neu.' },
-          { text: 'Du bekommst Punkte und eine Begründung, warum der Prompt gut oder weniger gut war.' },
+          { text: t('bn.htpStep1') },
+          { text: t('bn.htpStep2') },
+          { text: t('bn.htpStep3') },
         ]}
         onDismiss={() => setHowToPlayOpen(false)}
       />
@@ -147,11 +149,11 @@ export default function BranchingGamePlayer({ game, onComplete }: Props) {
       {node.type === 'end' && (() => {
         const pct = maxPoints > 0 ? Math.round((totalScore / maxPoints) * 100) : 0
         const badges: { icon: LucideIcon; label: string }[] = []
-        if (pct >= 90) badges.push({ icon: Award, label: 'Prompt-Profi' })
-        else if (pct >= 60) badges.push({ icon: Star, label: 'Gut gemacht' })
-        else badges.push({ icon: TrendingUp, label: 'Weiter üben' })
+        if (pct >= 90) badges.push({ icon: Award, label: t('bn.badgePro') })
+        else if (pct >= 60) badges.push({ icon: Star, label: t('bn.badgeGood') })
+        else badges.push({ icon: TrendingUp, label: t('bn.badgePractice') })
         const volltreffer = path[0]?.id === 'prompt_d'
-        if (volltreffer) badges.push({ icon: Zap, label: 'Volltreffer' })
+        if (volltreffer) badges.push({ icon: Zap, label: t('bn.badgeBullseye') })
 
         return (
           <div className="pnav-container">
@@ -161,10 +163,10 @@ export default function BranchingGamePlayer({ game, onComplete }: Props) {
               <div className="pnav-score-pct">{pct}%</div>
               <div className="pnav-score-msg">
                 {pct >= 80
-                  ? 'Ausgezeichnet! Du hast souverän mit der KI zusammengearbeitet.'
+                  ? t('bn.scoreHigh')
                   : pct >= 60
-                  ? 'Gut gemacht! Schau dir unten an, worauf es beim Prompting ankommt.'
-                  : 'Weiter üben — unten siehst du genau, worauf es ankommt.'}
+                  ? t('bn.scoreMid')
+                  : t('bn.scoreLow')}
               </div>
               <div className="pnav-badges-row">
                 {badges.map(b => <Badge key={b.label} icon={b.icon} label={b.label} />)}
@@ -173,7 +175,7 @@ export default function BranchingGamePlayer({ game, onComplete }: Props) {
 
             {path.length > 0 && (
               <div className="pnav-recap-card">
-                <span className="pnav-label">{node.recapIntro ?? 'Deine Entscheidungen:'}</span>
+                <span className="pnav-label">{node.recapIntro ?? t('bn.decisions')}</span>
                 <div className="pnav-timeline">
                   {path.map((entry, i) => (
                     <div key={i} className={`pnav-timeline-item ${entry.points > 0 ? 'is-positive' : 'is-neutral'}`}>
@@ -205,7 +207,7 @@ export default function BranchingGamePlayer({ game, onComplete }: Props) {
           <div className="pnav-info-card">{node.text}</div>
           <div className="pnav-next-row">
             <button className="btn btn-primary" onClick={() => handleInfoContinue(node.nextNode!)}>
-              Weiter →
+              {t('bn.continue')}
             </button>
           </div>
         </div>
@@ -214,7 +216,7 @@ export default function BranchingGamePlayer({ game, onComplete }: Props) {
       {/* ---------- Reflexion (diagnosis), inline ---------- */}
       {node.type === 'diagnosis' && (
         <div className="pnav-container">
-          <StepIndicator steps={['Prompt wählen', 'Auswertung']} currentIndex={stepIndex} />
+          <StepIndicator steps={[t('bn.stepChoose'), t('bn.stepResult')]} currentIndex={stepIndex} />
           <p className="pnav-question">{node.text}</p>
 
           <div className="pnav-options">
@@ -236,7 +238,7 @@ export default function BranchingGamePlayer({ game, onComplete }: Props) {
           {diagnosisSelected?.feedback && (
             <div className="pnav-feedback" role="status">
               <span className="pnav-feedback-label">
-                {diagnosisSelected.points > 0 ? 'Richtig erkannt' : 'Merke dir'}
+                {diagnosisSelected.points > 0 ? t('bn.diagCorrect') : t('bn.diagRemember')}
               </span>
               {diagnosisSelected.feedback}
             </div>
@@ -245,7 +247,7 @@ export default function BranchingGamePlayer({ game, onComplete }: Props) {
           {diagnosisSelected && (
             <div className="pnav-next-row">
               <button className="btn btn-primary" onClick={handleDiagnosisContinue}>
-                Weiter →
+                {t('bn.continue')}
               </button>
             </div>
           )}
@@ -255,11 +257,11 @@ export default function BranchingGamePlayer({ game, onComplete }: Props) {
       {/* ---------- prompt_choice: Karten + Popup 1 ---------- */}
       {node.type === 'prompt_choice' && (
         <div className="pnav-container">
-          <StepIndicator steps={['Prompt wählen', 'Auswertung']} currentIndex={stepIndex} />
+          <StepIndicator steps={[t('bn.stepChoose'), t('bn.stepResult')]} currentIndex={stepIndex} />
 
           {nodeId === branching.startNode && (
             <div className="pnav-scenario-card">
-              <span className="pnav-label">Dein Szenario</span>
+              <span className="pnav-label">{t('bn.yourScenario')}</span>
               <p className="pnav-scenario-text">{branching.scenario.intro}</p>
             </div>
           )}
@@ -285,28 +287,28 @@ export default function BranchingGamePlayer({ game, onComplete }: Props) {
 
       <GamePopup
         open={!!previewOption}
-        title={previewOption ? `So reagiert die KI auf ${previewOption.label}` : ''}
+        title={previewOption ? t('bn.aiReactsTo', { label: previewOption.label }) : ''}
         onClose={popupStage === 'preview' ? handleReselect : undefined}
       >
         <div className="pnav-ai-output">
-          <span className="pnav-label">Antwort des KI-Assistenten</span>
+          <span className="pnav-label">{t('bn.aiAssistantAnswer')}</span>
           <div className="pnav-ai-text">{previewNode?.aiOutput}</div>
         </div>
 
         {popupStage === 'confirmed' ? (
           <div className="pnav-popup-footer">
-            <span className="pnav-confirmed-tag">✓ Abgeschickt</span>
+            <span className="pnav-confirmed-tag">{t('bn.confirmedTag')}</span>
             <button className="btn btn-primary" onClick={handleConfirmChoice} autoFocus>
-              Weiter →
+              {t('bn.continue')}
             </button>
           </div>
         ) : (
           <div className="pnav-popup-footer">
             <button className="btn btn-ghost" onClick={handleReselect}>
-              🔄 Neu auswählen
+              {t('bn.reselect')}
             </button>
             <button className="btn btn-primary" onClick={handleAbschicken}>
-              ✅ Abschicken
+              {t('bn.submit')}
             </button>
           </div>
         )}
@@ -314,20 +316,20 @@ export default function BranchingGamePlayer({ game, onComplete }: Props) {
 
       <GamePopup
         open={node.type === 'output_review'}
-        title="Dein Ergebnis"
+        title={t('bn.yourResult')}
         variant={node.ratingLabel?.includes('Ausgezeichnet') || node.ratingLabel?.includes('Perfekt') ? 'celebratory' : 'neutral'}
       >
         {(node.ratingLabel?.includes('Ausgezeichnet') || node.ratingLabel?.includes('Perfekt')) && (
           <ConfettiBurst intensity="low" />
         )}
         <div className="pnav-result-card">
-          <ScoreCounter value={path[path.length - 1]?.points ?? 0} suffix=" Punkte" className="pnav-result-score" />
+          <ScoreCounter value={path[path.length - 1]?.points ?? 0} suffix={t('bn.pointsSuffix')} className="pnav-result-score" />
           {node.ratingLabel && <div className="pnav-result-rating">{node.ratingLabel}</div>}
         </div>
 
         {node.aiOutput && (
           <div className="pnav-ai-output">
-            <span className="pnav-label">Der Output im Wortlaut</span>
+            <span className="pnav-label">{t('bn.outputVerbatim')}</span>
             <div className="pnav-ai-text">{node.aiOutput}</div>
           </div>
         )}
@@ -336,7 +338,7 @@ export default function BranchingGamePlayer({ game, onComplete }: Props) {
 
         <div className="pnav-popup-footer">
           <button className="btn btn-primary" onClick={handleAfterResult} autoFocus>
-            Weiter →
+            {t('bn.continue')}
           </button>
         </div>
       </GamePopup>

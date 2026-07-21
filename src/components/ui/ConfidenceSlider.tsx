@@ -1,12 +1,14 @@
 'use client'
 
+import { useI18n } from '@/lib/i18n'
+
 // Reduced from 6 to 3 categories to match the reference slider's
 // three-label layout (Not sure / Fairly sure / Certain) - fewer, clearer
 // steps read better on a visual track than six cramped ticks did.
 export const CONFIDENCE_LEVELS = [
-  { emoji: '😟', label: 'Unsicher' },
-  { emoji: '😐', label: 'Mittel' },
-  { emoji: '🤩', label: 'Sicher' },
+  { emoji: '😟', labelKey: 'ui.confLow' },
+  { emoji: '😐', labelKey: 'ui.confMid' },
+  { emoji: '🤩', labelKey: 'ui.confHigh' },
 ] as const
 
 interface Props {
@@ -21,6 +23,7 @@ interface Props {
 // since cross-browser ::-webkit/::-moz thumb pseudo-elements are unreliable
 // to keep in sync with each other.
 export default function ConfidenceSlider({ value, onChange, question }: Props) {
+  const { t } = useI18n()
   const max = CONFIDENCE_LEVELS.length - 1
   const current = CONFIDENCE_LEVELS[value]
   const pct = (value / max) * 100
@@ -32,7 +35,7 @@ export default function ConfidenceSlider({ value, onChange, question }: Props) {
         {question && <div className="conf-slider-question">{question}</div>}
         <div className="conf-slider-current">
           <span className="conf-slider-emoji" aria-hidden="true">{current.emoji}</span>
-          <span className="conf-slider-label">{current.label}</span>
+          <span className="conf-slider-label">{t(current.labelKey)}</span>
         </div>
         <div className="conf-slider-track-wrap">
           <div className="conf-slider-track-bg" aria-hidden="true" />
@@ -46,14 +49,14 @@ export default function ConfidenceSlider({ value, onChange, question }: Props) {
             step={1}
             value={value}
             onChange={(e) => onChange(Number(e.target.value))}
-            aria-valuetext={current.label}
-            aria-label={question ?? 'Wie sicher bist du dir?'}
+            aria-valuetext={t(current.labelKey)}
+            aria-label={question ?? t('ui.confAria')}
           />
         </div>
         <div className="conf-slider-labels" aria-hidden="true">
           {CONFIDENCE_LEVELS.map((lvl, i) => (
-            <span key={lvl.label} className={`conf-slider-label-item ${i === 1 ? 'mid' : ''}`}>
-              <span>{lvl.emoji}</span> {lvl.label}
+            <span key={lvl.labelKey} className={`conf-slider-label-item ${i === 1 ? 'mid' : ''}`}>
+              <span>{lvl.emoji}</span> {t(lvl.labelKey)}
             </span>
           ))}
         </div>

@@ -3,19 +3,23 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { CheckCircle2, Inbox, ArrowRight } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
 
-function formatRelativeTime(iso: string): string {
+type TFn = (key: string, vars?: Record<string, string | number>) => string
+
+function formatRelativeTime(iso: string, t: TFn): string {
   const diffMs = Date.now() - new Date(iso).getTime()
   const minutes = Math.round(diffMs / 60000)
-  if (minutes < 1) return 'gerade eben'
-  if (minutes < 60) return `vor ${minutes} Min.`
+  if (minutes < 1) return t('admin.time.now')
+  if (minutes < 60) return t('admin.time.min', { n: minutes })
   const hours = Math.round(minutes / 60)
-  if (hours < 24) return `vor ${hours} Std.`
+  if (hours < 24) return t('admin.time.hour', { n: hours })
   const days = Math.round(hours / 24)
-  return `vor ${days} ${days === 1 ? 'Tag' : 'Tagen'}`
+  return days === 1 ? t('admin.time.day', { n: days }) : t('admin.time.days', { n: days })
 }
 
 export default function AdminPage() {
+  const { t } = useI18n()
   const [stats, setStats] = useState({ players: 0, scores: 0, games: 0, avgScore: 0 })
   const [recentScores, setRecentScores] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -50,10 +54,10 @@ export default function AdminPage() {
     <>
       <div className="stats-grid">
         {[
-          { value: stats.players, label: 'Registrierte Spieler', accent: true },
-          { value: stats.scores, label: 'Games gespielt', accent: false },
-          { value: stats.games, label: 'Verschiedene Games', accent: false },
-          { value: stats.avgScore, label: 'Ø Score', accent: true },
+          { value: stats.players, label: t('admin.stat.players'), accent: true },
+          { value: stats.scores, label: t('admin.stat.gamesPlayed'), accent: false },
+          { value: stats.games, label: t('admin.stat.distinctGames'), accent: false },
+          { value: stats.avgScore, label: t('admin.stat.avgScore'), accent: true },
         ].map((s) => (
           <div key={s.label} className={`stat-card ${s.accent ? 'stat-accent' : ''}`}>
             <div className="stat-value">{s.value.toLocaleString('de-DE')}</div>
@@ -63,16 +67,16 @@ export default function AdminPage() {
       </div>
 
       <div className="card">
-        <div className="card-title">Letzte Aktivitäten</div>
+        <div className="card-title">{t('admin.recentActivity')}</div>
         {loading ? (
-          <div className="loading-spinner">Lade…</div>
+          <div className="loading-spinner">{t('common.loading')}</div>
         ) : recentScores.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state-icon"><Inbox size={30} strokeWidth={1.5} /></div>
             <div className="empty-state-text">
-              Noch keine Scores vorhanden.{' '}
+              {t('admin.noScores')}{' '}
               <Link href="/admin/scores" className="empty-state-link">
-                Ersten Score eintragen <ArrowRight size={13} strokeWidth={2.5} />
+                {t('admin.enterFirstScore')} <ArrowRight size={13} strokeWidth={2.5} />
               </Link>
             </div>
           </div>
@@ -82,10 +86,10 @@ export default function AdminPage() {
               <div key={i} className="activity-row">
                 <span className="activity-icon"><CheckCircle2 size={16} strokeWidth={2} /></span>
                 <span className="activity-text">
-                  <strong>{s.players?.display_name ?? '—'}</strong> hat <strong>{s.game_title ?? s.game_id}</strong> abgeschlossen
+                  <strong>{s.players?.display_name ?? '—'}</strong> {t('admin.actCompletedMid')} <strong>{s.game_title ?? s.game_id}</strong>{t('admin.actCompletedEnd')}
                 </span>
-                <span className="activity-score">{s.score} Pkt.</span>
-                <span className="activity-time">{formatRelativeTime(s.completed_at)}</span>
+                <span className="activity-score">{s.score} {t('common.points_short')}</span>
+                <span className="activity-time">{formatRelativeTime(s.completed_at, t)}</span>
               </div>
             ))}
           </div>

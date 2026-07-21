@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { ChevronDown } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
 
 interface Props {
   isOpen: boolean
@@ -25,50 +26,30 @@ interface Technology {
 
 const OTHER = 'other'
 
-// Statische Lernziel-Liste (bewusst keine DB-Tabelle).
-const LEARNING_GOALS: { value: string; label: string; description: string }[] = [
-  { value: 'finanzabschluss', label: 'Finanzabschluss', description: 'Erstellung des Jahres- oder Periodenabschlusses nach HGB/IFRS.' },
-  { value: 'buchhaltung', label: 'Buchhaltung', description: 'Erfassung und Verbuchung laufender Geschäftsvorfälle.' },
-  { value: 'controlling', label: 'Controlling', description: 'Planung, Steuerung und Kontrolle betrieblicher Kennzahlen.' },
-  { value: 'reporting', label: 'Reporting', description: 'Aufbereitung von Finanzdaten für interne und externe Berichte.' },
-  { value: 'kostenrechnung', label: 'Kostenrechnung', description: 'Erfassung und Zuordnung von Kosten auf Kostenstellen und -träger.' },
-  { value: 'konsolidierung', label: 'Konsolidierung', description: 'Zusammenführung von Einzelabschlüssen zum Konzernabschluss.' },
-  { value: 'steuern', label: 'Steuern', description: 'Steuerliche Bewertung und Deklaration von Geschäftsvorfällen.' },
-  { value: 'treasury', label: 'Treasury', description: 'Steuerung von Liquidität, Zahlungsverkehr und Finanzrisiken.' },
+// Statische Lernziel-Liste (bewusst keine DB-Tabelle). Labels/Beschreibungen via i18n.
+const LEARNING_GOALS: { value: string; labelKey: string; descKey: string }[] = [
+  { value: 'finanzabschluss', labelKey: 'ggm.goal.finanzabschluss', descKey: 'ggm.goalDesc.finanzabschluss' },
+  { value: 'buchhaltung', labelKey: 'ggm.goal.buchhaltung', descKey: 'ggm.goalDesc.buchhaltung' },
+  { value: 'controlling', labelKey: 'ggm.goal.controlling', descKey: 'ggm.goalDesc.controlling' },
+  { value: 'reporting', labelKey: 'ggm.goal.reporting', descKey: 'ggm.goalDesc.reporting' },
+  { value: 'kostenrechnung', labelKey: 'ggm.goal.kostenrechnung', descKey: 'ggm.goalDesc.kostenrechnung' },
+  { value: 'konsolidierung', labelKey: 'ggm.goal.konsolidierung', descKey: 'ggm.goalDesc.konsolidierung' },
+  { value: 'steuern', labelKey: 'ggm.goal.steuern', descKey: 'ggm.goalDesc.steuern' },
+  { value: 'treasury', labelKey: 'ggm.goal.treasury', descKey: 'ggm.goalDesc.treasury' },
 ]
 
-const DIFFICULTIES: { value: Difficulty; label: string }[] = [
-  { value: 'easy', label: 'Einfach' },
-  { value: 'medium', label: 'Mittel' },
-  { value: 'hard', label: 'Schwer' },
+const DIFFICULTIES: { value: Difficulty; labelKey: string }[] = [
+  { value: 'easy', labelKey: 'ggm.diff.easy' },
+  { value: 'medium', labelKey: 'ggm.diff.medium' },
+  { value: 'hard', labelKey: 'ggm.diff.hard' },
 ]
 
-// Werte identisch mit der Spalte games.format.
-const GAME_TYPES: { value: GameType; label: string; description: string }[] = [
-  {
-    value: 'excel_challenge',
-    label: 'Excel Challenge',
-    description:
-      'Datenaufgabe in einer simulierten Excel-Oberfläche: Die Spielerin steuert einen KI-Copiloten per Prompt, um die Tabelle korrekt umzubauen.',
-  },
-  {
-    value: 'hallucination_spotter_v2',
-    label: 'Hallucination Spotter',
-    description:
-      'Erst den besten Prompt wählen, dann in der KI-Antwort die halluzinierten (erfundenen) Aussagen erkennen und markieren.',
-  },
-  {
-    value: 'prompt_arena',
-    label: 'Prompt Arena',
-    description:
-      'Die Spielerin formuliert selbst eine Antwort/einen Prompt; die KI bewertet sie im Vergleich zu hinterlegten Referenzlösungen und gibt Feedback.',
-  },
-  {
-    value: 'prompt_branching',
-    label: 'Prompt-Navigator',
-    description:
-      'Szenario mit Verzweigungen: Aus mehreren Prompt-Optionen wählen und den simulierten KI-Output Schritt für Schritt bewerten und nachsteuern.',
-  },
+// Werte identisch mit der Spalte games.format. Label = Produktname (bleibt), Beschreibung via i18n.
+const GAME_TYPES: { value: GameType; label: string; descKey: string }[] = [
+  { value: 'excel_challenge', label: 'Excel Challenge', descKey: 'ggm.gtDesc.excel_challenge' },
+  { value: 'hallucination_spotter_v2', label: 'Hallucination Spotter', descKey: 'ggm.gtDesc.hallucination_spotter_v2' },
+  { value: 'prompt_arena', label: 'Prompt Arena', descKey: 'ggm.gtDesc.prompt_arena' },
+  { value: 'prompt_branching', label: 'Prompt-Navigator', descKey: 'ggm.gtDesc.prompt_branching' },
 ]
 
 // Neueste zuerst, dann pro label nur den ersten (= neuesten) Eintrag behalten.
@@ -88,6 +69,7 @@ function dedupeByLabel(rows: Technology[]): Technology[] {
 }
 
 export default function GenerateGameModal({ isOpen, onClose }: Props) {
+  const { t } = useI18n()
   const [technologies, setTechnologies] = useState<Technology[]>([])
   const [techStatus, setTechStatus] = useState<TechStatus>('loading')
   const [technologyId, setTechnologyId] = useState('')
@@ -175,19 +157,19 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
 
   if (!isOpen) return null
 
-  const selectedTech = technologies.find((t) => t.id === technologyId)
+  const selectedTech = technologies.find((tech) => tech.id === technologyId)
   const techLabel =
     technologyId === OTHER
-      ? 'Sonstiges'
-      : selectedTech?.label ?? 'Technologie wählen…'
+      ? t('ggm.other')
+      : selectedTech?.label ?? t('ggm.techPlaceholder')
 
   const selectedGoal = LEARNING_GOALS.find((g) => g.value === learningGoal)
   const goalLabel =
     learningGoal === OTHER
-      ? 'Sonstiges'
-      : selectedGoal?.label ?? 'Lernziel wählen…'
+      ? t('ggm.other')
+      : (selectedGoal ? t(selectedGoal.labelKey) : t('ggm.goalPlaceholder'))
 
-  const gameTypeLabel = GAME_TYPES.find((g) => g.value === gameType)?.label ?? 'Spieltyp wählen…'
+  const gameTypeLabel = GAME_TYPES.find((g) => g.value === gameType)?.label ?? t('ggm.gtPlaceholder')
 
   const technologyValid =
     technologyId === OTHER
@@ -282,14 +264,14 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
 
       // Schicht 2: LLM-Klärung.
       if (data.verdict === 'block') {
-        setClarify({ verdict: 'block', message: data.message ?? 'Eingabe nicht verwendbar.', suggestion: null })
+        setClarify({ verdict: 'block', message: data.message ?? t('ggm.clarifyBlock'), suggestion: null })
         setStatus('idle')
         return
       }
       if (data.verdict === 'warn') {
         setClarify({
           verdict: 'warn',
-          message: data.message ?? 'Eingabe ist grenzwertig.',
+          message: data.message ?? t('ggm.clarifyWarn'),
           suggestion: data.suggestion ?? null,
         })
         setStatus('idle')
@@ -305,16 +287,16 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
       if (data.stage === 'generation') {
         const msg = Array.isArray(data.errors)
           ? data.errors.join('; ')
-          : data.errors ?? 'Unbekannter Fehler'
-        setErrorMessage(`Generierung fehlgeschlagen: ${msg}`)
+          : data.errors ?? t('ggm.unknownError')
+        setErrorMessage(t('ggm.genFailed', { msg }))
         setStatus('error')
         return
       }
 
-      setErrorMessage(data.error ?? 'Unbekannter Fehler')
+      setErrorMessage(data.error ?? t('ggm.unknownError'))
       setStatus('error')
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Netzwerkfehler')
+      setErrorMessage(err instanceof Error ? err.message : t('excel.networkError'))
       setStatus('error')
     }
   }
@@ -569,16 +551,16 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
         }}
       >
         <div className="ggm-card">
-          <h2 className="ggm-title">Spiel generieren</h2>
+          <h2 className="ggm-title">{t('ggm.title')}</h2>
 
           {status === 'success' ? (
             <>
               <div className="ggm-success">
-                Anfrage erfasst. Die Spielgenerierung wird angestoßen.
+                {t('ggm.success')}
               </div>
               <div className="ggm-actions">
                 <button className="btn btn-ghost" onClick={handleClose}>
-                  Schließen
+                  {t('common.close')}
                 </button>
               </div>
             </>
@@ -591,12 +573,12 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                   style={{ fontSize: 13 }}
                   onClick={() => setStatus('idle')}
                 >
-                  Erneut versuchen
+                  {t('common.retry')}
                 </button>
               </div>
               <div className="ggm-actions">
                 <button className="btn btn-ghost" onClick={handleClose}>
-                  Abbrechen
+                  {t('common.cancel')}
                 </button>
               </div>
             </>
@@ -604,7 +586,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
             <>
               {/* ── 1. Technologie ── */}
               <div className="ggm-field">
-                <label className="ggm-label">Technologie *</label>
+                <label className="ggm-label">{t('ggm.labelTech')}</label>
                 <div className="ggm-combo" ref={techRef}>
                   <button
                     type="button"
@@ -614,44 +596,44 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                     disabled={techStatus === 'loading'}
                   >
                     <span>
-                      {techStatus === 'loading' ? 'Lade Technologien…' : techLabel}
+                      {techStatus === 'loading' ? t('ggm.loadingTech') : techLabel}
                     </span>
                     <span className="ggm-combo-caret"><ChevronDown size={16} strokeWidth={2} /></span>
                   </button>
 
                   {techOpen && (
                     <div className="ggm-combo-list" role="listbox">
-                      {technologies.map((t) => (
+                      {technologies.map((tech) => (
                         <div
-                          key={t.id}
+                          key={tech.id}
                           className="ggm-combo-row"
-                          data-selected={technologyId === t.id ? 'true' : 'false'}
+                          data-selected={technologyId === tech.id ? 'true' : 'false'}
                         >
                           <button
                             type="button"
                             role="option"
-                            aria-selected={technologyId === t.id}
+                            aria-selected={technologyId === tech.id}
                             className="ggm-combo-option"
-                            onClick={() => handleSelectTech(t.id)}
+                            onClick={() => handleSelectTech(tech.id)}
                           >
-                            {t.label}
+                            {tech.label}
                           </button>
-                          {(t.whats_new || t.source_url) && (
+                          {(tech.whats_new || tech.source_url) && (
                             <span className="ggm-info-wrap" tabIndex={0}>
                               <span className="ggm-info-icon" aria-hidden="true">i</span>
                               <span className="ggm-tooltip" role="tooltip">
-                                {t.whats_new && (
-                                  <p className="ggm-tooltip-text">{t.whats_new}</p>
+                                {tech.whats_new && (
+                                  <p className="ggm-tooltip-text">{tech.whats_new}</p>
                                 )}
-                                {t.source_url && (
+                                {tech.source_url && (
                                   <a
                                     className="ggm-tooltip-link"
-                                    href={t.source_url}
+                                    href={tech.source_url}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                   >
-                                    Quelle ansehen
-                                    {t.source_name ? ` (${t.source_name})` : ''} ↗
+                                    {t('ggm.viewSource')}
+                                    {tech.source_name ? ` (${tech.source_name})` : ''} ↗
                                   </a>
                                 )}
                               </span>
@@ -668,7 +650,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                           className="ggm-combo-option ggm-combo-option--other"
                           onClick={() => handleSelectTech(OTHER)}
                         >
-                          Sonstiges
+                          {t('ggm.other')}
                         </button>
                       </div>
                     </div>
@@ -677,12 +659,12 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
 
                 {techStatus === 'empty' && (
                   <span className="ggm-hint-small">
-                    Keine Technologien gefunden — wähle „Sonstiges".
+                    {t('ggm.techEmpty')}
                   </span>
                 )}
                 {techStatus === 'error' && (
                   <span className="ggm-hint-small">
-                    Technologien konnten nicht geladen werden — wähle „Sonstiges".
+                    {t('ggm.techError')}
                   </span>
                 )}
 
@@ -691,7 +673,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                     <input
                       type="text"
                       className="ggm-input"
-                      placeholder="Technologie eingeben…"
+                      placeholder={t('ggm.techInput')}
                       value={technologyCustom}
                       onChange={(e) => {
                         setTechnologyCustom(e.target.value)
@@ -708,7 +690,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
 
               {/* ── 2. Lernziel ── */}
               <div className="ggm-field">
-                <label className="ggm-label">Lernziel *</label>
+                <label className="ggm-label">{t('ggm.labelGoal')}</label>
                 <div className="ggm-combo" ref={goalRef}>
                   <button
                     type="button"
@@ -735,12 +717,12 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                             className="ggm-combo-option"
                             onClick={() => handleSelectGoal(g.value)}
                           >
-                            {g.label}
+                            {t(g.labelKey)}
                           </button>
                           <span className="ggm-info-wrap" tabIndex={0}>
                             <span className="ggm-info-icon" aria-hidden="true">i</span>
                             <span className="ggm-tooltip" role="tooltip">
-                              <p className="ggm-tooltip-text">{g.description}</p>
+                              <p className="ggm-tooltip-text">{t(g.descKey)}</p>
                             </span>
                           </span>
                         </div>
@@ -754,7 +736,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                           className="ggm-combo-option ggm-combo-option--other"
                           onClick={() => handleSelectGoal(OTHER)}
                         >
-                          Sonstiges
+                          {t('ggm.other')}
                         </button>
                       </div>
                     </div>
@@ -766,7 +748,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                     <input
                       type="text"
                       className="ggm-input"
-                      placeholder="Lernziel eingeben…"
+                      placeholder={t('ggm.goalInput')}
                       value={learningGoalCustom}
                       onChange={(e) => {
                         setLearningGoalCustom(e.target.value)
@@ -783,7 +765,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
 
               {/* ── 3. Spieltyp ── */}
               <div className="ggm-field">
-                <label className="ggm-label">Spieltyp</label>
+                <label className="ggm-label">{t('ggm.labelGameType')}</label>
                 <div className="ggm-combo" ref={gameTypeRef}>
                   <button
                     type="button"
@@ -814,7 +796,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                           <span className="ggm-info-wrap" tabIndex={0}>
                             <span className="ggm-info-icon" aria-hidden="true">i</span>
                             <span className="ggm-tooltip" role="tooltip">
-                              <p className="ggm-tooltip-text">{g.description}</p>
+                              <p className="ggm-tooltip-text">{t(g.descKey)}</p>
                             </span>
                           </span>
                         </div>
@@ -826,7 +808,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
 
               {/* ── 4. Schwierigkeit ── */}
               <div className="ggm-field">
-                <label className="ggm-label">Schwierigkeit</label>
+                <label className="ggm-label">{t('ggm.labelDifficulty')}</label>
                 <select
                   className="ggm-select"
                   value={difficulty}
@@ -834,7 +816,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                 >
                   {DIFFICULTIES.map((d) => (
                     <option key={d.value} value={d.value}>
-                      {d.label}
+                      {t(d.labelKey)}
                     </option>
                   ))}
                 </select>
@@ -845,7 +827,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                 <div className={clarify.verdict === 'block' ? 'ggm-clarify ggm-clarify--block' : 'ggm-clarify ggm-clarify--warn'}>
                   <div className="ggm-clarify-msg">{clarify.message}</div>
                   {clarify.suggestion && (
-                    <div className="ggm-clarify-suggestion">Vorschlag: {clarify.suggestion}</div>
+                    <div className="ggm-clarify-suggestion">{t('ggm.suggestion', { suggestion: clarify.suggestion })}</div>
                   )}
                   {clarify.verdict === 'warn' && (
                     <button
@@ -854,7 +836,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                       onClick={() => handleGenerate(true)}
                       disabled={status === 'loading'}
                     >
-                      Trotzdem fortfahren
+                      {t('pa.continueAnyway')}
                     </button>
                   )}
                 </div>
@@ -866,7 +848,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                   onClick={handleClose}
                   disabled={status === 'loading'}
                 >
-                  Abbrechen
+                  {t('common.cancel')}
                 </button>
                 <button
                   className="btn btn-primary"
@@ -874,7 +856,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                   disabled={!canSubmit}
                 >
                   {status === 'loading' && <span className="ggm-spinner" />}
-                  {status === 'loading' ? 'Wird geprüft…' : 'Generieren'}
+                  {status === 'loading' ? t('ggm.checking') : t('ggm.generate')}
                 </button>
               </div>
             </>

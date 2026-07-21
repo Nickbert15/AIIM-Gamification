@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react'
 import { Player } from '@/lib/supabase'
 import { Users, Wrench } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
 
 const ROLES = ['Controller', 'Finance Manager', 'Senior Controller', 'CFO', 'Analyst', 'Other']
 
 const EMPTY_FORM = { email: '', display_name: '', role: 'Controller', password: '', is_admin: false }
 
 export default function PlayersPage() {
+  const { t } = useI18n()
   const [players, setPlayers] = useState<Player[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -31,7 +33,7 @@ export default function PlayersPage() {
 
   async function handleAdd() {
     if (!form.email || !form.display_name || !form.password) {
-      flash('error', 'E-Mail, Anzeigename und Passwort sind Pflichtfelder.')
+      flash('error', t('admin.players.required'))
       return
     }
     setSaving(true)
@@ -43,10 +45,10 @@ export default function PlayersPage() {
     setSaving(false)
 
     if (!res.ok) {
-      flash('error', (await res.json()).error ?? 'Spieler konnte nicht angelegt werden.')
+      flash('error', (await res.json()).error ?? t('admin.players.createFailed'))
       return
     }
-    flash('success', `Spieler "${form.display_name}" wurde angelegt.`)
+    flash('success', t('admin.players.created', { name: form.display_name }))
     setForm(EMPTY_FORM)
     loadPlayers()
   }
@@ -58,7 +60,7 @@ export default function PlayersPage() {
       body: JSON.stringify({ id, ...patch }),
     })
     if (!res.ok) {
-      flash('error', (await res.json()).error ?? 'Änderung fehlgeschlagen.')
+      flash('error', (await res.json()).error ?? t('admin.players.changeFailed'))
       return
     }
     flash('success', successText)
@@ -66,23 +68,24 @@ export default function PlayersPage() {
   }
 
   function handleResetPassword(p: Player) {
-    const password = prompt(`Neues Passwort für "${p.display_name}" (min. 8 Zeichen):`)
+    const password = prompt(t('admin.players.resetPrompt', { name: p.display_name }))
     if (!password) return
-    patchPlayer(p.id, { password }, `Passwort für "${p.display_name}" wurde gesetzt.`)
+    patchPlayer(p.id, { password }, t('admin.players.passwordSet', { name: p.display_name }))
   }
 
   function handleToggleAdmin(p: Player) {
     const next = !p.is_admin
-    const verb = next ? 'zum Admin machen' : 'die Admin-Rolle entziehen'
-    if (!confirm(`"${p.display_name}" wirklich ${verb}?`)) return
-    patchPlayer(p.id, { is_admin: next }, `"${p.display_name}" ist jetzt ${next ? 'Admin' : 'normaler Nutzer'}.`)
+    const verb = next ? t('admin.players.makeAdmin') : t('admin.players.revokeAdmin')
+    if (!confirm(t('admin.players.confirmToggle', { name: p.display_name, verb }))) return
+    const role = next ? t('admin.players.roleAdmin') : t('admin.players.roleUser')
+    patchPlayer(p.id, { is_admin: next }, t('admin.players.nowRole', { name: p.display_name, role }))
   }
 
   async function handleDelete(p: Player) {
-    if (!confirm(`Spieler "${p.display_name}" wirklich löschen? Alle zugehörigen Scores werden ebenfalls gelöscht.`)) return
+    if (!confirm(t('admin.players.confirmDelete', { name: p.display_name }))) return
     const res = await fetch(`/api/admin/players?id=${p.id}`, { method: 'DELETE' })
     if (!res.ok) {
-      flash('error', (await res.json()).error ?? 'Löschen fehlgeschlagen.')
+      flash('error', (await res.json()).error ?? t('admin.players.deleteFailed'))
       return
     }
     loadPlayers()
@@ -91,11 +94,11 @@ export default function PlayersPage() {
   return (
     <>
       <div className="card" style={{ marginBottom: 24 }}>
-        <div className="card-title">Neuen Spieler anlegen</div>
+        <div className="card-title">{t('admin.players.createTitle')}</div>
         {msg && <div className={`alert alert-${msg.type}`}>{msg.text}</div>}
         <div className="form-grid">
           <div className="form-group">
-            <label>E-Mail *</label>
+            <label>{t('admin.players.email')}</label>
             <input
               type="email"
               placeholder="sabrina.kaufmann@lhg.com"
@@ -104,7 +107,7 @@ export default function PlayersPage() {
             />
           </div>
           <div className="form-group">
-            <label>Anzeigename *</label>
+            <label>{t('admin.players.displayName')}</label>
             <input
               type="text"
               placeholder="Sabrina K."
@@ -113,13 +116,13 @@ export default function PlayersPage() {
             />
           </div>
           <div className="form-group">
-            <label>Rolle</label>
+            <label>{t('admin.players.role')}</label>
             <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
               {ROLES.map((r) => <option key={r}>{r}</option>)}
             </select>
           </div>
           <div className="form-group">
-            <label>Passwort * (min. 8 Zeichen)</label>
+            <label>{t('admin.players.password')}</label>
             <input
               type="password"
               autoComplete="new-password"
@@ -135,36 +138,36 @@ export default function PlayersPage() {
             checked={form.is_admin}
             onChange={(e) => setForm({ ...form, is_admin: e.target.checked })}
           />
-          <span>Admin — darf das Admin-Dashboard sehen</span>
+          <span>{t('admin.players.adminCheckbox')}</span>
         </label>
         <div style={{ marginTop: 16 }}>
           <button className="btn btn-primary" onClick={handleAdd} disabled={saving}>
-            {saving ? 'Speichern…' : '+ Spieler anlegen'}
+            {saving ? t('common.saving') : t('admin.players.addBtn')}
           </button>
         </div>
       </div>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-          <span className="card-title" style={{ margin: 0 }}>Alle Spieler ({players.length})</span>
+          <span className="card-title" style={{ margin: 0 }}>{t('admin.players.allTitle', { n: players.length })}</span>
         </div>
         {loading ? (
-          <div className="loading-spinner">Lade…</div>
+          <div className="loading-spinner">{t('common.loading')}</div>
         ) : players.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state-icon"><Users size={26} strokeWidth={1.5} /></div>
-            <div className="empty-state-text">Noch keine Spieler angelegt.</div>
+            <div className="empty-state-text">{t('admin.players.empty')}</div>
           </div>
         ) : (
           <div className="table-wrapper" style={{ border: 'none' }}>
             <table>
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>E-Mail</th>
-                  <th>Rolle</th>
-                  <th>Admin</th>
-                  <th>Erstellt</th>
+                  <th>{t('admin.players.colName')}</th>
+                  <th>{t('admin.players.colEmail')}</th>
+                  <th>{t('admin.players.colRole')}</th>
+                  <th>{t('admin.players.colAdmin')}</th>
+                  <th>{t('admin.players.colCreated')}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -180,7 +183,7 @@ export default function PlayersPage() {
                         style={{ padding: '4px 10px', fontSize: 12 }}
                         onClick={() => handleToggleAdmin(p)}
                       >
-                        {p.is_admin ? <><Wrench size={12} strokeWidth={2.25} style={{ marginRight: 4, verticalAlign: -1 }} />Admin</> : 'Nutzer'}
+                        {p.is_admin ? <><Wrench size={12} strokeWidth={2.25} style={{ marginRight: 4, verticalAlign: -1 }} />{t('admin.players.badgeAdmin')}</> : t('admin.players.badgeUser')}
                       </button>
                     </td>
                     <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>
@@ -190,11 +193,11 @@ export default function PlayersPage() {
                       <div style={{ display: 'flex', gap: 8 }}>
                         <button className="btn btn-ghost" style={{ padding: '4px 10px', fontSize: 12 }}
                           onClick={() => handleResetPassword(p)}>
-                          Passwort
+                          {t('admin.players.btnPassword')}
                         </button>
                         <button className="btn btn-danger" style={{ padding: '4px 10px', fontSize: 12 }}
                           onClick={() => handleDelete(p)}>
-                          Löschen
+                          {t('admin.delete')}
                         </button>
                       </div>
                     </td>

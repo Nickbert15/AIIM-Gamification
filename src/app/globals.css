@@ -660,6 +660,50 @@ input[type="checkbox"], input[type="radio"] {
 .nav-dropdown-danger:hover { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
 .nav-dropdown-icon { width: 18px; text-align: center; }
 
+/* Language switcher inside the user dropdown */
+.nav-lang {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+}
+.nav-lang-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text-dim);
+  flex: 1;
+  min-width: 0;
+}
+.nav-lang-options {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--bg-card-hover);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.nav-lang-btn {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 9px;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease);
+}
+.nav-lang-btn:hover { color: var(--text); }
+.nav-lang-btn.active {
+  color: var(--accent);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
+}
+
 /* STAT TILES */
 .stat-tiles {
   display: grid;
