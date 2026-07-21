@@ -10,6 +10,7 @@ import ScoreCounter from './ui/ScoreCounter'
 import Badge from './ui/Badge'
 import { Target, ArrowUp, ArrowDown, CheckCircle2, AlertCircle, Trophy } from 'lucide-react'
 import HowToPlay from './ui/HowToPlay'
+import { useI18n } from '@/lib/i18n'
 
 interface Props {
   game: Game
@@ -47,6 +48,7 @@ function fallbackScorePercent(roundCorrect: boolean): number {
 }
 
 export default function PromptArenaPlayer({ game, onComplete }: Props) {
+  const { t } = useI18n()
   const rounds = (game.game_json.arenaRounds ?? []) as ArenaRound[]
   const maxPoints = game.game_json.scoring?.maxPoints ?? rounds.length
 
@@ -136,13 +138,13 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
       buildCards(data.response)
       setPhase('ranking')
     } catch {
-      setGenerationError('Die KI-Antwort auf deinen Prompt konnte gerade nicht generiert werden.')
+      setGenerationError(t('pa.genError'))
       setPhase('prompt-input')
     }
   }
 
   function continueWithPlaceholder() {
-    const placeholder = '(Antwort konnte nicht generiert werden — trotzdem geht die Runde mit den zwei Referenzantworten weiter.)'
+    const placeholder = t('pa.placeholder')
     setOwnAnswerText(placeholder)
     buildCards(placeholder)
     setGenerationError('')
@@ -213,7 +215,7 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
     } catch {
       setEvaluation({
         scorePercent: fallbackScorePercent(correct),
-        explanation: 'Ausführliches KI-Feedback ist gerade nicht verfügbar.',
+        explanation: t('pa.evalFallbackExplanation'),
         whatWasGood: '',
         improvement: '',
         comparison: '',
@@ -254,13 +256,13 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
             {score}
             <span style={{ fontSize: '0.45em', color: 'var(--text-muted)', fontWeight: 400 }}>/{maxPoints}</span>
           </div>
-          <div className="pa-score-label">Runden richtig geordnet</div>
+          <div className="pa-score-label">{t('pa.scoreLabel')}</div>
           <div className="pa-score-msg">
             {pct >= 80
-              ? 'Stark! Du erkennst zuverlässig, welche Antworten wirklich überzeugen.'
+              ? t('pa.scoreHigh')
               : pct >= 50
-              ? 'Guter Ansatz — schau dir die Erklärungen nochmal an, um noch treffsicherer zu werden.'
-              : 'Weiter üben — Qualität von KI-Antworten einzuschätzen ist eine trainierbare Fähigkeit.'}
+              ? t('pa.scoreMid')
+              : t('pa.scoreLow')}
           </div>
         </div>
       </>
@@ -278,45 +280,41 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
 
       <HowToPlay
         open={howToPlayOpen}
-        title="So funktioniert Prompt Arena"
-        termExplanation={
-          'Ein „Prompt" ist die Anfrage, die du an eine KI schickst. Je genauer dein Prompt, ' +
-          'desto besser und zuverlässiger fällt meist die Antwort der KI aus.'
-        }
+        title={t('pa.htpTitle')}
+        termExplanation={t('pa.htpTerm')}
         steps={[
-          { text: 'Du liest eine Finance-Situation und schreibst deinen eigenen Prompt dazu.' },
-          { text: 'Die KI antwortet live auf deinen Prompt. Du siehst drei Antworten — deine und zwei Referenzantworten, aber nicht, welche welche ist.' },
-          { text: 'Du sortierst alle drei von der besten zur schwächsten. Danach bekommst du eine Auswertung inklusive Feedback zu deinem Prompt.' },
+          { text: t('pa.htpStep1') },
+          { text: t('pa.htpStep2') },
+          { text: t('pa.htpStep3') },
         ]}
         onDismiss={() => setHowToPlayOpen(false)}
       />
 
       <div className="pa-container">
         <div className="pa-progress">
-          <span>Runde {roundIndex + 1} von {rounds.length}</span>
+          <span>{t('pa.round', { n: roundIndex + 1, total: rounds.length })}</span>
           <div className="pa-progress-bar">
             <div className="pa-progress-fill" style={{ width: `${((roundIndex + 1) / rounds.length) * 100}%` }} />
           </div>
-          <span style={{ whiteSpace: 'nowrap' }}>{score} Pkt.</span>
+          <span style={{ whiteSpace: 'nowrap' }}>{score} {t('common.points_short')}</span>
         </div>
 
         {phase === 'prompt-input' && (
           <>
-            <span className="pa-label">Situation</span>
+            <span className="pa-label">{t('pa.situation')}</span>
             <div className="pa-task">{round.taskDescription}</div>
             <p className="pa-instruction">
-              Schreibe einen Prompt, den du einer KI schicken würdest, um zu dieser Situation
-              eine möglichst gute, faktenbasierte Antwort zu bekommen.
+              {t('pa.promptInstruction')}
             </p>
             <textarea
               className="pa-textarea"
-              placeholder="Dein Prompt an die KI…"
+              placeholder={t('pa.promptPlaceholder')}
               value={userPrompt}
               onChange={(e) => setUserPrompt(e.target.value)}
             />
             <div className="pa-submit-row">
               <button className="btn btn-primary" onClick={submitPrompt} disabled={!userPrompt.trim()}>
-                Prompt absenden
+                {t('pa.submitPrompt')}
               </button>
             </div>
             {generationError && (
@@ -324,10 +322,10 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
                 <div>{generationError}</div>
                 <div className="pa-error-actions">
                   <button className="btn btn-ghost" style={{ fontSize: 13 }} onClick={submitPrompt}>
-                    Erneut versuchen
+                    {t('common.retry')}
                   </button>
                   <button className="btn btn-ghost" style={{ fontSize: 13 }} onClick={continueWithPlaceholder}>
-                    Trotzdem fortfahren
+                    {t('pa.continueAnyway')}
                   </button>
                 </div>
               </div>
@@ -337,17 +335,14 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
 
         {phase === 'loading' && (
           <div className="pa-loading">
-            <ThinkingDots label="KI generiert eine Antwort auf deinen Prompt" />
+            <ThinkingDots label={t('pa.generatingLabel')} />
           </div>
         )}
 
         {(phase === 'ranking' || phase === 'revealed') && (
           <>
             <p className="pa-instruction">
-              Hier sind drei KI-Antworten auf dieselbe Situation — eine davon basiert auf
-              deinem Prompt, die anderen zwei sind Referenzantworten. Du siehst nicht, welche
-              welche ist. Ordne sie per Ziehen (oder mit den Pfeilen) von der besten (oben)
-              zur schwächsten (unten) Antwort.
+              {t('pa.rankInstruction')}
             </p>
             <div className="pa-card-list">
               {order.map((card, i) => (
@@ -373,29 +368,29 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
                   <span className="pa-card-text">{card.text}</span>
                   {phase === 'ranking' && (
                     <div className="pa-move-buttons">
-                      <button className="pa-move-btn" onClick={() => moveUp(i)} disabled={i === 0} aria-label="nach oben">
+                      <button className="pa-move-btn" onClick={() => moveUp(i)} disabled={i === 0} aria-label={t('pa.moveUp')}>
                         <ArrowUp size={16} strokeWidth={2.25} />
                       </button>
-                      <button className="pa-move-btn" onClick={() => moveDown(i)} disabled={i === order.length - 1} aria-label="nach unten">
+                      <button className="pa-move-btn" onClick={() => moveDown(i)} disabled={i === order.length - 1} aria-label={t('pa.moveDown')}>
                         <ArrowDown size={16} strokeWidth={2.25} />
                       </button>
                     </div>
                   )}
                   {phase === 'revealed' && (
                     <span className={`pa-reveal-tag ${card.kind === 'own' ? 'tag-own' : card.refId === rank1Id ? 'tag-strong' : 'tag-weak'}`}>
-                      {card.kind === 'own' ? 'Deine Antwort' : card.refId === rank1Id ? 'Stärkere Referenz' : 'Schwächere Referenz'}
+                      {card.kind === 'own' ? t('pa.tagOwn') : card.refId === rank1Id ? t('pa.tagStrong') : t('pa.tagWeak')}
                     </span>
                   )}
                 </div>
               ))}
             </div>
 
-            <p className="pa-hint">Ziehen oder mit den Pfeil-Buttons sortieren.</p>
+            <p className="pa-hint">{t('pa.dragHint')}</p>
 
             {phase === 'ranking' && (
               <div className="pa-submit-row">
                 <button className="btn btn-primary" onClick={handleConfirmOrder}>
-                  Reihenfolge bestätigen
+                  {t('pa.confirmOrder')}
                 </button>
               </div>
             )}
@@ -403,27 +398,27 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
         )}
       </div>
 
-      <GamePopup open={evaluationOpen} title="Deine Auswertung" onClose={closeEvaluation} variant="celebratory">
+      <GamePopup open={evaluationOpen} title={t('pa.evalTitle')} onClose={closeEvaluation} variant="celebratory">
         {showConfetti && <ConfettiBurst />}
         {evaluationStatus === 'loading' && (
           <div className="pa-eval-loading">
-            <ThinkingDots label="KI bewertet deine Antwort" />
+            <ThinkingDots label={t('pa.evalLoadingLabel')} />
           </div>
         )}
         {evaluation && evaluationStatus !== 'loading' && (
           <>
             <div className="pa-eval-score-card">
               <ScoreCounter value={evaluation.scorePercent} suffix="%" className="pa-eval-percent" />
-              <div className="pa-eval-percent-label">so gut wie die beste Vergleichsantwort</div>
-              {evaluation.scorePercent >= 70 && <Badge label="Prompt-Profi" icon={Target} />}
+              <div className="pa-eval-percent-label">{t('pa.evalPercentLabel')}</div>
+              {evaluation.scorePercent >= 70 && <Badge label={t('pa.badge')} icon={Target} />}
             </div>
             {evaluationStatus === 'done' && <p className="pa-eval-text">{evaluation.explanation}</p>}
 
             <div className={`pa-result ${roundCorrect ? 'result-correct' : 'result-wrong'}`}>
               {roundCorrect ? <CheckCircle2 size={16} strokeWidth={2} /> : <AlertCircle size={16} strokeWidth={2} />}
               {roundCorrect
-                ? 'Richtig! Du hast die stärkere Referenzantwort vor die schwächere einsortiert.'
-                : 'Nicht ganz — die schwächere Referenzantwort stand bei dir vor der stärkeren.'}
+                ? t('pa.resultCorrect')
+                : t('pa.resultWrong')}
             </div>
 
             <div className="pa-notes">
@@ -432,7 +427,7 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
                 .sort((a, b) => a.qualityRank - b.qualityRank)
                 .map(r => (
                   <div key={r.id} className="pa-note-item">
-                    <strong>{r.qualityRank === 1 ? 'Stärkere Referenz:' : 'Schwächere Referenz:'}</strong> {r.note}
+                    <strong>{r.qualityRank === 1 ? t('pa.noteStrong') : t('pa.noteWeak')}</strong> {r.note}
                   </div>
                 ))}
               {evaluationStatus === 'done' && evaluation.comparison && (
@@ -443,22 +438,22 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
             <div className="pa-feedback-card">
               <span className="pa-feedback-header">
                 <span className="pa-feedback-icon" aria-hidden="true" />
-                KI-Feedback zu deinem Prompt
+                {t('pa.feedbackHeader')}
               </span>
               {evaluationStatus === 'done' ? (
                 <div className="pa-feedback-text">
                   {evaluation.whatWasGood} {evaluation.improvement}
                 </div>
               ) : (
-                <div className="pa-feedback-text">Feedback zu deinem Prompt konnte gerade nicht geladen werden.</div>
+                <div className="pa-feedback-text">{t('pa.feedbackFallback')}</div>
               )}
             </div>
 
-            <div className="pa-lesson">Merke: Je genauer dein Prompt, desto besser die Antwort.</div>
+            <div className="pa-lesson">{t('pa.lesson')}</div>
 
             <div className="pa-next-row">
               <button className="btn btn-primary" onClick={handleNextRound}>
-                {isLast ? 'Ergebnis anzeigen' : 'Nächste Runde →'}
+                {isLast ? t('gpl.showResult') : t('pa.nextRound')}
               </button>
             </div>
           </>

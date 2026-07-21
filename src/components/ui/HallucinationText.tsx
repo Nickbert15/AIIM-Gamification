@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Flag, Check, Info, AlertTriangle } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
 
 export interface HalluTextSentence {
   id: number
@@ -24,6 +25,7 @@ interface Props {
 // switch to correct/missed/incorrect coloring and each gets a "Warum?"
 // popover explaining the verdict in plain language.
 export default function HallucinationText({ sentences, markedIds, onToggle, revealMode }: Props) {
+  const { t } = useI18n()
   const [hoveredId, setHoveredId] = useState<number | null>(null)
   const [openExplanationId, setOpenExplanationId] = useState<number | null>(null)
 
@@ -76,8 +78,8 @@ export default function HallucinationText({ sentences, markedIds, onToggle, reve
                 aria-pressed={!revealMode ? isMarked : undefined}
                 aria-label={
                   revealMode
-                    ? `${s.text} — ${state === 'correct' ? 'richtig erkannt' : state === 'incorrect' ? 'fälschlich markiert' : state === 'missed' ? 'übersehen' : 'korrekt, nicht markiert'}. Warum-Erklärung öffnen.`
-                    : `${s.text} — als erfunden markieren`
+                    ? `${s.text} — ${state === 'correct' ? t('ht.ariaCorrect') : state === 'incorrect' ? t('ht.ariaIncorrect') : state === 'missed' ? t('ht.ariaMissed') : t('ht.ariaNeutral')}. ${t('ht.ariaOpenWhy')}`
+                    : `${s.text} — ${t('ht.ariaMark')}`
                 }
               >
                 {s.text}
@@ -97,15 +99,15 @@ export default function HallucinationText({ sentences, markedIds, onToggle, reve
       </div>
       {revealMode ? (
         <div className="ht-legend">
-          <span className="ht-legend-item"><span className="ht-dot ht-state-correct" /> Richtig erkannt</span>
-          <span className="ht-legend-item"><span className="ht-dot ht-state-incorrect" /> Fälschlich markiert</span>
-          <span className="ht-legend-item"><span className="ht-dot ht-state-missed" /> Übersehen</span>
-          <span className="ht-legend-hint">Klicke einen Satz für die Erklärung ("Warum?").</span>
+          <span className="ht-legend-item"><span className="ht-dot ht-state-correct" /> {t('ht.legendCorrect')}</span>
+          <span className="ht-legend-item"><span className="ht-dot ht-state-incorrect" /> {t('ht.legendIncorrect')}</span>
+          <span className="ht-legend-item"><span className="ht-dot ht-state-missed" /> {t('ht.legendMissed')}</span>
+          <span className="ht-legend-hint">{t('ht.legendHint')}</span>
         </div>
       ) : (
         <div className="ht-legend">
-          <span className="ht-legend-swatch-item"><span className="ht-swatch ht-swatch-marked" /> markiert</span>
-          <span className="ht-legend-swatch-item"><span className="ht-swatch ht-swatch-hovered" /> hervorgehoben</span>
+          <span className="ht-legend-swatch-item"><span className="ht-swatch ht-swatch-marked" /> {t('ht.swatchMarked')}</span>
+          <span className="ht-legend-swatch-item"><span className="ht-swatch ht-swatch-hovered" /> {t('ht.swatchHovered')}</span>
         </div>
       )}
     </>

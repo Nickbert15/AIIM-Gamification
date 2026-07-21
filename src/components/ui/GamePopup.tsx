@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { X } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
 
 interface Props {
   open: boolean
@@ -21,6 +22,7 @@ function prefersReducedMotion(): boolean {
 // popups interrupt gameplay and a lost focus ring is disorienting for
 // keyboard/screen-reader users.
 export default function GamePopup({ open, onClose, variant = 'neutral', title, children }: Props) {
+  const { t } = useI18n()
   const dialogRef = useRef<HTMLDivElement>(null)
   const previouslyFocused = useRef<HTMLElement | null>(null)
 
@@ -79,7 +81,7 @@ export default function GamePopup({ open, onClose, variant = 'neutral', title, c
             <div className="gpop-header">
               {title && <div className="gpop-title">{title}</div>}
               {onClose && (
-                <button type="button" className="gpop-close" onClick={onClose} aria-label="Schließen">
+                <button type="button" className="gpop-close" onClick={onClose} aria-label={t('common.close')}>
                   <X size={16} strokeWidth={2} />
                 </button>
               )}

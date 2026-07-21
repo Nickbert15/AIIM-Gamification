@@ -4,12 +4,14 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { ChevronDown, Gamepad2, Wrench, LogOut, KeyRound, User } from 'lucide-react'
+import { ChevronDown, Gamepad2, Wrench, LogOut, KeyRound, User, Globe } from 'lucide-react'
 import Avatar from './Avatar'
+import { useI18n, LANGS, type Lang } from '@/lib/i18n'
 
 type Player = { display_name: string; email: string; role: string; is_admin: boolean }
 
 export default function NavBar() {
+  const { t, lang, setLang } = useI18n()
   const [player, setPlayer] = useState<Player | null>(null)
   const [open, setOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -65,9 +67,9 @@ export default function NavBar() {
         </Link>
 
         <div className="nav-links">
-          <Link href="/" className={linkClass('/')}>Leaderboard</Link>
-          <Link href="/player-dashboard" className={linkClass('/player-dashboard')}>Player Dashboard</Link>
-          {player?.is_admin && <Link href="/admin" className={linkClass('/admin')}>Admin</Link>}
+          <Link href="/" className={linkClass('/')}>{t('nav.leaderboard')}</Link>
+          <Link href="/player-dashboard" className={linkClass('/player-dashboard')}>{t('nav.playerDashboard')}</Link>
+          {player?.is_admin && <Link href="/admin" className={linkClass('/admin')}>{t('nav.admin')}</Link>}
 
           <div className="nav-user" ref={menuRef}>
             <button
@@ -100,22 +102,28 @@ export default function NavBar() {
                     </div>
                     <div className="nav-dropdown-divider" />
                     <Link href="/player-dashboard" className="nav-dropdown-item" onClick={() => setOpen(false)}>
-                      <span className="nav-dropdown-icon"><Gamepad2 size={16} strokeWidth={2} /></span> Player Dashboard
+                      <span className="nav-dropdown-icon"><Gamepad2 size={16} strokeWidth={2} /></span> {t('nav.playerDashboard')}
                     </Link>
                     {player.is_admin && (
                       <Link href="/admin" className="nav-dropdown-item" onClick={() => setOpen(false)}>
-                        <span className="nav-dropdown-icon"><Wrench size={16} strokeWidth={2} /></span> Admin Dashboard
+                        <span className="nav-dropdown-icon"><Wrench size={16} strokeWidth={2} /></span> {t('nav.adminDashboard')}
                       </Link>
                     )}
                     <div className="nav-dropdown-divider" />
+                    <LanguageSwitcher lang={lang} setLang={setLang} label={t('nav.language')} />
+                    <div className="nav-dropdown-divider" />
                     <button className="nav-dropdown-item nav-dropdown-danger" onClick={handleLogout}>
-                      <span className="nav-dropdown-icon"><LogOut size={16} strokeWidth={2} /></span> Abmelden
+                      <span className="nav-dropdown-icon"><LogOut size={16} strokeWidth={2} /></span> {t('nav.logout')}
                     </button>
                   </>
                 ) : (
-                  <Link href="/login" className="nav-dropdown-item" onClick={() => setOpen(false)}>
-                    <span className="nav-dropdown-icon"><KeyRound size={16} strokeWidth={2} /></span> Anmelden
-                  </Link>
+                  <>
+                    <LanguageSwitcher lang={lang} setLang={setLang} label={t('nav.language')} />
+                    <div className="nav-dropdown-divider" />
+                    <Link href="/login" className="nav-dropdown-item" onClick={() => setOpen(false)}>
+                      <span className="nav-dropdown-icon"><KeyRound size={16} strokeWidth={2} /></span> {t('nav.login')}
+                    </Link>
+                  </>
                 )}
               </div>
             )}
@@ -123,5 +131,38 @@ export default function NavBar() {
         </div>
       </div>
     </nav>
+  )
+}
+
+function LanguageSwitcher({
+  lang,
+  setLang,
+  label,
+}: {
+  lang: Lang
+  setLang: (lang: Lang) => void
+  label: string
+}) {
+  return (
+    <div className="nav-lang">
+      <span className="nav-lang-label">
+        <span className="nav-dropdown-icon"><Globe size={16} strokeWidth={2} /></span>
+        {label}
+      </span>
+      <div className="nav-lang-options" role="group" aria-label={label}>
+        {LANGS.map((l) => (
+          <button
+            key={l.code}
+            type="button"
+            className={`nav-lang-btn${lang === l.code ? ' active' : ''}`}
+            aria-pressed={lang === l.code}
+            title={l.label}
+            onClick={() => setLang(l.code)}
+          >
+            {l.short}
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }

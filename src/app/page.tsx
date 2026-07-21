@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import Avatar from '@/components/Avatar'
 import { Gamepad2 } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
 
 type Row = { rank: number; display_name: string; role: string; total_score: number; games_played: number }
 
 export default function LeaderboardPage() {
+  const { t } = useI18n()
   const [entries, setEntries] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -47,21 +49,21 @@ export default function LeaderboardPage() {
   return (
     <>
       <div className="page-header">
-        <h1 className="page-title">Leaderboard</h1>
-        <p className="page-subtitle">LHG Finance & Controlling — AI Enablement Pilot</p>
+        <h1 className="page-title">{t('lb.title')}</h1>
+        <p className="page-subtitle">{t('lb.subtitle')}</p>
       </div>
 
       <div className="stat-tiles">
         <div className="stat-tile stat-tile-hero">
-          <div className="stat-tile-label">Gesamtpunkte vergeben</div>
+          <div className="stat-tile-label">{t('lb.totalPoints')}</div>
           <div className="stat-tile-value">{totalPoints.toLocaleString('de-DE')}</div>
         </div>
         <div className="stat-tile">
-          <div className="stat-tile-label">Teilnehmer</div>
+          <div className="stat-tile-label">{t('lb.participants')}</div>
           <div className="stat-tile-value">{playerCount}</div>
         </div>
         <div className="stat-tile">
-          <div className="stat-tile-label">Bereits gespielt</div>
+          <div className="stat-tile-label">{t('lb.alreadyPlayed')}</div>
           <div className="stat-tile-value">{withScores.length}</div>
         </div>
       </div>
@@ -76,7 +78,7 @@ export default function LeaderboardPage() {
               <div className="player-role">{p.role}</div>
               <div className="podium-score">{p.total_score.toLocaleString('de-DE')}</div>
               <div className="podium-score-label">
-                {p.games_played} {p.games_played === 1 ? 'Spiel' : 'Spiele'}
+                {p.games_played} {p.games_played === 1 ? t('lb.gameSingular') : t('lb.gamePlural')}
               </div>
             </div>
           ))}
@@ -85,18 +87,18 @@ export default function LeaderboardPage() {
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="leaderboard-header">
-          <span>Rang</span>
-          <span>Name</span>
-          <span>Spiele</span>
-          <span style={{ textAlign: 'right' }}>Punkte</span>
+          <span>{t('lb.colRank')}</span>
+          <span>{t('lb.colName')}</span>
+          <span>{t('lb.colGames')}</span>
+          <span style={{ textAlign: 'right' }}>{t('lb.colPoints')}</span>
         </div>
 
         {loading ? (
-          <div className="loading-spinner">Lade Leaderboard…</div>
+          <div className="loading-spinner">{t('lb.loading')}</div>
         ) : entries.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state-icon"><Gamepad2 size={26} strokeWidth={1.5} /></div>
-            <div className="empty-state-text">Noch keine Scores — first one to play wins!</div>
+            <div className="empty-state-text">{t('lb.empty')}</div>
           </div>
         ) : (
           entries.map((entry) => (
@@ -128,7 +130,7 @@ export default function LeaderboardPage() {
                     </div>
                   </>
                 ) : (
-                  <div className="score-label" style={{ textAlign: 'right' }}>Noch nicht gespielt</div>
+                  <div className="score-label" style={{ textAlign: 'right' }}>{t('lb.notPlayed')}</div>
                 )}
               </div>
             </div>

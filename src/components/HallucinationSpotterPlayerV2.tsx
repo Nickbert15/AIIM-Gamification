@@ -12,6 +12,7 @@ import Badge from './ui/Badge'
 import { Search, Check, Trophy, ThumbsUp, Sparkles } from 'lucide-react'
 import StepIndicator from './ui/StepIndicator'
 import ConfidenceSlider from './ui/ConfidenceSlider'
+import { useI18n } from '@/lib/i18n'
 
 interface Props {
   game: Game
@@ -35,6 +36,7 @@ function qualityToStars(quality: number): 1 | 2 | 3 {
 }
 
 export default function HallucinationSpotterPlayerV2({ game, onComplete }: Props) {
+  const { t } = useI18n()
   const round = game.game_json.halluRound as HalluRoundV2 | undefined
   const promptOptions = round?.promptOptions ?? []
   const sentences = round?.answer.sentences ?? []
@@ -74,14 +76,15 @@ export default function HallucinationSpotterPlayerV2({ game, onComplete }: Props
   const highConfidence = confidenceValue === 2
   const lowConfidence = confidenceValue === 0
   let calibrationMessage: string
+  const calibVars = { correct: correctCount, total: totalHallucinations }
   if (highConfidence && recall < 0.5) {
-    calibrationMessage = `Du warst dir sehr sicher, hast aber nur ${correctCount} von ${totalHallucinations} erfundenen Stellen gefunden. Bei KI-Texten lohnt sich gesundes Misstrauen — auch wenn ein Text überzeugend klingt.`
+    calibrationMessage = t('hs.calibHighLowRecall', calibVars)
   } else if (lowConfidence && recall >= 0.7) {
-    calibrationMessage = `Du warst unsicher, lagst aber goldrichtig — du hast ${correctCount} von ${totalHallucinations} erfundenen Stellen gefunden. Vertrau deinem Urteil ruhig etwas mehr!`
+    calibrationMessage = t('hs.calibLowHighRecall', calibVars)
   } else if (recall >= 0.7) {
-    calibrationMessage = `Gut eingeschätzt: deine Sicherheit passt zu deinem starken Ergebnis (${correctCount} von ${totalHallucinations} gefunden).`
+    calibrationMessage = t('hs.calibGood', calibVars)
   } else {
-    calibrationMessage = `Deine Einschätzung passt ungefähr zu deinem Ergebnis (${correctCount} von ${totalHallucinations} gefunden) — mit etwas Übung wird die Trefferquote noch besser.`
+    calibrationMessage = t('hs.calibNeutral', calibVars)
   }
 
   function choosePrompt(id: number) {
@@ -133,7 +136,7 @@ export default function HallucinationSpotterPlayerV2({ game, onComplete }: Props
   const showConfetti = resultOpen
   const tier = scorePct >= 0.7 ? 'high' : scorePct >= 0.4 ? 'mid' : 'low'
   const TierIcon = tier === 'high' ? Trophy : tier === 'mid' ? ThumbsUp : Sparkles
-  const tierTitle = tier === 'high' ? 'Klasse gemacht!' : tier === 'mid' ? 'Gut gemacht!' : 'Dranbleiben lohnt sich!'
+  const tierTitle = tier === 'high' ? t('hs.tierHigh') : tier === 'mid' ? t('hs.tierMid') : t('hs.tierLow')
 
   return (
     <>
@@ -141,31 +144,27 @@ export default function HallucinationSpotterPlayerV2({ game, onComplete }: Props
 
       <HowToPlay
         open={howToPlayOpen}
-        title="So funktioniert Hallucination Spotter"
-        termExplanation={
-          'Eine „Halluzination" ist, wenn eine KI etwas erfindet, das überzeugend klingt, aber nicht stimmt — ' +
-          'zum Beispiel eine Zahl, ein Gesetz oder einen Namen, den es gar nicht gibt.'
-        }
+        title={t('hs.htpTitle')}
+        termExplanation={t('hs.htpTerm')}
         steps={[
-          { text: 'Du wählst einen von 5 möglichen Prompts (Anfragen an die KI) zu einer Finance-Situation aus.' },
-          { text: 'Du liest die KI-Antwort und klickst jeden Satz an, den du für erfunden hältst.' },
-          { text: 'Du gibst an, wie sicher du dir insgesamt bist, und siehst danach deine Auswertung mit Erklärungen.' },
+          { text: t('hs.htpStep1') },
+          { text: t('hs.htpStep2') },
+          { text: t('hs.htpStep3') },
         ]}
         onDismiss={() => setHowToPlayOpen(false)}
       />
 
       <div className="hsv2-container">
         <StepIndicator
-          steps={['Prompt wählen', 'Halluzinationen markieren', 'Auswertung']}
+          steps={[t('hs.stepChoose'), t('hs.stepMark'), t('hs.stepResult')]}
           currentIndex={resultOpen || confidencePopupOpen ? 2 : step === 'choose' ? 0 : 1}
         />
 
         {step === 'choose' && (
           <>
-            <p className="hsv2-intro">Situation: {round.situation}</p>
+            <p className="hsv2-intro">{t('hs.situationLabel')}: {round.situation}</p>
             <p className="hsv2-instruction">
-              Das sind 5 Prompts, die man zu dieser Situation an eine KI schicken könnte. Wähle den,
-              der die zuverlässigste — also am wenigsten erfundene — Antwort liefern würde:
+              {t('hs.chooseInstruction')}
             </p>
             <div className="hsv2-prompt-list">
               {promptOptions.map((p, i) => (
@@ -175,7 +174,7 @@ export default function HallucinationSpotterPlayerV2({ game, onComplete }: Props
                   onClick={() => choosePrompt(p.id)}
                   disabled={chosenId !== null}
                 >
-                  <span className="hsv2-prompt-eyebrow">Prompt {i + 1}</span>
+                  <span className="hsv2-prompt-eyebrow">{t('hs.promptEyebrow', { n: i + 1 })}</span>
                   {p.text}
                   {chosenId === p.id && (
                     <span className="hsv2-prompt-check" aria-hidden="true"><Check size={13} strokeWidth={3} /></span>
@@ -188,51 +187,49 @@ export default function HallucinationSpotterPlayerV2({ game, onComplete }: Props
 
         {step === 'marking' && (
           <>
-            <div className="hsv2-prompt-recap">Du hast diesen Prompt gewählt: „{chosen?.text}"</div>
+            <div className="hsv2-prompt-recap">{t('hs.recap', { text: chosen?.text ?? '' })}</div>
             <p className="hsv2-instruction">
-              Das hat die KI auf diesen Prompt geantwortet. Fahre mit der Maus über den Text — der
-              Satz wird hervorgehoben. Klicke jeden Satz an, den du für erfunden hältst.
+              {t('hs.markInstruction')}
             </p>
             <HallucinationText sentences={sentences} markedIds={markedIds} onToggle={toggleSentence} />
             <div className="hsv2-next-row">
               <button className="btn btn-primary" onClick={openConfidencePopup}>
-                Weiter →
+                {t('hs.continue')}
               </button>
             </div>
           </>
         )}
       </div>
 
-      <GamePopup open={promptFeedbackOpen} title="Dein Prompt im Check" onClose={closePromptFeedback}>
+      <GamePopup open={promptFeedbackOpen} title={t('hs.promptCheckTitle')} onClose={closePromptFeedback}>
         {chosen && (
           <>
             <StarRating stars={stars} />
             <p className="hsv2-popup-text">{chosen.feedback}</p>
             {!chosen.isRecommended && (
               <p className="hsv2-popup-hint">
-                Der beste Prompt in dieser Auswahl bat die KI, unsichere Angaben zu kennzeichnen —
-                so erfindet sie seltener etwas.
+                {t('hs.promptHint')}
               </p>
             )}
             {stars === 3 && <ConfettiBurst intensity="low" />}
             <div className="hsv2-next-row">
               <button className="btn btn-primary" onClick={closePromptFeedback}>
-                Weiter zum Text →
+                {t('hs.toText')}
               </button>
             </div>
           </>
         )}
       </GamePopup>
 
-      <GamePopup open={confidencePopupOpen} title="Wie sicher bist du dir?" onClose={() => setConfidencePopupOpen(false)}>
+      <GamePopup open={confidencePopupOpen} title={t('hs.confidenceTitle')} onClose={() => setConfidencePopupOpen(false)}>
         <ConfidenceSlider
           value={confidenceValue}
           onChange={setConfidenceValue}
-          question="Wie sicher bist du dir insgesamt bei deiner Auswahl an markierten Sätzen?"
+          question={t('hs.confidenceQuestion')}
         />
         <div className="hsv2-next-row">
           <button className="btn btn-primary" onClick={confirmConfidence}>
-            Finale Auswertung anzeigen
+            {t('hs.showFinal')}
           </button>
         </div>
       </GamePopup>
@@ -247,42 +244,41 @@ export default function HallucinationSpotterPlayerV2({ game, onComplete }: Props
         <div className="hsv2-result-card">
           <h3 className="hsv2-result-title">{tierTitle}</h3>
           <p className="hsv2-result-subtitle">
-            Du hast {correctCount} von {totalHallucinations} Halluzinationen gefunden.
+            {t('hs.foundOf', { correct: correctCount, total: totalHallucinations })}
           </p>
           <StarRating stars={Math.round(scorePct * 5)} max={5} />
           <ScoreCounter value={totalScore} className="hsv2-score-number" suffix={`/${maxPoints}`} />
-          <div className="hsv2-score-label">Punkte erreicht</div>
-          {scorePct >= 0.7 && <Badge label="Halluzinations-Späher" icon={Search} />}
+          <div className="hsv2-score-label">{t('hs.pointsReached')}</div>
+          {scorePct >= 0.7 && <Badge label={t('hs.badge')} icon={Search} />}
         </div>
 
         {falsePositives > 0 && (
           <div className="hsv2-summary-line">
-            Fälschlich markiert: <strong>{falsePositives}</strong>{' '}
-            ({falsePositives === 1 ? 'ein Satz war eigentlich korrekt' : `${falsePositives} Sätze waren eigentlich korrekt`}
-            {' '}— kein Problem, das ist knifflig.)
+            {t('hs.falseMarkedLabel')}: <strong>{falsePositives}</strong>{' '}
+            ({falsePositives === 1 ? t('hs.falseOne') : t('hs.falseMany', { n: falsePositives })}
+            {' '}{t('hs.falseTail')})
           </div>
         )}
 
         <div className="hsv2-calibration">{calibrationMessage}</div>
 
         <div className="hsv2-lesson">
-          Merke: Zahlen, Gesetze und Namen von einer KI immer prüfen.
+          {t('hs.lesson')}
         </div>
 
         <div className="hsv2-next-row">
           <button className="btn btn-reward" onClick={() => setResultOpen(false)}>
-            Fertig
+            {t('common.done')}
           </button>
         </div>
         <button className="hsv2-review-toggle" onClick={() => setReviewOpen(v => !v)}>
-          {reviewOpen ? 'Antworten ausblenden' : 'Antworten ansehen'}
+          {reviewOpen ? t('hs.hideAnswers') : t('hs.showAnswers')}
         </button>
 
         {reviewOpen && (
           <>
             <p className="hsv2-instruction">
-              Hier ist der Text nochmal — grün: richtig erkannt, gestrichelt neutral: fälschlich markiert,
-              amber gestrichelt: übersehen. Klicke einen Satz für die Erklärung.
+              {t('hs.reviewInstruction')}
             </p>
             <HallucinationText sentences={sentences} markedIds={markedIds} onToggle={toggleSentence} revealMode />
           </>

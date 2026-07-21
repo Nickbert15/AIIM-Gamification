@@ -7,6 +7,7 @@ import HallucinationSpotterPlayerV2 from './HallucinationSpotterPlayerV2'
 import PromptArenaPlayer from './PromptArenaPlayer'
 import BranchingGamePlayer from './BranchingGamePlayer'
 import { X, CheckCircle2, XCircle } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
 
 interface Props {
   game: Game | null
@@ -206,6 +207,7 @@ function PreviewShell({
   maxWidth: number | string
   children: ReactNode
 }) {
+  const { t } = useI18n()
   return (
     <>
       <style>{styles}</style>
@@ -216,7 +218,7 @@ function PreviewShell({
               <h2 className="gpm-title">{game.title}</h2>
               <div className="gpm-subtitle">{subtitle}</div>
             </div>
-            <button className="gpm-close" onClick={onClose} aria-label="Schließen"><X size={16} strokeWidth={2} /></button>
+            <button className="gpm-close" onClick={onClose} aria-label={t('common.close')}><X size={16} strokeWidth={2} /></button>
           </div>
           {children}
         </div>
@@ -234,6 +236,7 @@ function QuestionPreview({
   questions: PreviewQuestion[]
   onClose: () => void
 }) {
+  const { t } = useI18n()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null)
   const [score, setScore] = useState(0)
@@ -258,11 +261,11 @@ function QuestionPreview({
 
   if (done) {
     return (
-      <PreviewShell game={game} onClose={onClose} subtitle="Quiz-Preview" maxWidth={620}>
+      <PreviewShell game={game} onClose={onClose} subtitle={t('gpm.quizPreview')} maxWidth={620}>
         <div className="gpm-summary">
           <div className="gpm-summary-score">{score}/{questions.length}</div>
-          <div className="gpm-summary-note">Vorschau abgeschlossen. Schließe das Fenster oder starte den Test erneut im echten Spieler.</div>
-          <button className="btn btn-ghost" onClick={onClose}>Schließen</button>
+          <div className="gpm-summary-note">{t('gpm.previewDone')}</div>
+          <button className="btn btn-ghost" onClick={onClose}>{t('common.close')}</button>
         </div>
       </PreviewShell>
     )
@@ -272,17 +275,17 @@ function QuestionPreview({
   const isCorrect = selectedAnswer === current.correctAnswer
 
   return (
-    <PreviewShell game={game} onClose={onClose} subtitle="Quiz-Preview" maxWidth={620}>
+    <PreviewShell game={game} onClose={onClose} subtitle={t('gpm.quizPreview')} maxWidth={620}>
       <div className="gpm-body">
         <div className="gpm-progress">
-          <span>Frage {currentIndex + 1} / {questions.length}</span>
+          <span>{t('gpm.questionOf', { n: currentIndex + 1, total: questions.length })}</span>
           <div className="gpm-progress-bar">
             <div
               className="gpm-progress-fill"
               style={{ width: `${Math.min((currentIndex / questions.length) * 100, 100)}%` }}
             />
           </div>
-          <span style={{ whiteSpace: 'nowrap' }}>{score} Pkt.</span>
+          <span style={{ whiteSpace: 'nowrap' }}>{score} {t('common.points_short')}</span>
         </div>
 
         <p className="gpm-question">{current.question}</p>
@@ -319,15 +322,15 @@ function QuestionPreview({
               {isCorrect ? <CheckCircle2 size={16} strokeWidth={2} /> : <XCircle size={16} strokeWidth={2} />}
             </span>
             <span className="gpm-feedback-body">
-              <span className="gpm-feedback-label">{isCorrect ? 'Richtig' : 'Falsch'}</span>
-              {current.explanation ?? (isCorrect ? 'Gute Wahl.' : 'Beim nächsten Versuch die Antwort mit der Quelle abgleichen.')}
+              <span className="gpm-feedback-label">{isCorrect ? t('gpm.correct') : t('gpm.wrong')}</span>
+              {current.explanation ?? (isCorrect ? t('gpm.goodChoice') : t('gpm.checkSource'))}
             </span>
           </div>
         )}
 
         {answered && (
           <div className="gpm-next-row">
-            <button className="btn btn-primary" onClick={handleNext}>Weiter →</button>
+            <button className="btn btn-primary" onClick={handleNext}>{t('gpm.next')}</button>
           </div>
         )}
       </div>
@@ -346,17 +349,19 @@ function PreviewMessage({
   subtitle: string
   message: string
 }) {
+  const { t } = useI18n()
   return (
     <PreviewShell game={game} onClose={onClose} subtitle={subtitle} maxWidth={480}>
       <div className="gpm-summary">
         <div className="gpm-summary-note">{message}</div>
-        <button className="btn btn-ghost" onClick={onClose}>Schließen</button>
+        <button className="btn btn-ghost" onClick={onClose}>{t('common.close')}</button>
       </div>
     </PreviewShell>
   )
 }
 
 export default function GamePreviewModal({ game, onClose }: Props) {
+  const { t } = useI18n()
   if (!game) return null
 
   if (game.format === 'excel_challenge' && game.game_json.task && game.game_json.initialData) {
@@ -409,7 +414,7 @@ export default function GamePreviewModal({ game, onClose }: Props) {
       game={game}
       onClose={onClose}
       subtitle={[game.format || '—', game.difficulty].filter(Boolean).join(' · ')}
-      message={`Spieltyp nicht verfügbar${game.format ? ` (Format „${game.format}“)` : ''}.`}
+      message={game.format ? t('gpm.unavailableFormat', { format: game.format }) : t('gpm.unavailablePlain')}
     />
   )
 }

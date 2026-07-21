@@ -7,6 +7,9 @@ import GamePlayerModal from '@/components/GamePlayerModal'
 import { recommendGames } from '@/lib/recommendations'
 import { Game } from '@/types/game'
 import { HelpCircle, Gamepad2, LucideIcon } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
+
+type TFn = (key: string, vars?: Record<string, string | number>) => string
 
 type PlayerData = {
   player: { id: string; email: string; display_name: string; role: string; is_admin: boolean }
@@ -14,23 +17,24 @@ type PlayerData = {
   history: { id: string; score: number; completed_at: string; games: { id: string; title: string } | null }[]
 }
 
-function gameKind(game: Game): { icon: LucideIcon; label: string; count: string } {
+function gameKind(game: Game, t: TFn): { icon: LucideIcon; label: string; count: string } {
   const questionCount = game.game_json?.questions?.length ?? 0
   if (questionCount > 0) {
     return {
       icon: HelpCircle,
-      label: 'Quiz',
-      count: `${questionCount} ${questionCount === 1 ? 'Frage' : 'Fragen'}`,
+      label: t('dash.quiz'),
+      count: `${questionCount} ${questionCount === 1 ? t('dash.frage') : t('dash.fragen')}`,
     }
   }
-  return { icon: Gamepad2, label: game.format ?? 'Spiel', count: '' }
+  return { icon: Gamepad2, label: game.format ?? t('dash.kindGame'), count: '' }
 }
 
-function gameSubtitle(game: Game): string {
-  return [gameKind(game).label, game.difficulty, game.topic].filter(Boolean).join(' · ')
+function gameSubtitle(game: Game, t: TFn): string {
+  return [gameKind(game, t).label, game.difficulty, game.topic].filter(Boolean).join(' · ')
 }
 
 export default function PlayerDashboardPage() {
+  const { t } = useI18n()
   const router = useRouter()
   const [data, setData] = useState<PlayerData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -92,9 +96,9 @@ export default function PlayerDashboardPage() {
     router.refresh()
   }
 
-  if (loading || !data) return <div className="loading-spinner">Lade…</div>
+  if (loading || !data) return <div className="loading-spinner">{t('common.loading')}</div>
 
-  const GotwIcon = recommendations?.gameOfTheWeek ? gameKind(recommendations.gameOfTheWeek).icon : Gamepad2
+  const GotwIcon = recommendations?.gameOfTheWeek ? gameKind(recommendations.gameOfTheWeek, t).icon : Gamepad2
 
   const { player, stats, history } = data
 
@@ -111,24 +115,24 @@ export default function PlayerDashboardPage() {
             </div>
           </div>
         </div>
-        <button className="btn btn-ghost" onClick={handleLogout}>Abmelden</button>
+        <button className="btn btn-ghost" onClick={handleLogout}>{t('dash.logout')}</button>
       </div>
 
       <div className="stat-tiles">
         <div className="stat-tile stat-tile-hero">
-          <div className="stat-tile-label">Gesamtpunkte</div>
+          <div className="stat-tile-label">{t('dash.totalPoints')}</div>
           <div className="stat-tile-value">{stats.total_score.toLocaleString('de-DE')}</div>
         </div>
         <div className="stat-tile">
-          <div className="stat-tile-label">Games gespielt</div>
+          <div className="stat-tile-label">{t('dash.gamesPlayed')}</div>
           <div className="stat-tile-value">{stats.games_played}</div>
         </div>
         <div className="stat-tile">
-          <div className="stat-tile-label">Bestes Ergebnis</div>
+          <div className="stat-tile-label">{t('dash.bestScore')}</div>
           <div className="stat-tile-value">{stats.best_score.toLocaleString('de-DE')}</div>
         </div>
         <div className="stat-tile">
-          <div className="stat-tile-label">Ø Score</div>
+          <div className="stat-tile-label">{t('dash.avgScore')}</div>
           <div className="stat-tile-value">{Math.round(stats.avg_score).toLocaleString('de-DE')}</div>
         </div>
       </div>
@@ -136,10 +140,10 @@ export default function PlayerDashboardPage() {
       <div className="card" style={{ marginBottom: 24 }}>
         {!recommendations?.gameOfTheWeek ? (
           <>
-            <div className="card-title">Verfügbare Spiele</div>
+            <div className="card-title">{t('dash.availableGames')}</div>
             <div className="empty-state">
               <div className="empty-state-icon"><Gamepad2 size={26} strokeWidth={1.5} /></div>
-              <div className="empty-state-text">Aktuell sind keine Spiele verfügbar. Schau später wieder vorbei!</div>
+              <div className="empty-state-text">{t('dash.noGames')}</div>
             </div>
           </>
         ) : (
@@ -147,27 +151,27 @@ export default function PlayerDashboardPage() {
             <div className="gotw-card">
               <span className="gotw-icon"><GotwIcon size={28} strokeWidth={1.75} /></span>
               <div className="gotw-body">
-                <div className="gotw-eyebrow">Game of the Week</div>
+                <div className="gotw-eyebrow">{t('dash.gameOfTheWeek')}</div>
                 <div className="gotw-title">{recommendations.gameOfTheWeek.title}</div>
-                <div className="gotw-meta">{gameSubtitle(recommendations.gameOfTheWeek)}</div>
+                <div className="gotw-meta">{gameSubtitle(recommendations.gameOfTheWeek, t)}</div>
               </div>
               <button className="btn btn-primary" onClick={() => setActiveGame(recommendations.gameOfTheWeek!)}>
-                Jetzt spielen →
+                {t('dash.playNow')}
               </button>
             </div>
 
             {recommendations.replaying && (
               <div className="gotw-meta" style={{ marginTop: 12 }}>
-                Du hast schon alle Spiele abgeschlossen — Zeit für eine Wiederholung.
+                {t('dash.replaying')}
               </div>
             )}
 
             {recommendations.alsoLike.length > 0 && (
               <>
-                <div className="section-heading">Das könnte dir auch gefallen</div>
+                <div className="section-heading">{t('dash.alsoLike')}</div>
                 <div className="game-grid">
                   {recommendations.alsoLike.map((game) => {
-                    const kind = gameKind(game)
+                    const kind = gameKind(game, t)
                     const KindIcon = kind.icon
                     return (
                       <div key={game.id} className="game-card">
@@ -175,13 +179,13 @@ export default function PlayerDashboardPage() {
                           <span className="game-card-icon"><KindIcon size={20} strokeWidth={1.75} /></span>
                           <div style={{ minWidth: 0 }}>
                             <div className="game-card-title">{game.title}</div>
-                            <div className="game-card-meta">{gameSubtitle(game)}</div>
+                            <div className="game-card-meta">{gameSubtitle(game, t)}</div>
                           </div>
                         </div>
                         <div className="game-card-footer">
                           <span className="game-card-count">{kind.count}</span>
                           <button className="btn btn-primary" onClick={() => setActiveGame(game)}>
-                            {playedIds.has(game.id) ? 'Nochmal spielen →' : 'Spielen →'}
+                            {playedIds.has(game.id) ? t('dash.playAgain') : t('dash.play')}
                           </button>
                         </div>
                       </div>
@@ -195,11 +199,11 @@ export default function PlayerDashboardPage() {
       </div>
 
       <div className="card">
-        <div className="card-title">Meine Spiele</div>
+        <div className="card-title">{t('dash.myGames')}</div>
         {history.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state-icon"><Gamepad2 size={26} strokeWidth={1.5} /></div>
-            <div className="empty-state-text">Noch keine Spiele — viel Erfolg beim ersten Game!</div>
+            <div className="empty-state-text">{t('dash.noHistory')}</div>
           </div>
         ) : (
           <div className="table-wrapper">
@@ -207,9 +211,9 @@ export default function PlayerDashboardPage() {
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Spiel</th>
-                  <th>Score</th>
-                  <th>Datum</th>
+                  <th>{t('dash.colGame')}</th>
+                  <th>{t('dash.colScore')}</th>
+                  <th>{t('dash.colDate')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -221,7 +225,7 @@ export default function PlayerDashboardPage() {
                       <td style={{ fontWeight: 500 }}>{s.games?.title ?? '—'}</td>
                       <td className="history-score">
                         {s.score.toLocaleString('de-DE')}
-                        {isBest && <span className="best-badge">Best</span>}
+                        {isBest && <span className="best-badge">{t('dash.best')}</span>}
                       </td>
                       <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>
                         {new Date(s.completed_at).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })}

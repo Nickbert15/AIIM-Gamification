@@ -1,5 +1,7 @@
 'use client'
 
+import { useI18n } from '@/lib/i18n'
+
 export interface ChatMessage {
   role: 'assistant' | 'user'
   text: string
@@ -22,6 +24,7 @@ interface Props {
 export default function CopilotSidebar({
   messages, prompt, onPromptChange, onSend, onFinish, status, attemptsUsed, maxAttempts, apiError,
 }: Props) {
+  const { t } = useI18n()
   const busy = status !== 'idle'
   const thinking = status === 'thinking' || status === 'animating'
   const attemptsRemaining = Math.max(0, maxAttempts - attemptsUsed)
@@ -33,8 +36,8 @@ export default function CopilotSidebar({
         <div className="cs-header">
           <span className="cs-header-icon" />
           <div>
-            <div className="cs-header-title">KI-Assistent</div>
-            <div className="cs-header-subtitle">Versuch {attemptsUsed} von {maxAttempts}</div>
+            <div className="cs-header-title">{t('excel.assistant')}</div>
+            <div className="cs-header-subtitle">{t('excel.attemptOf', { used: attemptsUsed, max: maxAttempts })}</div>
           </div>
         </div>
 
@@ -46,7 +49,7 @@ export default function CopilotSidebar({
           ))}
           {thinking && (
             <div className="cs-bubble cs-bubble-assistant cs-thinking">
-              <span>Arbeite an deiner Anfrage</span>
+              <span>{t('excel.working')}</span>
               <span className="cs-dots"><span /><span /><span /></span>
             </div>
           )}
@@ -57,7 +60,7 @@ export default function CopilotSidebar({
         <div className="cs-input-area">
           <textarea
             className="cs-textarea"
-            placeholder="Schreibe eine Anweisung an den Assistenten…"
+            placeholder={t('excel.inputPlaceholder')}
             value={prompt}
             onChange={e => onPromptChange(e.target.value)}
             disabled={busy || attemptsRemaining <= 0}
@@ -67,12 +70,12 @@ export default function CopilotSidebar({
             onClick={onSend}
             disabled={busy || !prompt.trim() || attemptsRemaining <= 0}
           >
-            Senden
+            {t('excel.send')}
           </button>
         </div>
 
         <button className="cs-finish-btn" onClick={onFinish} disabled={status === 'finishing' || status === 'done'}>
-          {status === 'finishing' ? 'Wird ausgewertet…' : 'Fertig →'}
+          {status === 'finishing' ? t('excel.evaluating') : t('excel.finish')}
         </button>
       </div>
     </>

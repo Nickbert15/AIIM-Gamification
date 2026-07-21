@@ -1,6 +1,7 @@
 'use client'
 
 import GamePopup from './GamePopup'
+import { useI18n } from '@/lib/i18n'
 
 interface StepItem {
   text: string
@@ -18,6 +19,7 @@ interface Props {
 // gameplay happens, so a player with zero AI background sees the core term
 // explained and the steps laid out before being asked to do anything.
 export default function HowToPlay({ open, title, termExplanation, steps, onDismiss }: Props) {
+  const { t } = useI18n()
   return (
     <GamePopup open={open} title={title} onClose={onDismiss}>
       <style>{htpStyles}</style>
@@ -32,7 +34,7 @@ export default function HowToPlay({ open, title, termExplanation, steps, onDismi
       </ol>
       <div className="htp-actions">
         <button className="btn btn-primary" onClick={onDismiss} autoFocus>
-          Verstanden, los geht's!
+          {t('htp.gotIt')}
         </button>
       </div>
     </GamePopup>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { CriterionResult } from '@/lib/excelEvaluation'
+import { useI18n } from '@/lib/i18n'
 
 interface Props {
   score: number
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export default function ResultDialog({ score, pointsEarned, criteriaResults, feedback, samplePrompt, onClose }: Props) {
+  const { t } = useI18n()
   const [showSamplePrompt, setShowSamplePrompt] = useState(false)
 
   return (
@@ -22,12 +24,12 @@ export default function ResultDialog({ score, pointsEarned, criteriaResults, fee
         <div className="rd-dialog">
           <div className="rd-titlebar">
             <span className="rd-titlebar-icon" />
-            <span className="rd-titlebar-text">Ergebnis</span>
+            <span className="rd-titlebar-text">{t('excel.result')}</span>
           </div>
           <div className="rd-body">
             <div className="rd-score-row">
-              <div className="rd-score-number">{pointsEarned}<span className="rd-score-unit">Pkt.</span></div>
-              <div className="rd-score-pct">{score}% korrekt</div>
+              <div className="rd-score-number">{pointsEarned}<span className="rd-score-unit">{t('common.points_short')}</span></div>
+              <div className="rd-score-pct">{t('excel.correctPct', { pct: score })}</div>
             </div>
 
             <div className="rd-criteria-list">
@@ -43,17 +45,17 @@ export default function ResultDialog({ score, pointsEarned, criteriaResults, fee
 
             {showSamplePrompt ? (
               <div className="rd-sample-prompt">
-                <span className="rd-sample-prompt-label">Beispiel-Prompt</span>
+                <span className="rd-sample-prompt-label">{t('excel.samplePromptLabel')}</span>
                 {samplePrompt}
               </div>
             ) : (
               <button className="rd-sample-toggle" onClick={() => setShowSamplePrompt(true)}>
-                Beispiel-Prompt anzeigen
+                {t('excel.showSamplePrompt')}
               </button>
             )}
 
             <button className="rd-close-btn" onClick={onClose}>
-              Schließen
+              {t('common.close')}
             </button>
           </div>
         </div>

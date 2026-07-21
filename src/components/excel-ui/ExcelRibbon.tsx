@@ -1,38 +1,46 @@
 'use client'
 
 import { useState } from 'react'
+import { useI18n } from '@/lib/i18n'
 
-const TABS = ['Start', 'Einfügen', 'Formeln', 'Daten', 'Ansicht'] as const
-type Tab = typeof TABS[number]
+const TABS = [
+  { id: 'home', labelKey: 'excel.tab.home' },
+  { id: 'insert', labelKey: 'excel.tab.insert' },
+  { id: 'formulas', labelKey: 'excel.tab.formulas' },
+  { id: 'data', labelKey: 'excel.tab.data' },
+  { id: 'view', labelKey: 'excel.tab.view' },
+] as const
+type Tab = typeof TABS[number]['id']
 
-const GROUPS: Record<Tab, { label: string; icons: string[] }[]> = {
-  'Start': [
-    { label: 'Zwischenablage', icons: ['📋', '✂', '📄'] },
-    { label: 'Schriftart', icons: ['B', 'I', 'U'] },
-    { label: 'Ausrichtung', icons: ['◧', '▤', '◨'] },
-    { label: 'Zahl', icons: ['123', '%', '€'] },
+const GROUPS: Record<Tab, { labelKey: string; icons: string[] }[]> = {
+  home: [
+    { labelKey: 'excel.grp.clipboard', icons: ['📋', '✂', '📄'] },
+    { labelKey: 'excel.grp.font', icons: ['B', 'I', 'U'] },
+    { labelKey: 'excel.grp.alignment', icons: ['◧', '▤', '◨'] },
+    { labelKey: 'excel.grp.number', icons: ['123', '%', '€'] },
   ],
-  'Einfügen': [
-    { label: 'Tabellen', icons: ['▦', '📊'] },
-    { label: 'Illustrationen', icons: ['🖼', '🔷'] },
-    { label: 'Diagramme', icons: ['📈', '📉'] },
+  insert: [
+    { labelKey: 'excel.grp.tables', icons: ['▦', '📊'] },
+    { labelKey: 'excel.grp.illustrations', icons: ['🖼', '🔷'] },
+    { labelKey: 'excel.grp.charts', icons: ['📈', '📉'] },
   ],
-  'Formeln': [
-    { label: 'Funktionsbibliothek', icons: ['ƒx', 'Σ', '∅'] },
-    { label: 'Definierte Namen', icons: ['🏷'] },
+  formulas: [
+    { labelKey: 'excel.grp.functionLibrary', icons: ['ƒx', 'Σ', '∅'] },
+    { labelKey: 'excel.grp.definedNames', icons: ['🏷'] },
   ],
-  'Daten': [
-    { label: 'Sortieren & Filtern', icons: ['⇅', '▼'] },
-    { label: 'Datentools', icons: ['⎘', '⚙'] },
+  data: [
+    { labelKey: 'excel.grp.sortFilter', icons: ['⇅', '▼'] },
+    { labelKey: 'excel.grp.dataTools', icons: ['⎘', '⚙'] },
   ],
-  'Ansicht': [
-    { label: 'Blattansicht', icons: ['⊞', '▥'] },
-    { label: 'Zoom', icons: ['🔍'] },
+  view: [
+    { labelKey: 'excel.grp.sheetView', icons: ['⊞', '▥'] },
+    { labelKey: 'excel.grp.zoom', icons: ['🔍'] },
   ],
 }
 
 export default function ExcelRibbon() {
-  const [activeTab, setActiveTab] = useState<Tab>('Start')
+  const { t } = useI18n()
+  const [activeTab, setActiveTab] = useState<Tab>('home')
   const [showHint, setShowHint] = useState(false)
 
   function handleIconClick() {
@@ -47,26 +55,26 @@ export default function ExcelRibbon() {
         <div className="xr-tabbar">
           {TABS.map(tab => (
             <button
-              key={tab}
-              className={`xr-tab ${activeTab === tab ? 'xr-tab-active' : ''}`}
-              onClick={() => setActiveTab(tab)}
+              key={tab.id}
+              className={`xr-tab ${activeTab === tab.id ? 'xr-tab-active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
             >
-              {tab}
+              {t(tab.labelKey)}
             </button>
           ))}
         </div>
         <div className="xr-groups">
           {GROUPS[activeTab].map(group => (
-            <div key={group.label} className="xr-group">
+            <div key={group.labelKey} className="xr-group">
               <div className="xr-icons">
                 {group.icons.map((icon, i) => (
                   <button key={i} className="xr-icon-btn" onClick={handleIconClick}>{icon}</button>
                 ))}
               </div>
-              <div className="xr-group-label">{group.label}</div>
+              <div className="xr-group-label">{t(group.labelKey)}</div>
             </div>
           ))}
-          {showHint && <div className="xr-hint">Im Spiel deaktiviert</div>}
+          {showHint && <div className="xr-hint">{t('excel.ribbonDisabled')}</div>}
         </div>
       </div>
     </>

@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { useI18n } from '@/lib/i18n'
 
 export default function LoginPage() {
+  const { t } = useI18n()
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -24,7 +26,7 @@ export default function LoginPage() {
 
     if (!res.ok) {
       setSubmitting(false)
-      setError('E-Mail-Adresse oder Passwort ist falsch.')
+      setError(t('login.error'))
       return
     }
 
@@ -44,12 +46,12 @@ export default function LoginPage() {
         <div className="auth-icon">
           <Image src="/lufthansa-crane.svg" alt="" width={36} height={36} priority />
         </div>
-        <h1 className="auth-title">AI Enablement</h1>
-        <p className="auth-subtitle">Melde dich mit deinen Zugangsdaten an.</p>
+        <h1 className="auth-title">{t('login.title')}</h1>
+        <p className="auth-subtitle">{t('login.subtitle')}</p>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className="form-group">
-            <label htmlFor="email">E-Mail-Adresse</label>
+            <label htmlFor="email">{t('login.email')}</label>
             <input
               id="email"
               type="email"
@@ -63,7 +65,7 @@ export default function LoginPage() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Passwort</label>
+            <label htmlFor="password">{t('login.password')}</label>
             <input
               id="password"
               type="password"
@@ -78,12 +80,12 @@ export default function LoginPage() {
           {error && <div className="alert alert-error">{error}</div>}
 
           <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={submitting}>
-            {submitting ? 'Anmelden…' : 'Anmelden →'}
+            {submitting ? t('login.submitting') : t('login.submit')}
           </button>
         </form>
 
         <p className="auth-subtitle" style={{ marginTop: 20, marginBottom: 0, fontSize: 13 }}>
-          Noch keine Zugangsdaten? Wende dich an das AI-Enablement-Team.
+          {t('login.noAccount')}
         </p>
       </div>
     </div>
