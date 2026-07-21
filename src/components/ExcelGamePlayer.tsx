@@ -212,9 +212,9 @@ const workspaceStyles = `
     position: relative;
     display: flex;
     flex-direction: column;
-    height: 78vh;
-    min-height: 460px;
-    max-height: 840px;
+    height: 88vh;
+    min-height: 560px;
+    max-height: 1000px;
     background: #ffffff;
     overflow: hidden;
   }
