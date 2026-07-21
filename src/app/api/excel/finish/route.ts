@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-server'
 import { callKiconnect } from '@/lib/kiconnect'
 import { CriterionResult, evaluateExcelChallenge, extractExcelChallengeData } from '@/lib/excelEvaluation'
 import { computeExcelPoints } from '@/lib/excelScoring'
@@ -62,7 +63,12 @@ export async function POST(request: Request) {
     }
 
     if (playerId !== null) {
-      await supabase.from('scores').insert([{ player_id: playerId, game_id: gameId, score: pointsEarned }])
+      // Service-Role: auf `scores` liegt RLS, der Anon-Client schrieb hier
+      // stillschweigend nichts — Excel-Plays fehlten dadurch im Leaderboard.
+      const { error: scoreError } = await supabaseAdmin
+        .from('scores')
+        .insert([{ player_id: playerId, game_id: gameId, score: pointsEarned }])
+      if (scoreError) console.error('[excel/finish] Score-Insert fehlgeschlagen:', scoreError)
       // Punkte-Quelle laut Vorgabe: maxPoints des Spiels bei Bestehen (alle Kriterien
       // erfüllt), sonst 0 — bewusst NICHT das attempt-gewichtete `pointsEarned`,
       // das nur in die `scores`-Historie fließt.

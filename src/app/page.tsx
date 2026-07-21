@@ -17,7 +17,11 @@ export default function LeaderboardPage() {
     let cancelled = false
 
     async function load() {
-      const { data: lb } = await supabase.from('leaderboard').select('*').order('rank')
+      // Aus der API (Service-Role) statt direkt aus der `leaderboard`-View: die
+      // Route rechnet total_score (Summe) und games_played (Anzahl) verlässlich
+      // aus der scores-Tabelle und umgeht RLS.
+      const res = await fetch('/api/leaderboard', { cache: 'no-store' })
+      const lb: Row[] = res.ok ? await res.json() : []
       if (cancelled) return
       setEntries(lb ?? [])
       setLoading(false)
