@@ -64,17 +64,17 @@ export async function POST(request: Request) {
     }
 
     if (playerId !== null) {
-      // Service-Role: auf `scores` liegt RLS, der Anon-Client schrieb hier
-      // stillschweigend nichts — Excel-Plays fehlten dadurch im Leaderboard.
+      // Service role: RLS sits on `scores`, so the anon client was silently
+      // writing nothing here — Excel plays were missing from the leaderboard as a result.
       const { error: scoreError } = await supabaseAdmin
         .from('scores')
-        // Leaderboard-Score einheitlich als Prozent (0–100) wie die anderen Spieltypen.
-        // Der attempt-gewichtete pointsEarned bleibt nur für die Anzeige (Response unten).
+        // Leaderboard score consistently as a percentage (0-100), like the other game types.
+        // The attempt-weighted pointsEarned is only for display (response below).
         .insert([{ player_id: playerId, game_id: gameId, score: Math.round(score) }])
       if (scoreError) console.error('[excel/finish] Score-Insert fehlgeschlagen:', scoreError)
-      // Punkte-Quelle laut Vorgabe: maxPoints des Spiels bei Bestehen (alle Kriterien
-      // erfüllt), sonst 0 — bewusst NICHT das attempt-gewichtete `pointsEarned`,
-      // das nur in die `scores`-Historie fließt.
+      // Points source per spec: the game's maxPoints on passing (all criteria
+      // met), otherwise 0 — deliberately NOT the attempt-weighted `pointsEarned`,
+      // which only feeds the `scores` history.
       await applyPlayGamification(playerId, criteriaResults.every(c => c.passed) ? maxPoints : 0)
     }
 

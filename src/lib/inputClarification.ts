@@ -1,6 +1,6 @@
-// SCHICHT 2 — LLM-Klärung von Admin-Freitexteingaben.
-// Nutzt den bestehenden kiconnect-Helper (server-seitig, kein OpenAI, kein neuer Key).
-// Fail-open: Infra-/Parse-Fehler dürfen den Admin nicht blockieren → verdict "ok".
+// LAYER 2 — LLM clarification of admin free-text input.
+// Uses the existing kiconnect helper (server-side, no OpenAI, no new key).
+// Fail-open: infra/parse errors must not block the admin -> verdict "ok".
 
 import { callKiconnect, parseJsonResponse } from '@/lib/kiconnect'
 
@@ -39,7 +39,7 @@ export async function clarifyCustomInput(
   if (input.technologyCustom) fields.push(`technologyCustom: "${input.technologyCustom}"`)
   if (input.learningGoalCustom) fields.push(`learningGoalCustom: "${input.learningGoalCustom}"`)
 
-  // Nichts gesetzt → nichts zu klären.
+  // Nothing set -> nothing to clarify.
   if (fields.length === 0) return OK
 
   const userPrompt = `Bewerte die folgenden gesetzten Freitextfelder:\n${fields.join('\n')}`
@@ -66,7 +66,7 @@ export async function clarifyCustomInput(
       suggestion,
     }
   } catch (err) {
-    // fail-open: eine Infra-/Parse-Störung darf den Admin nicht blockieren.
+    // fail-open: an infra/parse hiccup must not block the admin.
     console.error('[clarifyCustomInput] fail-open, behandle als "ok":', err)
     return OK
   }

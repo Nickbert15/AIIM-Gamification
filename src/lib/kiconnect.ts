@@ -11,9 +11,9 @@ interface KiconnectResponse {
 
 type CallOptions = { temperature?: number; maxTokens?: number }
 
-/** Kontext fürs Audit-Log (ai_process_logs). Ohne diesen Parameter wird der Call nicht geloggt. */
+/** Context for the audit log (ai_process_logs). Without this parameter, the call is not logged. */
 export interface AiLogContext {
-  /** Kurzer, stabiler Bezeichner des Aufrufers, z. B. "excel.execute", "game.regenerate". */
+  /** Short, stable identifier of the caller, e.g. "excel.execute", "game.regenerate". */
   source: string
   actorId?: string | null
   gameId?: string | null
@@ -26,7 +26,7 @@ export async function callKiconnect(
   log?: AiLogContext
 ): Promise<string> {
   const options = typeof temperatureOrOptions === 'number' ? { temperature: temperatureOrOptions } : (temperatureOrOptions ?? {})
-  // Modell über Env steuerbar; Fallback = bisheriger Default.
+  // Model configurable via env; falls back to the previous default.
   const model = process.env.KICONNECT_MODEL ?? 'Mistral Small 3-2-24b Instruct KI:Inferenz.nrw'
   const startedAt = Date.now()
 
@@ -41,8 +41,8 @@ export async function callKiconnect(
         model,
         messages,
         temperature: options.temperature ?? 0.3,
-        // Ohne explizites Limit greift der Gateway-Default (oft ~512-1024) und schneidet
-        // größere Tabellen-JSONs mitten im Array ab → JSON.parse scheitert.
+        // Without an explicit limit, the gateway default (often ~512-1024) kicks in and
+        // truncates larger table JSON mid-array -> JSON.parse fails.
         max_tokens: options.maxTokens ?? 4096,
       }),
     })
@@ -91,9 +91,9 @@ export async function callKiconnect(
 export function extractJson(text: string): string {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i)
   const unfenced = (fenced ? fenced[1] : text).trim()
-  // LLMs sometimes prepend/append chatty text around the JSON object even
-  // without code fences ("Hier ist das JSON: {...} Ich hoffe das hilft!").
-  // Slicing from the first "{" to the matching last "}" tolerates that.
+  // Models sometimes prepend or append explanatory text around the JSON
+  // object even without code fences. Slicing from the first "{" to the
+  // matching last "}" tolerates that.
   const start = unfenced.indexOf('{')
   const end = unfenced.lastIndexOf('}')
   if (start === -1 || end === -1 || end < start) return unfenced

@@ -12,7 +12,7 @@ function wordSet(text: string): Set<string> {
 }
 
 // Word-set (unigram) Jaccard rather than n-grams: robust to the reordering/synonym-swap
-// case ("leicht umgestellter Aufgabentext") that would otherwise dodge a contiguous-phrase
+// case ("a slightly reworded task text") that would otherwise dodge a contiguous-phrase
 // n-gram check, while a genuinely own-formulated short prompt naturally shares only a
 // handful of topic words with the much larger task text, keeping its score low.
 export function computeSimilarity(a: string, b: string): number {

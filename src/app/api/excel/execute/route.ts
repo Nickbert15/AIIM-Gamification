@@ -71,8 +71,8 @@ export async function POST(request: Request) {
 
       let raw: string
       try {
-        // Großzügiges Token-Limit: die transformierte Tabelle (bis 60 Zeilen) muss
-        // vollständig als JSON zurückkommen, sonst reißt das Array ab.
+        // Generous token limit: the transformed table (up to 60 rows) must come
+        // back as complete JSON, otherwise the array gets cut off.
         raw = await callKiconnect(messages, { temperature: 0.2, maxTokens: 8000 }, {
           source: 'excel.execute',
           actorId: playerId,

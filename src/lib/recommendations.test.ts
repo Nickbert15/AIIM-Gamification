@@ -45,7 +45,7 @@ describe('relativePerformance', () => {
 
   it('normalisiert rohe Scores gegen die maxPoints des jeweiligen Spiels', () => {
     const games = [game('a', null, null, 100), game('b', null, null, 20)]
-    // 50/100 = 0.5 und 10/20 = 0.5 -> Mittel 0.5, trotz sehr unterschiedlicher Rohwerte
+    // 50/100 = 0.5 and 10/20 = 0.5 -> average 0.5, despite very different raw values
     const perf = relativePerformance([{ gameId: 'a', score: 50 }, { gameId: 'b', score: 10 }], games)
     expect(perf).toBeCloseTo(0.5)
   })
@@ -96,7 +96,7 @@ describe('recommendGames', () => {
 
     expect(res.gameOfTheWeek?.id).toMatch(/^neu-/)
     expect(res.alsoLike).toHaveLength(3)
-    // das verbleibende ungespielte Spiel steht vor den Wiederholungen
+    // the remaining unplayed game comes before the replays
     expect(res.alsoLike[0].id).toMatch(/^neu-/)
     expect(res.alsoLike.map(g => g.id)).not.toContain(res.gameOfTheWeek!.id)
   })
@@ -110,7 +110,7 @@ describe('recommendGames', () => {
   })
 
   it('bevorzugt Topics, die zur Rolle des Spielers passen', () => {
-    // Controller -> controlling; beide easy, damit nur das Topic den Ausschlag gibt
+    // Controller -> controlling; both easy, so only the topic tips the balance
     const games = [game('fremd', 'steuern', 'easy'), game('passend', 'controlling', 'easy')]
     const res = recommendGames(games, ctx({ role: 'Controller' }))
 
@@ -120,7 +120,7 @@ describe('recommendGames', () => {
   it('bevorzugt bei starker Leistung schwerere Spiele', () => {
     const catalog = [game('gespielt', 'steuern', 'medium', 100)]
     const games = [...catalog, game('leicht', 'steuern', 'easy'), game('schwer', 'steuern', 'hard')]
-    // 95/100 -> hard als Zielschwierigkeit
+    // 95/100 -> hard as the target difficulty
     const res = recommendGames(games, ctx({ role: 'Other', played: [{ gameId: 'gespielt', score: 95 }] }))
 
     expect(res.gameOfTheWeek?.id).toBe('schwer')
@@ -167,8 +167,8 @@ describe('recommendGames', () => {
     const diese = recommendGames(games, ctx({ now: MONDAY }))
     const naechste = recommendGames(games, ctx({ now: NEXT_WEEK }))
 
-    // Nicht garantiert verschieden (Zufall darf treffen), aber der Seed muss sich ändern:
-    // die Gesamtreihenfolge der Alternativen soll nicht identisch bleiben.
+    // Not guaranteed to differ (randomness may still hit the same pick), but the
+    // seed must change: the overall order of alternatives shouldn't stay identical.
     const gleich =
       diese.gameOfTheWeek?.id === naechste.gameOfTheWeek?.id &&
       diese.alsoLike.map(g => g.id).join() === naechste.alsoLike.map(g => g.id).join()

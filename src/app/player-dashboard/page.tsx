@@ -60,9 +60,10 @@ export default function PlayerDashboardPage() {
     return () => window.removeEventListener('auth-changed', refresh)
   }, [refresh])
 
-  // Deep-Link aus der Weekly-Mail: /player-dashboard?game=<gameId> öffnet das Spiel
-  // automatisch, sobald Login UND Spieleliste da sind. Bewusst window.location statt
-  // useSearchParams: letzteres erzwingt eine Suspense-Boundary beim Prerender.
+  // Deep link from the weekly email: /player-dashboard?game=<gameId> opens the game
+  // automatically once both login and the game list are ready. Deliberately using
+  // window.location instead of useSearchParams: the latter forces a Suspense boundary
+  // during prerendering.
   const [deepLinkDone, setDeepLinkDone] = useState(false)
   useEffect(() => {
     if (deepLinkDone || !data || games.length === 0) return

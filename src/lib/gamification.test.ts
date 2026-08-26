@@ -9,7 +9,7 @@ describe('computeStreak', () => {
   })
 
   it('lässt die Serie unverändert, wenn diese Woche schon gespielt wurde', () => {
-    // beide in der ISO-Woche vom Mo 2024-03-04
+    // both in the ISO week starting Mon 2024-03-04
     expect(computeStreak(utc('2024-03-04'), utc('2024-03-08'), 5)).toBe(5)
   })
 
@@ -22,7 +22,7 @@ describe('computeStreak', () => {
   })
 
   it('erhöht die Serie über den Jahreswechsel hinweg (KW52 -> KW01)', () => {
-    // Fr 2019-12-27 liegt in 2019-W52, Do 2020-01-02 in 2020-W01 — direkt aufeinanderfolgend
+    // Fri 2019-12-27 falls in 2019-W52, Thu 2020-01-02 in 2020-W01 — directly consecutive
     expect(computeStreak(utc('2019-12-27'), utc('2020-01-02'), 4)).toBe(5)
   })
 
@@ -35,7 +35,7 @@ describe('computeStreak', () => {
   })
 
   it('reißt die Serie auch über den Jahreswechsel, wenn eine Woche fehlt', () => {
-    // 2019-W52 -> 2020-W02, dazwischen fehlt 2020-W01
+    // 2019-W52 -> 2020-W02, with 2020-W01 missing in between
     expect(computeStreak(utc('2019-12-27'), utc('2020-01-09'), 4)).toBe(1)
   })
 })

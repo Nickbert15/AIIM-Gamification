@@ -30,7 +30,7 @@ export function getSessionToken(): string | null {
   return cookies().get(SESSION_COOKIE)?.value ?? null
 }
 
-/** Die eingeloggte Spieler-ID, oder null bei fehlendem/ungültigem Token. */
+/** The logged-in player's ID, or null if the token is missing/invalid. */
 export async function getSessionPlayerId(): Promise<string | null> {
   const token = getSessionToken()
   if (!token) return null
@@ -41,7 +41,7 @@ export async function getSessionPlayerId(): Promise<string | null> {
   }
 }
 
-/** Der eingeloggte Spieler frisch aus der DB — inkl. aktuellem is_admin. */
+/** The logged-in player, freshly read from the DB — including the current is_admin. */
 export async function getSessionPlayer(): Promise<SessionPlayer | null> {
   const playerId = await getSessionPlayerId()
   if (!playerId) return null
@@ -55,7 +55,7 @@ export async function getSessionPlayer(): Promise<SessionPlayer | null> {
   return data ?? null
 }
 
-/** Der eingeloggte Spieler, aber nur wenn er Admin ist. Sonst null. */
+/** The logged-in player, but only if they're an admin. Otherwise null. */
 export async function getSessionAdmin(): Promise<SessionPlayer | null> {
   const player = await getSessionPlayer()
   return player?.is_admin ? player : null

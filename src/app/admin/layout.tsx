@@ -2,9 +2,9 @@ import { redirect } from 'next/navigation'
 import { getSessionPlayer } from '@/lib/auth'
 import AdminNav from './AdminNav'
 
-// Autorisierung passiert hier und nicht in der Middleware: is_admin kommt frisch
-// aus der DB, damit ein entzogenes Recht sofort greift. Gilt für /admin und alle
-// Unterseiten — auch beim direkten Aufruf der URL.
+// Authorization happens here rather than in the middleware: is_admin is fetched
+// fresh from the DB so a revoked privilege takes effect immediately. This applies
+// to /admin and all sub-pages — including direct URL access.
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const player = await getSessionPlayer()
   if (!player) redirect('/login?next=/admin')

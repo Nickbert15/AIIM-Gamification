@@ -1,4 +1,4 @@
--- Seed data for the "Excel-Prompt-Challenge" game type (leicht/mittel/schwer).
+-- Seed data for the "Excel-Prompt-Challenge" game type (easy/medium/hard).
 -- All data is synthetic/fictional (no real company data). Run this once in the
 -- Supabase SQL editor to get 3 draft games you can immediately review/approve
 -- and test at /admin/games and /play/<id>.

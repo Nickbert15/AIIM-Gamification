@@ -30,10 +30,10 @@ export default function LoginPage() {
       return
     }
 
-    // Bewusst window.location statt useSearchParams: letzteres erzwingt eine
-    // Suspense-Boundary beim Prerender.
+    // Deliberately using window.location instead of useSearchParams: the latter
+    // forces a Suspense boundary during prerendering.
     const next = new URLSearchParams(window.location.search).get('next')
-    // "//evil.com" ist ein protokoll-relativer Redirect nach außen, kein interner Pfad.
+    // "//evil.com" is a protocol-relative redirect to an external site, not an internal path.
     const safeNext = next && next.startsWith('/') && !next.startsWith('//') ? next : '/'
     window.dispatchEvent(new Event('auth-changed'))
     router.replace(safeNext)

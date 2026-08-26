@@ -17,9 +17,9 @@ export default function LeaderboardPage() {
     let cancelled = false
 
     async function load() {
-      // Aus der API (Service-Role) statt direkt aus der `leaderboard`-View: die
-      // Route rechnet total_score (Summe) und games_played (Anzahl) verlässlich
-      // aus der scores-Tabelle und umgeht RLS.
+      // From the API (service role) instead of directly from the `leaderboard` view:
+      // the route reliably computes total_score (sum) and games_played (count)
+      // from the scores table and bypasses RLS.
       const res = await fetch('/api/leaderboard', { cache: 'no-store' })
       const lb: Row[] = res.ok ? await res.json() : []
       if (cancelled) return

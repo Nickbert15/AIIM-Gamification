@@ -28,9 +28,9 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Zählt den Play für Streak & Weekly-Score. Quiz/Hallucination/Arena haben kein
-  // Bestanden-Kriterium wie die Excel-Challenge (dort: maxPoints bei Bestehen) —
-  // gutgeschrieben werden deshalb die tatsächlich erreichten Punkte.
+  // Counts the play toward streak & weekly score. Quiz/Hallucination/Arena don't
+  // have a pass/fail cutoff like the Excel Challenge (which awards maxPoints on
+  // passing) — so the points actually earned are credited instead.
   await applyPlayGamification(playerId, score)
 
   return NextResponse.json({ ok: true })

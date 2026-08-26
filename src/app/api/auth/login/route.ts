@@ -3,8 +3,8 @@ import bcrypt from 'bcryptjs'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { signToken, setSessionCookie } from '@/lib/auth'
 
-// Hash von "invalid" — verglichen wird auch bei unbekannter E-Mail, damit die
-// Antwortzeit nicht verrät, ob ein Account existiert.
+// Hash of "invalid" — compared against even for an unknown email, so the response
+// time doesn't reveal whether an account exists.
 const DUMMY_HASH = '$2b$12$a7FlSupVojhAo8jLi5AoleB3sMoAtakFMOqqjxUcKS/oXVgc7505y'
 
 export async function POST(req: NextRequest) {

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SESSION_COOKIE, verifyToken } from '@/lib/session'
 
-// Erste Verteidigungslinie: authentifiziert, nicht autorisiert. Der Admin-Check
-// braucht die DB und passiert deshalb in src/app/admin/layout.tsx bzw. in den
-// /api/admin-Routen.
-// /play/demo ist bewusst öffentlich: reine Client-Vorschau mit hart codierten
-// Beispieldaten (src/content/promptNavigatorDemo.ts), ohne Netzwerk-/DB-Zugriff.
+// First line of defense: authenticates, doesn't authorize. The admin check needs
+// the DB and therefore happens in src/app/admin/layout.tsx and in the /api/admin
+// routes.
+// /play/demo is intentionally public: it's a pure client-side preview with
+// hardcoded sample data (src/content/promptNavigatorDemo.ts), no network/DB access.
 const PUBLIC_PATHS = new Set(['/login', '/api/auth/login', '/api/auth/logout', '/play/demo'])
 
 export async function middleware(req: NextRequest) {
@@ -22,7 +22,7 @@ export async function middleware(req: NextRequest) {
   }
 
   if (PUBLIC_PATHS.has(pathname)) {
-    // Wer schon eingeloggt ist, hat auf der Login-Seite nichts verloren.
+    // Anyone already logged in has no business being on the login page.
     if (pathname === '/login' && playerId) {
       return NextResponse.redirect(new URL('/', req.url))
     }
@@ -38,7 +38,7 @@ export async function middleware(req: NextRequest) {
   const login = new URL('/login', req.url)
   login.searchParams.set('next', pathname + search)
   const res = NextResponse.redirect(login)
-  // Abgelaufenes Token nicht mitschleppen.
+  // Don't carry over an expired token.
   if (token) res.cookies.delete(SESSION_COOKIE)
   return res
 }

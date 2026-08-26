@@ -53,7 +53,7 @@ export default function NavBar() {
 
   const linkClass = (href: string) => `nav-link${pathname === href ? ' active' : ''}`
 
-  // Die Login-Seite ist die einzige Seite ohne Session — dort gibt es nichts zu navigieren.
+  // The login page is the only page without a session — there's nothing to navigate there.
   if (pathname === '/login') return null
 
   return (

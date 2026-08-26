@@ -11,8 +11,8 @@ const FORMAT_LABELS: Record<string, string> = {
   prompt_branching: 'Prompt-Navigator',
 }
 
-// Spieltyp ableiten — gleiche Erkennung wie im Spieler-Modal (games.format bzw.
-// game_json.format, Quiz über vorhandene Fragen).
+// Derive the game type — same detection logic as in the player modal (games.format
+// or game_json.format, quiz detected via existing questions).
 function gameTypeLabel(game: { format: string | null; game_json: Record<string, unknown> | null }): string {
   const gj = game.game_json ?? {}
   const gjFormat = typeof gj.format === 'string' ? gj.format : null
@@ -35,7 +35,7 @@ export async function GET() {
 
   const rows = data ?? []
 
-  // Feedback speichert keinen Spieltyp — game_id (UUID) frisch gegen games auflösen.
+  // Feedback doesn't store a game type — resolve it fresh from game_id (UUID) against games.
   const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
   const gameIds = Array.from(
     new Set(

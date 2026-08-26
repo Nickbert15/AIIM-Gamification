@@ -1,7 +1,7 @@
-// SCHICHT 1 — deterministischer Gate für Admin-Freitexteingaben.
-// Reine, testbare Funktion (gleiches Muster wie excelValidation.ts).
-// Prüft NUR die gesetzten Custom-Felder rein strukturell — semantischer
-// Unsinn ("asdf") wird hier NICHT abgefangen, das macht Schicht 2 (LLM).
+// LAYER 1 — deterministic gate for admin free-text input.
+// Pure, testable function (same pattern as excelValidation.ts).
+// Checks ONLY the set custom fields, purely structurally — semantic
+// nonsense ("asdf") is NOT caught here, that's layer 2's job (LLM).
 
 export interface CustomInputPayload {
   technologyId: string
@@ -23,12 +23,12 @@ export interface CustomInputValidationResult {
 const MIN_LENGTH = 3
 const MAX_LENGTH = 120
 
-// Injection-relevante Zeichen/Muster: HTML-Tags werden bereits durch < > abgedeckt.
+// Injection-relevant characters/patterns: HTML tags are already covered by < >.
 const INJECTION_PATTERNS: RegExp[] = [/</, />/, /\{\{/, /\}\}/, /`/]
 
-// Enthält der String mindestens einen Buchstaben? Bewusst ohne \p{L}/u-Regex
-// (Target-unabhängig): ein Buchstabe unterscheidet sich in Groß-/Kleinschreibung
-// (deckt a-z, A-Z, Umlaute, ß, akzentuierte Buchstaben ab).
+// Does the string contain at least one letter? Deliberately without a
+// \p{L}/u regex (target-independent): a letter differs between upper and
+// lower case (covers a-z, A-Z, umlauts, ß, accented letters).
 function hasLetter(s: string): boolean {
   for (let i = 0; i < s.length; i++) {
     const ch = s.charAt(i)
@@ -37,8 +37,9 @@ function hasLetter(s: string): boolean {
   return false
 }
 
-// Steuerzeichen (C0-Bereich inkl. Tab/Newline sowie DEL) — bewusst per Char-Code
-// statt Regex-Literal, um keine literalen Steuerzeichen im Quelltext zu haben.
+// Control characters (C0 range incl. tab/newline, plus DEL) — deliberately
+// via char code instead of a regex literal, to avoid literal control
+// characters in the source.
 function hasControlChar(s: string): boolean {
   for (let i = 0; i < s.length; i++) {
     const code = s.charCodeAt(i)
@@ -47,7 +48,7 @@ function hasControlChar(s: string): boolean {
   return false
 }
 
-// Prüft ein einzelnes gesetztes Freitextfeld strukturell.
+// Structurally validates a single set free-text field.
 export function validateCustomField(field: string, raw: string): FieldError[] {
   const errors: FieldError[] = []
   const value = raw.trim()

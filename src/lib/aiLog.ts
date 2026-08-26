@@ -1,7 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabase-server'
 
 export interface AiProcessLogEntry {
-  /** Kurzer, stabiler Bezeichner des Aufrufers, z. B. "excel.execute", "game.regenerate". */
+  /** Short, stable identifier of the caller, e.g. "excel.execute", "game.regenerate". */
   source: string
   actorId?: string | null
   gameId?: string | null
@@ -14,8 +14,8 @@ export interface AiProcessLogEntry {
   meta?: Record<string, unknown> | null
 }
 
-// Darf den aufrufenden KI-Prozess niemals blockieren oder zum Absturz bringen —
-// ein fehlgeschlagener Log-Insert ist nie ein Grund, den eigentlichen Request scheitern zu lassen.
+// Must never block or crash the calling AI process — a failed log insert is never
+// a reason to fail the actual request.
 export async function recordAiProcessLog(entry: AiProcessLogEntry): Promise<void> {
   try {
     const { error } = await supabaseAdmin.from('ai_process_logs').insert({

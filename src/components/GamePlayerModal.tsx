@@ -11,7 +11,7 @@ import { useI18n } from '@/lib/i18n'
 
 interface Props {
   game: Game
-  /** Eingeloggter Spieler — der Excel-Player braucht ihn für seine eigenen API-Calls. */
+  /** Logged-in player — the Excel player needs it for its own API calls. */
   playerId: string
   onClose: () => void
   /** Called once a completed run has been persisted, so the dashboard can refresh. */
@@ -23,8 +23,8 @@ const QUIZ_POINTS_PER_CORRECT = 10
 export default function GamePlayerModal({ game, playerId, onClose, onSaved }: Props) {
   const { t } = useI18n()
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
-  // Sobald ein Durchlauf beendet ist, wird beim nächsten Schließen einmalig nach
-  // Feedback gefragt. `phase` schaltet den Modal-Body von Spiel auf Feedback um.
+  // Once a run is finished, the next close prompts for feedback exactly once.
+  // `phase` switches the modal body from the game to the feedback step.
   const [completed, setCompleted] = useState(false)
   const [feedbackDone, setFeedbackDone] = useState(false)
   const [phase, setPhase] = useState<'playing' | 'feedback'>('playing')
@@ -45,14 +45,14 @@ export default function GamePlayerModal({ game, playerId, onClose, onSaved }: Pr
     }
   }, [game.id, onSaved])
 
-  // Spielende für Quiz/Hallu/Arena/Branching: Score speichern + als beendet markieren.
+  // Game end for Quiz/Hallu/Arena/Branching: save the score and mark it as completed.
   const finishGame = useCallback((score: number) => {
     setCompleted(true)
     saveScore(score)
   }, [saveScore])
 
-  // Schließen fängt einen beendeten Durchlauf ab und zeigt zuerst den Feedback-Schritt.
-  // In der Feedback-Phase zählt Schließen als "Überspringen".
+  // Closing intercepts a finished run and shows the feedback step first.
+  // During the feedback phase, closing counts as "skip".
   const handleRequestClose = useCallback(() => {
     if (completed && !feedbackDone && phase !== 'feedback') {
       setPhase('feedback')
@@ -61,8 +61,8 @@ export default function GamePlayerModal({ game, playerId, onClose, onSaved }: Pr
     }
   }, [completed, feedbackDone, phase, onClose])
 
-  // Format-Erkennung deckungsgleich mit GamePreviewModal, damit Admin-Vorschau und
-  // Spieler-Ansicht nie auseinanderlaufen (dort spielbar => hier spielbar).
+  // Format detection mirrors GamePreviewModal exactly, so the admin preview and
+  // the player view never drift apart (playable there => playable here).
   const isExcel = game.format === 'excel_challenge' && Boolean(game.game_json?.task) && Boolean(game.game_json?.initialData)
   const isHallu = game.game_json?.format === 'hallucination_spotter_v2' && Boolean(game.game_json?.halluRound)
   const isArena = game.game_json?.format === 'prompt_arena' && (game.game_json?.arenaRounds?.length ?? 0) > 0
@@ -123,8 +123,8 @@ export default function GamePlayerModal({ game, playerId, onClose, onSaved }: Pr
               initialData={game.game_json.initialData!}
               maxAttempts={game.game_json.maxAttempts ?? 3}
               playerId={playerId}
-              // /api/excel/finish hat das Ergebnis bereits persistiert (scores +
-              // Gamification) — hier nur noch Status zeigen, kein zweiter Insert.
+              // /api/excel/finish has already persisted the result (scores +
+              // gamification) — here we just show the status, no second insert.
               onComplete={() => { setSaveState('saved'); setCompleted(true); onSaved() }}
               onClose={handleRequestClose}
             />
@@ -184,7 +184,7 @@ function QuizPlayer({ game, onComplete, onClose }: { game: Game; onComplete: (sc
   function handleNext() {
     if (currentIndex + 1 >= total) {
       setDone(true)
-      // Leaderboard-Score einheitlich als Prozent (0–100), damit alle Spieltypen vergleichbar sind.
+      // Leaderboard score is normalized to a percentage (0–100) so all game types are comparable.
       onComplete(maxPoints > 0 ? Math.round((score / maxPoints) * 100) : 0)
     } else {
       setCurrentIndex(i => i + 1)

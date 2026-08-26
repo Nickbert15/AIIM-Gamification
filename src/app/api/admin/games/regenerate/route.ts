@@ -118,8 +118,8 @@ export async function POST(req: NextRequest) {
 
     let raw: string
     try {
-      // Großzügiges Token-Limit: verzweigte Spiele (branching-Knoten, Arena-Runden)
-      // können umfangreiches JSON produzieren, das sonst mitten im Array abreißt.
+      // Generous token limit: branching games (branch nodes, arena rounds) can
+      // produce extensive JSON that would otherwise get cut off mid-array.
       raw = await callKiconnect(messages, { temperature: 0.85, maxTokens: 8000 }, {
         source: 'game.regenerate',
         actorId: admin.id,
@@ -150,8 +150,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Regenerierung fehlgeschlagen — bitte erneut versuchen' }, { status: 422 })
   }
 
-  // Content hat sich geändert -> zurück auf Entwurf, damit ein zuvor freigegebenes
-  // Spiel nicht ungeprüft mit neuem Inhalt live bleibt.
+  // Content changed -> back to draft, so a previously approved game doesn't stay
+  // live with unreviewed new content.
   const { data: updated, error: updateError } = await supabaseAdmin
     .from('games')
     .update({ game_json: candidate, status: 'draft' })

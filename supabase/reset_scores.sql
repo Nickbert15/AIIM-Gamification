@@ -1,19 +1,19 @@
--- Einmalig im Supabase SQL-Editor ausführen.
--- Setzt die alten, uneinheitlich skalierten Scores zurück, nachdem alle
--- Spieltypen auf einen 0–100-Wert normalisiert wurden. Nur neue Runden zählen
--- danach – alle sauber auf derselben Skala.
+-- Run once in the Supabase SQL editor.
+-- Resets the old, inconsistently scaled scores after all game types were
+-- normalized to a 0-100 value. Only new rounds count after this — all cleanly
+-- on the same scale.
 
--- === Variante A: ALLES löschen (sauberer Neustart, empfohlen in der Testphase) ===
+-- === Variant A: delete EVERYTHING (clean restart, recommended during the test phase) ===
 delete from scores;
 
--- Gamification-Punkte auf players zurücksetzen, damit Dashboard & Streak zur
--- geleerten Historie passen. (players.score ist getrennt vom Leaderboard-Sum,
--- siehe applyPlayGamification.)
+-- Reset gamification points on players so the dashboard & streak match the
+-- cleared history. (players.score is separate from the leaderboard sum,
+-- see applyPlayGamification.)
 update players
   set score = 0,
       current_streak = 0,
       last_played_at = null;
 
--- === Variante B: statt Variante A nur Alt-Einträge vor einem Stichtag löschen ===
--- (Variante A oben auskommentieren, wenn du B nutzt.)
+-- === Variant B: instead of variant A, only delete old entries before a cutoff date ===
+-- (Comment out variant A above if you use B.)
 -- delete from scores where completed_at < '2026-07-21';

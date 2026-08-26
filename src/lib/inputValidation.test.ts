@@ -10,7 +10,7 @@ const base: CustomInputPayload = {
 
 describe('validateCustomInput', () => {
   it('ignoriert Felder, deren Dropdown nicht "other" ist', () => {
-    // technologyCustom ist Müll, wird aber nicht geprüft, weil technologyId != "other"
+    // technologyCustom is garbage, but isn't checked because technologyId != "other"
     const res = validateCustomInput({ ...base, technologyCustom: '<script>' })
     expect(res.valid).toBe(true)
     expect(res.errors).toEqual([])
@@ -81,7 +81,7 @@ describe('validateCustomField', () => {
   })
 
   it('lehnt Steuerzeichen ab', () => {
-    // Steuerzeichen bewusst per fromCharCode einsetzen (kein Literal im Quelltext).
+    // Deliberately insert control characters via fromCharCode (no literal in source).
     const withNul = 'abc' + String.fromCharCode(0) + 'def'
     const withTab = 'abc' + String.fromCharCode(9) + 'def'
     expect(validateCustomField('f', withNul)).not.toHaveLength(0)

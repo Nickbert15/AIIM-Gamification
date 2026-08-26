@@ -91,9 +91,9 @@ src/
 │     ├─ excel/               # execute (KI-Transformation) + finish (Auswertung)
 │     ├─ generate/            # Spielgenerierung → n8n
 │     ├─ feedback/            # Feedback speichern
-│     └─ admin/               # stats, players, scores, feedback (Service-Role, admin-gated)
+│     └─ admin/               # stats, players, scores, feedback, games/regenerate (Service-Role, admin-gated)
 ├─ components/                # Game-Player + Modals (GamePlayerModal, ExcelGamePlayer, …)
-├─ lib/                       # supabase(-server), auth, session, gamification, excel*, …
+├─ lib/                       # supabase(-server), auth, session, gamification, excel*, aiLog, …
 └─ types/game.ts              # Zentrale Typen für Spiele & Spielinhalte
 ```
 
@@ -105,6 +105,7 @@ src/
 erDiagram
     players ||--o{ scores : "spielt"
     players ||--o{ game_feedback : "bewertet"
+    players ||--o{ ai_process_logs : "löst aus"
     games ||--o{ scores : "wird gespielt"
     games ||--o{ game_feedback : "erhält Feedback"
 
@@ -153,6 +154,20 @@ erDiagram
         text label
         text whats_new
         text source_url
+    }
+    ai_process_logs {
+        uuid id PK
+        uuid actor_id FK "nullable"
+        text game_id "= games.id, optional, kein FK"
+        text source "z. B. excel.execute, game.regenerate"
+        text model
+        text status "success | error"
+        int duration_ms
+        jsonb request
+        jsonb response
+        text error_message
+        jsonb meta
+        timestamptz created_at
     }
 ```
 
@@ -246,8 +261,10 @@ flowchart TD
     G --> G1["+ Spiel generieren (GenerateGameModal)"]
     G1 --> G2["/api/generate → n8n"]
     G2 --> G3["neues Game: status = draft"]
-    G3 --> G4["Review-Modal: Freigeben / Ablehnen"]
+    G3 --> G4["Review-Modal: Freigeben / Ablehnen / Regenerieren"]
     G4 -->|approved| G5["erscheint bei Spielern"]
+    G4 -->|"Regenerieren (+ optionale Zusatzanweisung)"| G6["/api/admin/games/regenerate<br/>(KIconnect direkt, gleiches JSON-Schema)"]
+    G6 --> G3
 ```
 
 - **Übersicht** ([`admin/page.tsx`](../src/app/admin/page.tsx)): Kennzahlen (Spieler, Games
@@ -261,7 +278,12 @@ flowchart TD
   automatisch beim Spielen.)
 - **Games** ([`admin/games`](../src/app/admin/games/GamesClient.tsx)): Spiele **generieren**
   (siehe §9), nach Status filtern (draft/approved/rejected), **Vorschau** und **Review**
-  (Freigeben/Ablehnen setzt `games.status`).
+  (Freigeben/Ablehnen setzt `games.status`). Im Review-Modal kann der Inhalt zusätzlich
+  **regeneriert** werden (optionale Zusatzanweisung als Freitext) — anders als die
+  Erstgenerierung läuft das **direkt über KIconnect** (nicht n8n):
+  [`/api/admin/games/regenerate`](../src/app/api/admin/games/regenerate/route.ts) schickt das
+  bestehende `game_json` als Struktur-Vorlage an das LLM, validiert, dass die Antwort exakt
+  demselben Schema folgt (sonst Retry), und setzt `games.status` zurück auf `draft`.
 - **Feedback** ([`admin/feedback`](../src/app/admin/feedback/page.tsx)): Übersichtskacheln,
   **Aufschlüsselung pro Spieltyp** (Ø-Bewertung, Verteilungsbalken, Anzahl je Stufe) und die
   Einzel-Feedbacks mit Kommentaren. Der Spieltyp wird in
@@ -319,6 +341,9 @@ sequenceDiagram
   `draft` in `games` ab.
 - Generierung ist **asynchron/entkoppelt**: Das neue Spiel erscheint erst nach **Admin-Freigabe**
   (`status = approved`) bei den Spielern.
+- Diese Pipeline erzeugt **neue** Games. Um den Inhalt eines **bestehenden** Games neu zu
+  generieren, siehe die **Regenerieren**-Funktion im Review-Modal (§7) — läuft direkt über
+  KIconnect statt über n8n.
 
 ---
 
@@ -351,10 +376,43 @@ sequenceDiagram
 | `/api/admin/players` | GET/POST/PATCH/DELETE | Spielerverwaltung | **Admin** |
 | `/api/admin/scores` | GET/DELETE | Scores einsehen/löschen | **Admin** |
 | `/api/admin/feedback` | GET | Feedback inkl. Spieltyp | **Admin** |
+| `/api/admin/games/regenerate` | POST | Spielinhalt neu generieren (KIconnect direkt) | **Admin** |
 
 ---
 
-## 12. Umgebungsvariablen
+## 12. KI-Prozess-Protokoll (Audit-Log)
+
+Jeder KI-Aufruf — direkte KIconnect-Calls **und** der n8n-Generierungs-Trigger — wird in der
+Tabelle `ai_process_logs` protokolliert: wer hat wann welchen Prozess mit welchem Ergebnis
+ausgelöst.
+
+| Spalte | Bedeutung |
+|--------|-----------|
+| `source` | Bezeichner des Aufrufers, z. B. `excel.execute`, `game.regenerate`, `game.generate.n8n` |
+| `actor_id` | Auslösender Player/Admin (`players.id`, nullable) |
+| `game_id` | Zugehöriges Spiel, falls vorhanden (lose referenziert, kein FK — wie `scores.game_id`) |
+| `model`, `status`, `duration_ms` | Modellname, `success` \| `error`, Laufzeit in ms |
+| `request` / `response` | vollständige Messages bzw. Antworttext (jsonb) |
+| `error_message`, `meta` | Fehlertext bzw. aufrufer-spezifischer Zusatzkontext |
+
+- [`callKiconnect()`](../src/lib/kiconnect.ts) nimmt optional einen `AiLogContext` (`source`,
+  `actorId`, `gameId`, `meta`) entgegen und schreibt bei jedem Aufruf automatisch einen Eintrag
+  über [`recordAiProcessLog()`](../src/lib/aiLog.ts) — sowohl bei Erfolg als auch bei Fehlern.
+  Ohne diesen Parameter wird nicht geloggt.
+- Der n8n-Trigger in [`/api/generate`](../src/app/api/generate/route.ts) ruft
+  `recordAiProcessLog()` direkt auf, da dort kein KIconnect-Call stattfindet — die eigentliche
+  Generierung läuft im n8n-Workflow außerhalb dieses Repos.
+- Tabelle angelegt via
+  [`supabase/migrations/20260826_add_ai_process_logs.sql`](../supabase/migrations/20260826_add_ai_process_logs.sql).
+  RLS ist aktiv, aber ohne Policies → nur über die Service-Role (`supabaseAdmin`) lesbar/schreibbar.
+- Ein Log-Fehler darf den eigentlichen KI-Prozess nie zum Scheitern bringen (`recordAiProcessLog`
+  fängt alle Fehler ab und loggt nur `console.error`).
+- Es gibt aktuell **keine Admin-Oberfläche** zur Einsicht; Auswertung läuft über den Supabase
+  SQL-Editor.
+
+---
+
+## 13. Umgebungsvariablen
 
 | Variable | Zweck |
 |----------|-------|

@@ -13,7 +13,7 @@ export interface Game {
   status: 'draft' | 'approved' | 'rejected'
   source_attribution: Record<string, unknown> | null
   created_at: string
-  /** Admin-Pin: global als "Spiel der Woche" hervorgehoben. Höchstens ein Spiel true. */
+  /** Admin pin: highlighted globally as "Game of the Week". At most one game true. */
   is_gotw?: boolean
 }
 
@@ -156,21 +156,21 @@ export interface ArenaEvaluation {
 }
 
 // --- Prompt-Navigator (prompt_branching) ---
-// Ein Szenario, in dem die Spielerin aus mehreren Prompt-Optionen wählt und den
-// simulierten KI-Output anschließend über ein kleines Zustandsdiagramm (Knoten +
-// Optionen) bewertet bekommt. Die Knotentypen sind bewusst generisch gehalten,
-// damit ein Szenario mehrere Runden (Auswahl -> Diagnose -> Nachsteuern) abbilden
-// kann, ohne dass der Player-Code pro Runde neuen Code braucht.
+// A scenario where the player chooses among several prompt options and then gets
+// the simulated AI output scored via a small state diagram (nodes + options). The
+// node types are deliberately kept generic so a scenario can model multiple rounds
+// (choice -> diagnosis -> follow-up) without the player code needing new code per
+// round.
 
 export type BranchNodeType = 'prompt_choice' | 'output_review' | 'diagnosis' | 'info' | 'end'
 
 export interface BranchOption {
   id: string
   label: string
-  /** Nur bei prompt_choice: der vollständige Prompt-Text, der der Spielerin angezeigt wird */
+  /** Only for prompt_choice: the full prompt text shown to the player */
   promptText?: string | null
   points: number
-  /** Erklärung, die bei diagnosis-Knoten nach der Wahl eingeblendet wird */
+  /** Explanation shown after the choice on diagnosis nodes */
   feedback?: string
   nextNode: string
 }
@@ -182,18 +182,18 @@ export interface BranchRecapLesson {
 
 export interface BranchNode {
   type: BranchNodeType
-  /** Frage/Aufgabenstellung (prompt_choice, diagnosis) oder Erklärtext (info) */
+  /** Question/task (prompt_choice, diagnosis) or explanatory text (info) */
   text?: string
-  /** Simulierter KI-Output (output_review) */
+  /** Simulated AI output (output_review) */
   aiOutput?: string
-  /** Kurzes Bewertungs-Label für den Ergebnis-Popup (output_review), z. B. "Ausgezeichnet" */
+  /** Short rating label for the result popup (output_review), e.g. "Excellent" */
   ratingLabel?: string
-  /** Begründung, warum der Prompt/Output gut oder weniger gut war (output_review) */
+  /** Rationale for why the prompt/output was good or less good (output_review) */
   explanation?: string
   options?: BranchOption[]
-  /** Bei info-/output_review-Knoten: direkter Folgeknoten */
+  /** For info/output_review nodes: the direct follow-up node */
   nextNode?: string
-  /** Nur bei end-Knoten */
+  /** Only for end nodes */
   recapIntro?: string
   lessons?: BranchRecapLesson[]
 }

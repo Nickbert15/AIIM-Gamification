@@ -13,9 +13,9 @@ export const LANG_COOKIE = 'lang'
 const STORAGE_KEY = 'lang'
 
 /**
- * Zentrales Wörterbuch. Schlüssel sind namespaced (nav.*, lb.*, …). Deutsch ist die
- * Ausgangssprache; fehlt eine englische Übersetzung, fällt t() auf Deutsch zurück
- * und zuletzt auf den Schlüssel selbst.
+ * Central dictionary. Keys are namespaced (nav.*, lb.*, …). German is the source
+ * language; if an English translation is missing, t() falls back to German and
+ * finally to the key itself.
  */
 const dict: Record<Lang, Record<string, string>> = {
   de: {
@@ -1068,8 +1068,8 @@ export function LanguageProvider({
 }) {
   const [lang, setLangState] = useState<Lang>(initialLang)
 
-  // Nach dem Mount die gespeicherte Präferenz übernehmen (localStorage gewinnt gegen
-  // den vom Server via Cookie gesetzten Startwert, falls sie abweicht).
+  // Apply the saved preference after mount (localStorage wins over the initial
+  // value set by the server via cookie, if they differ).
   useEffect(() => {
     const stored = typeof window !== 'undefined' ? window.localStorage.getItem(STORAGE_KEY) : null
     if (isLang(stored) && stored !== lang) setLangState(stored)
@@ -1084,7 +1084,7 @@ export function LanguageProvider({
     setLangState(next)
     if (typeof window !== 'undefined') {
       window.localStorage.setItem(STORAGE_KEY, next)
-      // Cookie, damit der Server beim nächsten Render dieselbe Sprache liefert (1 Jahr).
+      // Cookie so the server serves the same language on the next render (1 year).
       document.cookie = `${LANG_COOKIE}=${next};path=/;max-age=31536000;samesite=lax`
     }
   }, [])

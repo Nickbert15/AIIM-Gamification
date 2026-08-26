@@ -224,9 +224,9 @@ const workspaceStyles = `
     min-height: 0;
     min-width: 0;
   }
-  /* Nach Klassen adressiert statt per Position: ExcelSheet und CopilotSidebar rendern
-     jeweils ein <style> vor ihrem <div>, sodass :first-child/:last-child je nach
-     React-Style-Hoisting (dev vs. prod build) den falschen Knoten trafen. */
+  /* Addressed by class instead of position: ExcelSheet and CopilotSidebar each
+     render a <style> before their <div>, so :first-child/:last-child would hit
+     the wrong node depending on React's style hoisting (dev vs. prod build). */
   .egw-main .xs-workspace {
     flex: 1;
     min-width: 0;
@@ -236,8 +236,8 @@ const workspaceStyles = `
     min-width: 240px;
   }
 
-  /* Schmale Screens: Tabelle und Copilot untereinander statt nebeneinander,
-     damit beide nutzbar bleiben statt sich den knappen Platz zu teilen. */
+  /* Narrow screens: stack the table and Copilot instead of side by side,
+     so both stay usable instead of splitting the limited space. */
   @media (max-width: 760px) {
     .egw-workspace {
       height: auto;

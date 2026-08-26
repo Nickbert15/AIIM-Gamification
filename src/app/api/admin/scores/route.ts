@@ -6,9 +6,9 @@ export const dynamic = 'force-dynamic'
 
 const forbidden = () => NextResponse.json({ error: 'forbidden' }, { status: 403 })
 
-// Lesen/Eintragen/Löschen laufen über den Service-Role-Key. Der Anon-Key hat auf der
-// scores-Tabelle keine Rechte (RLS), deshalb liefen die früheren Client-Calls dieser
-// Seite ins Leere.
+// Reads/writes/deletes all go through the service-role key. The anon key has no
+// permissions on the scores table (RLS), which is why this page's earlier client-side
+// calls silently did nothing.
 export async function GET() {
   if (!(await getSessionAdmin())) return forbidden()
 

@@ -158,8 +158,8 @@ const ribbonStyles = `
     border-radius: 4px;
   }
 
-  /* Schmale Screens: Tab-Leiste und Gruppen horizontal scrollen lassen,
-     statt zu überlaufen und abgeschnitten zu werden. */
+  /* Narrow screens: let the tab bar and groups scroll horizontally,
+     instead of overflowing and getting cut off. */
   @media (max-width: 760px) {
     .xr-tabbar { overflow-x: auto; }
     .xr-groups { overflow-x: auto; }

@@ -1,15 +1,15 @@
 import { BranchingContent, Game } from '@/types/game'
 
-// Lokale Beispiel-Instanz für den Prompt-Navigator ("Der CFO wartet"). Dient als
-// DB-/LLM-freie Testversion (siehe /play/demo) und als Referenz dafür, wie ein
-// echter, über den Admin-Dialog freigegebener prompt_branching-Datensatz aussehen
-// müsste (game_json.branching, siehe src/types/game.ts).
+// Local sample instance for the Prompt Navigator ("The CFO Is Waiting"). Serves as
+// a DB-/LLM-free test version (see /play/demo) and as a reference for what a real
+// prompt_branching record approved via the admin dialog should look like
+// (game_json.branching, see src/types/game.ts).
 //
-// 5 Prompt-Optionen, didaktisch gestaffelt:
-//   A, B, E — deutlich unterschiedliche Fehlerbilder (kein Kontext / Fabrikation
-//             ohne Daten / vage Aufgabe trotz Daten)
-//   C, D    — fast identisch formuliert, nur eine Anti-Halluzinations-Klausel
-//             unterscheidet sie (die feine-Nuancen-Lektion)
+// 5 prompt options, staged for didactic purposes:
+//   A, B, E — clearly different failure patterns (no context / fabrication
+//             without data / vague task despite data)
+//   C, D    — worded almost identically, differing only by an anti-hallucination
+//             clause (the fine-nuance lesson)
 
 const branching: BranchingContent = {
   scenario: {

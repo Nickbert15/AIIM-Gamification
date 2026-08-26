@@ -231,7 +231,7 @@ export default function PromptArenaPlayer({ game, onComplete }: Props) {
   function handleNextRound() {
     if (isLast) {
       setDone(true)
-      // Leaderboard-Score einheitlich als Prozent (0–100), damit alle Spieltypen vergleichbar sind.
+      // Leaderboard score is normalized to a percentage (0–100) so all game types are comparable.
       onComplete(maxPoints > 0 ? Math.round((score / maxPoints) * 100) : 0)
     } else {
       setRoundIndex(i => i + 1)

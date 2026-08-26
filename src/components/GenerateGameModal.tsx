@@ -26,7 +26,7 @@ interface Technology {
 
 const OTHER = 'other'
 
-// Statische Lernziel-Liste (bewusst keine DB-Tabelle). Labels/Beschreibungen via i18n.
+// Static learning-goal list (deliberately not a DB table). Labels/descriptions via i18n.
 const LEARNING_GOALS: { value: string; labelKey: string; descKey: string }[] = [
   { value: 'finanzabschluss', labelKey: 'ggm.goal.finanzabschluss', descKey: 'ggm.goalDesc.finanzabschluss' },
   { value: 'buchhaltung', labelKey: 'ggm.goal.buchhaltung', descKey: 'ggm.goalDesc.buchhaltung' },
@@ -44,7 +44,7 @@ const DIFFICULTIES: { value: Difficulty; labelKey: string }[] = [
   { value: 'hard', labelKey: 'ggm.diff.hard' },
 ]
 
-// Werte identisch mit der Spalte games.format. Label = Produktname (bleibt), Beschreibung via i18n.
+// Values match the games.format column exactly. Label = product name (stays as-is), description via i18n.
 const GAME_TYPES: { value: GameType; label: string; descKey: string }[] = [
   { value: 'excel_challenge', label: 'Excel Challenge', descKey: 'ggm.gtDesc.excel_challenge' },
   { value: 'hallucination_spotter_v2', label: 'Hallucination Spotter', descKey: 'ggm.gtDesc.hallucination_spotter_v2' },
@@ -52,7 +52,7 @@ const GAME_TYPES: { value: GameType; label: string; descKey: string }[] = [
   { value: 'prompt_branching', label: 'Prompt-Navigator', descKey: 'ggm.gtDesc.prompt_branching' },
 ]
 
-// Neueste zuerst, dann pro label nur den ersten (= neuesten) Eintrag behalten.
+// Newest first, then keep only the first (= newest) entry per label.
 function dedupeByLabel(rows: Technology[]): Technology[] {
   const sorted = [...rows].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -88,7 +88,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
   const [errorMessage, setErrorMessage] = useState('')
   const [wizardV2Open, setWizardV2Open] = useState(false)
 
-  // Feedback aus /api/generate: Schicht-1-Feldfehler und Schicht-2-Klärung.
+  // Feedback from /api/generate: layer-1 field errors and layer-2 clarification.
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [clarify, setClarify] = useState<
     { verdict: 'warn' | 'block'; message: string; suggestion: string | null } | null
@@ -119,7 +119,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
       })
   }, [isOpen])
 
-  // Klick außerhalb schließt das Technologie-Dropdown.
+  // Click outside closes the technology dropdown.
   useEffect(() => {
     if (!techOpen) return
     function handleClick(e: MouseEvent) {
@@ -131,7 +131,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [techOpen])
 
-  // Klick außerhalb schließt das Lernziel-Dropdown.
+  // Click outside closes the learning-goal dropdown.
   useEffect(() => {
     if (!goalOpen) return
     function handleClick(e: MouseEvent) {
@@ -143,7 +143,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [goalOpen])
 
-  // Klick außerhalb schließt das Spieltyp-Dropdown.
+  // Click outside closes the game-type dropdown.
   useEffect(() => {
     if (!gameTypeOpen) return
     function handleClick(e: MouseEvent) {
@@ -198,7 +198,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
     setClarify(null)
   }
 
-  // Bei jeder Eingabeänderung veraltetes Feedback verwerfen (Assumption neu bewerten lassen).
+  // Discard stale feedback on every input change (let the assumption get re-evaluated).
   function clearFeedback() {
     setFieldErrors({})
     setClarify(null)
@@ -253,7 +253,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
       })
       const data = await res.json()
 
-      // Schicht 1: strukturelle Feldfehler → inline anzeigen, nicht absenden.
+      // Layer 1: structural field errors → show inline, don't submit.
       if (res.status === 400 && data.needsInput) {
         const fe: Record<string, string> = {}
         for (const e of data.errors ?? []) fe[e.field] = e.message
@@ -262,7 +262,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
         return
       }
 
-      // Schicht 2: LLM-Klärung.
+      // Layer 2: LLM clarification.
       if (data.verdict === 'block') {
         setClarify({ verdict: 'block', message: data.message ?? t('ggm.clarifyBlock'), suggestion: null })
         setStatus('idle')
@@ -283,7 +283,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
         return
       }
 
-      // Generierung fehlgeschlagen (nach bestandener Klärung, im n8n-Workflow).
+      // Generation failed (after passing clarification, inside the n8n workflow).
       if (data.stage === 'generation') {
         const msg = Array.isArray(data.errors)
           ? data.errors.join('; ')
@@ -369,7 +369,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
           background: var(--bg-card);
         }
 
-        /* Custom Technologie-Dropdown (native select kann keine Info-Icons/Tooltips pro Eintrag) */
+        /* Custom technology dropdown (native select can't do per-item info icons/tooltips) */
         .ggm-combo { position: relative; width: 100%; }
         .ggm-combo-trigger {
           background: var(--surface-sunken);
@@ -408,8 +408,8 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
           overflow-y: auto;
           box-shadow: var(--shadow-lg);
         }
-        /* Für kurze Listen (z. B. Spieltyp): nicht scrollen/clippen, damit die
-           per-Zeile-Tooltips nach oben/unten frei überstehen können. */
+        /* For short lists (e.g. game type): don't scroll/clip, so the
+           per-row tooltips can overflow freely above/below. */
         .ggm-combo-list--flush { max-height: none; overflow: visible; }
         .ggm-combo-row {
           display: flex;
@@ -584,7 +584,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
             </>
           ) : (
             <>
-              {/* ── 1. Technologie ── */}
+              {/* ── 1. Technology ── */}
               <div className="ggm-field">
                 <label className="ggm-label">{t('ggm.labelTech')}</label>
                 <div className="ggm-combo" ref={techRef}>
@@ -688,7 +688,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                 )}
               </div>
 
-              {/* ── 2. Lernziel ── */}
+              {/* ── 2. Learning Goal ── */}
               <div className="ggm-field">
                 <label className="ggm-label">{t('ggm.labelGoal')}</label>
                 <div className="ggm-combo" ref={goalRef}>
@@ -763,7 +763,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                 )}
               </div>
 
-              {/* ── 3. Spieltyp ── */}
+              {/* ── 3. Game Type ── */}
               <div className="ggm-field">
                 <label className="ggm-label">{t('ggm.labelGameType')}</label>
                 <div className="ggm-combo" ref={gameTypeRef}>
@@ -806,7 +806,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                 </div>
               </div>
 
-              {/* ── 4. Schwierigkeit ── */}
+              {/* ── 4. Difficulty ── */}
               <div className="ggm-field">
                 <label className="ggm-label">{t('ggm.labelDifficulty')}</label>
                 <select
@@ -822,7 +822,7 @@ export default function GenerateGameModal({ isOpen, onClose }: Props) {
                 </select>
               </div>
 
-              {/* Schicht-2-Klärung: warn (Hinweis + Trotzdem fortfahren) / block (nur Hinweis) */}
+              {/* Layer-2 clarification: warn (notice + Continue anyway) / block (notice only) */}
               {clarify && (
                 <div className={clarify.verdict === 'block' ? 'ggm-clarify ggm-clarify--block' : 'ggm-clarify ggm-clarify--warn'}>
                   <div className="ggm-clarify-msg">{clarify.message}</div>

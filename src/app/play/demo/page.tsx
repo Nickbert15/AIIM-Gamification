@@ -3,10 +3,10 @@
 import BranchingGamePlayer from '@/components/BranchingGamePlayer'
 import { promptNavigatorDemoGame } from '@/content/promptNavigatorDemo'
 
-// Lokale, von Supabase/LLM entkoppelte Version des Prompt-Navigators ("Der CFO
-// wartet"). Rendert BranchingGamePlayer direkt mit einem im Code gepflegten
-// Beispiel-Datensatz (src/content/promptNavigatorDemo.ts) — ideal zum Testen,
-// ohne echte Spiele-Datensätze in Supabase anzulegen.
+// Local version of the Prompt Navigator ("Der CFO wartet") decoupled from
+// Supabase/LLM. Renders BranchingGamePlayer directly with a sample dataset
+// maintained in code (src/content/promptNavigatorDemo.ts) — ideal for testing
+// without creating real game records in Supabase.
 export default function LocalDemoPage() {
   return (
     <div style={{ maxWidth: 760, margin: '0 auto' }}>

@@ -53,7 +53,7 @@ export async function PATCH(req: NextRequest) {
   const { id, password, is_admin } = await req.json()
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
 
-  // Sonst könnte sich der letzte Admin selbst aussperren.
+  // Otherwise the last admin could lock themselves out.
   if (is_admin === false && id === admin.id) {
     return NextResponse.json({ error: 'Du kannst dir die Admin-Rolle nicht selbst entziehen.' }, { status: 400 })
   }

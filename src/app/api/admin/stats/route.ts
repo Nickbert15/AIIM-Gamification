@@ -4,9 +4,9 @@ import { getSessionAdmin } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
-// Übersichts-Kennzahlen serverseitig über den Service-Role-Key. Der Anon-Key hat
-// auf den Basistabellen players/scores keine Leserechte (RLS), deshalb liefen die
-// direkten Client-Reads der Übersicht ins Leere ("überall 0").
+// Overview metrics are computed server-side via the service-role key. The anon key
+// has no read access on the underlying players/scores tables (RLS), which is why
+// direct client-side reads for the overview used to return nothing ("zeros everywhere").
 export async function GET() {
   if (!(await getSessionAdmin())) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
 
@@ -27,9 +27,9 @@ export async function GET() {
     ? Math.round(scoreList.reduce((sum, s) => sum + (s.score ?? 0), 0) / gamesPlayed)
     : 0
 
-  // scores.game_id ist die games.id (UUID) bei in-App gespielten Runden; für die
-  // Aktivitätsliste den Titel auflösen. Alt-/Fremdwerte (kein UUID) fallen auf die
-  // rohe ID zurück und werden gar nicht erst gegen die uuid-Spalte gequery't.
+  // For rounds played in-app, scores.game_id is the games.id (UUID); resolve the
+  // title for the activity list. Legacy/foreign values (not a UUID) fall back to
+  // the raw ID and are never even queried against the uuid column.
   const recentList = recent ?? []
   const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
   const gameIds = Array.from(

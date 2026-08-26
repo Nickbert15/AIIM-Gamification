@@ -6,7 +6,7 @@ import { recordAiProcessLog } from '@/lib/aiLog'
 
 type Difficulty = 'easy' | 'medium' | 'hard'
 
-// Kanonische Spieltyp-Werte — identisch mit der Spalte games.format.
+// Canonical game-type values — identical to the games.format column.
 type GameType = 'excel_challenge' | 'hallucination_spotter_v2' | 'prompt_arena' | 'prompt_branching'
 
 interface GenerateRequest {
@@ -22,9 +22,9 @@ interface GenerateRequest {
 const DIFFICULTIES: Difficulty[] = ['easy', 'medium', 'hard']
 const GAME_TYPES: GameType[] = ['excel_challenge', 'hallucination_spotter_v2', 'prompt_arena', 'prompt_branching']
 
-// Jeder Spieltyp hat seinen eigenen n8n-Workflow. process.env wird bewusst mit
-// statischen Schlüsseln gelesen (kein process.env[dynamic]), damit der Next-Build
-// die Werte weiterhin auflösen kann.
+// Each game type has its own n8n workflow. process.env is deliberately read with
+// static keys (no process.env[dynamic]) so the Next build can still resolve the
+// values.
 function resolveWebhook(gameType: GameType): { envKey: string; url: string | undefined } {
   switch (gameType) {
     case 'excel_challenge':
@@ -43,10 +43,10 @@ function isNonEmptyString(v: unknown): v is string {
 }
 
 export async function POST(request: Request) {
-  // requestedBy kommt aus der Session (JWT-Cookie), NICHT vom Client.
-  // Fail-soft: der Admin-Bereich erzwingt (noch) keinen Login, daher kein 401 —
-  // ohne gültige Session bleibt requestedBy null. TODO: strenger machen, sobald
-  // es einen echten Admin-Login gibt.
+  // requestedBy comes from the session (JWT cookie), NOT from the client.
+  // Fail-soft: the admin area doesn't (yet) enforce login, so no 401 —
+  // without a valid session requestedBy stays null. TODO: tighten this once
+  // there's a real admin login.
   const token = getSessionToken()
   let requestedBy: string | null = null
   if (token) {
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
 
   const errors: string[] = []
 
-  // Technologie: entweder eine gesetzte technologyId, oder 'other' + Freitext.
+  // Technology: either a set technologyId, or 'other' + free text.
   if (body.technologyId === 'other') {
     if (!isNonEmptyString(body.technologyCustom)) {
       errors.push('technologyCustom ist bei technologyId="other" erforderlich')
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     errors.push('technologyId fehlt')
   }
 
-  // Lernziel: entweder ein gesetzter Slug, oder 'other' + Freitext.
+  // Learning goal: either a set slug, or 'other' + free text.
   if (body.learningGoal === 'other') {
     if (!isNonEmptyString(body.learningGoalCustom)) {
       errors.push('learningGoalCustom ist bei learningGoal="other" erforderlich')
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
     return Response.json({ ok: false, error: errors.join('; ') }, { status: 400 })
   }
 
-  // SCHICHT 1 — deterministischer Gate: Custom-Freitext strukturell prüfen.
+  // LAYER 1 — deterministic gate: structurally validate custom free text.
   const customValidation = validateCustomInput(body)
   if (!customValidation.valid) {
     return Response.json(
@@ -105,8 +105,8 @@ export async function POST(request: Request) {
     )
   }
 
-  // SCHICHT 2 — LLM-Klärung: nur wenn ein Custom-Feld gesetzt ist und der
-  // Nutzer eine warn-Meldung nicht bereits bewusst bestätigt hat.
+  // LAYER 2 — LLM clarification: only when a custom field is set and the
+  // user hasn't already knowingly acknowledged a warn verdict.
   const hasCustomInput = body.technologyId === 'other' || body.learningGoal === 'other'
   if (hasCustomInput && !body.acknowledgedWarning) {
     const clarification = await clarifyCustomInput(
@@ -127,12 +127,12 @@ export async function POST(request: Request) {
         suggestion: clarification.suggestion,
       })
     }
-    // verdict "ok" → normal weiter.
+    // verdict "ok" -> proceed normally.
   }
 
-  // ── Grounding auflösen (server-seitig) ──
-  // Bei gewählter Technologie label + whats_new aus der DB ziehen; bei "other"
-  // den Freitext als Label nutzen.
+  // ── Resolve grounding (server-side) ──
+  // For a selected technology, pull label + whats_new from the DB; for "other"
+  // use the free text as the label.
   let technologyLabel: string | null = null
   let technologyWhatsNew: string | null = null
 
@@ -150,7 +150,7 @@ export async function POST(request: Request) {
     technologyWhatsNew = techRow?.whats_new ?? null
   }
 
-  // ── An den n8n-Workflow des jeweiligen Spieltyps übergeben ──
+  // ── Hand off to the n8n workflow for the given game type ──
   const gameType = body.gameType as GameType
   const { envKey, url: webhookUrl } = resolveWebhook(gameType)
   if (!webhookUrl) {
@@ -172,13 +172,13 @@ export async function POST(request: Request) {
     requestedBy,
   }
 
-  // Großzügiger Timeout: die Generierung kann mehrere LLM-Calls dauern.
+  // Generous timeout: generation can take multiple LLM calls.
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 120_000)
   const startedAt = Date.now()
 
-  // Die eigentliche LLM-Generierung läuft im n8n-Workflow (außerhalb dieses Repos) —
-  // hier wird nur der Trigger + das Ergebnis dokumentiert, nicht der Prompt selbst.
+  // The actual LLM generation runs in the n8n workflow (outside this repo) —
+  // this only records the trigger + the result, not the prompt itself.
   async function logWebhookCall(status: 'success' | 'error', response: unknown, errorMessage?: string) {
     await recordAiProcessLog({
       source: 'game.generate.n8n',

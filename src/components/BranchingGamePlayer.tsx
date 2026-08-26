@@ -36,11 +36,11 @@ export default function BranchingGamePlayer({ game, onComplete }: Props) {
   const [howToPlayOpen, setHowToPlayOpen] = useState(true)
   const [reported, setReported] = useState(false)
 
-  // Popup-Flow für prompt_choice-Runden (Erstwahl + Nachsteuern)
+  // Popup flow for prompt_choice rounds (initial pick + follow-up adjustment)
   const [previewOption, setPreviewOption] = useState<BranchOption | null>(null)
   const [popupStage, setPopupStage] = useState<PopupStage>(null)
 
-  // Inline-Reflexion (diagnosis)
+  // Inline reflection (diagnosis)
   const [diagnosisSelected, setDiagnosisSelected] = useState<BranchOption | null>(null)
 
   if (!branching) return null
@@ -56,15 +56,15 @@ export default function BranchingGamePlayer({ game, onComplete }: Props) {
     const target = branching!.nodes[targetId]
     if (target?.type === 'end' && !reported) {
       setReported(true)
-      // Leaderboard-Score einheitlich als Prozent (0–100), damit alle Spieltypen vergleichbar sind.
+      // Leaderboard score is normalized to a percentage (0–100) so all game types are comparable.
       onComplete(maxPoints > 0 ? Math.round((totalScore / maxPoints) * 100) : 0)
     }
   }
 
-  /* Klick auf eine Prompt-Karte -> Popup 1 (Ergebnis-Vorschau) öffnen, noch nicht gewertet.
-     Führt eine Option ausnahmsweise nicht zu einem output_review-Knoten (z. B. eine
-     Korrektur-Option, die direkt zu einem Hinweistext springt, ohne neuen Prompt an die
-     KI zu schicken), gibt es nichts zu previewen — dann sofort werten und weiterspringen. */
+  /* Clicking a prompt card -> opens Popup 1 (result preview), not scored yet.
+     If an option exceptionally doesn't lead to an output_review node (e.g. a
+     correction option that jumps straight to an info text without sending a new
+     prompt to the AI), there's nothing to preview — so score it immediately and move on. */
   function handlePreview(option: BranchOption) {
     const target = branching!.nodes[option.nextNode]
     if (target?.type !== 'output_review') {
@@ -77,18 +77,18 @@ export default function BranchingGamePlayer({ game, onComplete }: Props) {
     setPopupStage('preview')
   }
 
-  /* Popup 1: "Neu auswählen" -> zurück zur Kartenauswahl, nichts wird gewertet */
+  /* Popup 1: "Reselect" -> back to card selection, nothing is scored */
   function handleReselect() {
     setPreviewOption(null)
     setPopupStage(null)
   }
 
-  /* Popup 1: "Abschicken" -> Auswahl bestätigen, Button wird zu "Weiter" */
+  /* Popup 1: "Submit" -> confirm the choice, button turns into "Continue" */
   function handleAbschicken() {
     setPopupStage('confirmed')
   }
 
-  /* Popup 1: "Weiter" -> Punkte werden vergeben, Knoten wechselt zum Ergebnis, Popup 2 öffnet */
+  /* Popup 1: "Continue" -> points are awarded, node switches to the result, Popup 2 opens */
   function handleConfirmChoice() {
     if (!previewOption) return
     const { id, label, points, nextNode } = previewOption
@@ -99,7 +99,7 @@ export default function BranchingGamePlayer({ game, onComplete }: Props) {
     setPopupStage(null)
   }
 
-  /* Popup 2: "Weiter" -> Popup schließen, zum Folgeknoten (Diagnose/Info/Ende) */
+  /* Popup 2: "Continue" -> close popup, move to the next node (diagnosis/info/end) */
   function handleAfterResult() {
     const next = node!.nextNode
     if (!next) return
@@ -146,7 +146,7 @@ export default function BranchingGamePlayer({ game, onComplete }: Props) {
         onDismiss={() => setHowToPlayOpen(false)}
       />
 
-      {/* ---------- Recap / Ende ---------- */}
+      {/* ---------- Recap / End ---------- */}
       {node.type === 'end' && (() => {
         const pct = maxPoints > 0 ? Math.round((totalScore / maxPoints) * 100) : 0
         const badges: { icon: LucideIcon; label: string }[] = []
@@ -201,7 +201,7 @@ export default function BranchingGamePlayer({ game, onComplete }: Props) {
         )
       })()}
 
-      {/* ---------- Info-Zwischenknoten ---------- */}
+      {/* ---------- Info intermediate node ---------- */}
       {node.type === 'info' && (
         <div className="pnav-container">
           <div className="pnav-info-card">{node.text}</div>
@@ -213,7 +213,7 @@ export default function BranchingGamePlayer({ game, onComplete }: Props) {
         </div>
       )}
 
-      {/* ---------- Reflexion (diagnosis), inline ---------- */}
+      {/* ---------- Reflection (diagnosis), inline ---------- */}
       {node.type === 'diagnosis' && (
         <div className="pnav-container">
           <StepIndicator steps={[t('bn.stepChoose'), t('bn.stepResult')]} currentIndex={stepIndex} />
@@ -254,7 +254,7 @@ export default function BranchingGamePlayer({ game, onComplete }: Props) {
         </div>
       )}
 
-      {/* ---------- prompt_choice: Karten + Popup 1 ---------- */}
+      {/* ---------- prompt_choice: cards + Popup 1 ---------- */}
       {node.type === 'prompt_choice' && (
         <div className="pnav-container">
           <StepIndicator steps={[t('bn.stepChoose'), t('bn.stepResult')]} currentIndex={stepIndex} />
@@ -282,7 +282,7 @@ export default function BranchingGamePlayer({ game, onComplete }: Props) {
         </div>
       )}
 
-      {/* ---------- output_review: reiner Score-Popup, kein eigener Screen ---------- */}
+      {/* ---------- output_review: pure score popup, no dedicated screen ---------- */}
       {node.type === 'output_review' && <div className="pnav-container" />}
 
       <GamePopup
@@ -395,7 +395,7 @@ const pnavStyles = `
     margin: 0;
   }
 
-  /* Prompt-Auswahl: Kartenraster */
+  /* Prompt selection: card grid */
   .pnav-choice-grid { display: flex; flex-direction: column; gap: 12px; }
   .pnav-choice-card {
     display: flex;
@@ -437,7 +437,7 @@ const pnavStyles = `
     white-space: pre-wrap;
   }
 
-  /* Diagnose: einspaltige Auswahl (inline) */
+  /* Diagnosis: single-column selection (inline) */
   .pnav-options { display: flex; flex-direction: column; gap: 10px; }
   .pnav-option {
     background: var(--bg-card);
