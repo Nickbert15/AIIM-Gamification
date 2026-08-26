@@ -3,19 +3,23 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Game } from '@/types/game'
-import { X, Check, XCircle, Star, Circle } from 'lucide-react'
+import { X, Check, XCircle, RefreshCw, Star, Circle } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 
 interface Props {
   game: Game | null
   onClose: () => void
   onStatusChange: (id: string, status: string) => void
+  onRegenerate: (game: Game) => void
 }
 
-export default function GameReviewModal({ game, onClose, onStatusChange }: Props) {
+export default function GameReviewModal({ game, onClose, onStatusChange, onRegenerate }: Props) {
   const { t } = useI18n()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [additionalInstructions, setAdditionalInstructions] = useState('')
+  const [regenLoading, setRegenLoading] = useState(false)
+  const [regenError, setRegenError] = useState<string | null>(null)
 
   if (!game) return null
 
@@ -33,6 +37,30 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
     } catch (err) {
       setError(err instanceof Error ? err.message : t('grm.saveError'))
       setLoading(false)
+    }
+  }
+
+  async function handleRegenerate() {
+    if (!game) return
+    setRegenLoading(true)
+    setRegenError(null)
+    try {
+      const res = await fetch('/api/admin/games/regenerate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: game.id,
+          additionalInstructions: additionalInstructions.trim() || undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || t('grm.regenerateError'))
+      onRegenerate(data.game as Game)
+      setAdditionalInstructions('')
+    } catch (err) {
+      setRegenError(err instanceof Error ? err.message : t('grm.regenerateError'))
+    } finally {
+      setRegenLoading(false)
     }
   }
 
@@ -202,6 +230,53 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
           color: var(--danger);
           margin-right: auto;
         }
+        .grm-regen {
+          display: flex;
+          gap: 8px;
+          align-items: flex-start;
+        }
+        .grm-regen-input {
+          flex: 1;
+          background: var(--surface-sunken);
+          border: 1px solid var(--border);
+          border-radius: var(--radius);
+          color: var(--text);
+          font-size: 13px;
+          padding: 10px 12px;
+          outline: none;
+          resize: vertical;
+          min-height: 40px;
+          font-family: inherit;
+          transition: border-color var(--duration) var(--ease), box-shadow var(--duration) var(--ease);
+        }
+        .grm-regen-input:focus {
+          border-color: var(--accent);
+          box-shadow: var(--focus-ring);
+        }
+        .grm-regen-btn {
+          flex-shrink: 0;
+          white-space: nowrap;
+        }
+        .grm-regen-hint {
+          font-size: 12px;
+          color: var(--text-muted);
+          margin-top: 6px;
+        }
+        .grm-regen-error {
+          font-size: 12px;
+          color: var(--danger);
+          margin-top: 6px;
+        }
+        .grm-spinner {
+          display: inline-block;
+          width: 13px;
+          height: 13px;
+          border: 2px solid rgba(127,127,127,0.35);
+          border-top-color: var(--text);
+          border-radius: 50%;
+          animation: grm-spin 0.7s linear infinite;
+        }
+        @keyframes grm-spin { to { transform: rotate(360deg); } }
       `}</style>
 
       <div
@@ -215,6 +290,30 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
           </div>
 
           <div className="grm-body">
+            <div>
+              <p className="grm-section-title">{t('grm.regenerateTitle')}</p>
+              <div className="grm-regen">
+                <textarea
+                  className="grm-regen-input"
+                  rows={2}
+                  placeholder={t('grm.regeneratePlaceholder')}
+                  value={additionalInstructions}
+                  onChange={(e) => setAdditionalInstructions(e.target.value)}
+                  disabled={regenLoading || loading}
+                />
+                <button
+                  className="btn btn-ghost grm-regen-btn"
+                  onClick={handleRegenerate}
+                  disabled={regenLoading || loading}
+                >
+                  {regenLoading ? <span className="grm-spinner" /> : <RefreshCw size={15} strokeWidth={2} />}
+                  {regenLoading ? t('grm.regenerating') : t('grm.regenerate')}
+                </button>
+              </div>
+              <div className="grm-regen-hint">{t('grm.regenerateHint')}</div>
+              {regenError && <div className="grm-regen-error">{regenError}</div>}
+            </div>
+
             {game.learning_objective && (
               <div>
                 <p className="grm-section-title">{t('grm.learningObjective')}</p>
@@ -387,13 +486,13 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
 
           <div className="grm-footer">
             {error && <span className="grm-error">{error}</span>}
-            <button className="btn btn-ghost" onClick={onClose} disabled={loading}>
+            <button className="btn btn-ghost" onClick={onClose} disabled={loading || regenLoading}>
               {t('common.cancel')}
             </button>
             <button
               className="btn btn-danger"
               onClick={() => handleStatus('rejected')}
-              disabled={loading}
+              disabled={loading || regenLoading}
             >
               {!loading && <XCircle size={15} strokeWidth={2} />}
               {loading ? '…' : t('grm.reject')}
@@ -401,7 +500,7 @@ export default function GameReviewModal({ game, onClose, onStatusChange }: Props
             <button
               className="btn btn-primary"
               onClick={() => handleStatus('approved')}
-              disabled={loading}
+              disabled={loading || regenLoading}
             >
               {!loading && <Check size={15} strokeWidth={2.25} />}
               {loading ? '…' : t('grm.approve')}

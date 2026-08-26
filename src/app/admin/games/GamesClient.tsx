@@ -56,6 +56,11 @@ export default function GamesClient({ games: initialGames }: Props) {
     setReviewGame(null)
   }
 
+  function handleGameRegenerated(updated: Game) {
+    setGames(prev => prev.map(g => g.id === updated.id ? updated : g))
+    setReviewGame(updated)
+  }
+
   return (
     <>
       <style>{`
@@ -242,6 +247,7 @@ export default function GamesClient({ games: initialGames }: Props) {
         game={reviewGame}
         onClose={() => setReviewGame(null)}
         onStatusChange={handleStatusChange}
+        onRegenerate={handleGameRegenerated}
       />
       <GenerateGameModal isOpen={generateOpen} onClose={() => setGenerateOpen(false)} />
     </>
