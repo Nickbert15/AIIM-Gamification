@@ -54,7 +54,8 @@ export async function POST(request: Request) {
           { role: 'system', content: FEEDBACK_SYSTEM_PROMPT },
           { role: 'user', content: userMessage },
         ],
-        { temperature: 0.6 }
+        { temperature: 0.6 },
+        { source: 'excel.finish', actorId: playerId, gameId, meta: { score, attemptsUsed } }
       )
       feedback = feedback.trim()
       if (!feedback) throw new Error('leere Antwort')

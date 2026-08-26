@@ -1,4 +1,5 @@
 import { callKiconnect, extractJson } from '@/lib/kiconnect'
+import { getSessionPlayerId } from '@/lib/auth'
 
 interface RequestBody {
   learningObjective: string
@@ -16,6 +17,7 @@ interface GeneratedSentence {
 export async function POST(request: Request) {
   try {
     const { learningObjective, topic, difficulty, situation } = (await request.json()) as RequestBody
+    const actorId = await getSessionPlayerId()
 
     const systemPrompt = `Du erstellst Inhalte für ein "Hallucination Spotter"-Lernspiel für Finance & Controlling bei der Lufthansa Group.
 
@@ -34,7 +36,8 @@ Antworte AUSSCHLIESSLICH mit validem JSON in diesem Format, ohne weiteren Text:
         { role: 'system', content: systemPrompt },
         { role: 'user', content: 'Generiere den vollständigen Antworttext als Satzliste.' },
       ],
-      0.8
+      0.8,
+      { source: 'hallucination.outputVariants', actorId, gameId: null, meta: { learningObjective, topic, difficulty, situation } }
     )
 
     const parsed = JSON.parse(extractJson(raw)) as { sentences: GeneratedSentence[] }

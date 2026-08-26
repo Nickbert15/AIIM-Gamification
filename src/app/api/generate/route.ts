@@ -2,6 +2,7 @@ import { getSessionToken, verifyToken } from '@/lib/auth'
 import { createServerClient } from '@/lib/supabase-server'
 import { validateCustomInput } from '@/lib/inputValidation'
 import { clarifyCustomInput } from '@/lib/inputClarification'
+import { recordAiProcessLog } from '@/lib/aiLog'
 
 type Difficulty = 'easy' | 'medium' | 'hard'
 
@@ -108,10 +109,13 @@ export async function POST(request: Request) {
   // Nutzer eine warn-Meldung nicht bereits bewusst bestätigt hat.
   const hasCustomInput = body.technologyId === 'other' || body.learningGoal === 'other'
   if (hasCustomInput && !body.acknowledgedWarning) {
-    const clarification = await clarifyCustomInput({
-      technologyCustom: body.technologyId === 'other' ? body.technologyCustom : null,
-      learningGoalCustom: body.learningGoal === 'other' ? body.learningGoalCustom : null,
-    })
+    const clarification = await clarifyCustomInput(
+      {
+        technologyCustom: body.technologyId === 'other' ? body.technologyCustom : null,
+        learningGoalCustom: body.learningGoal === 'other' ? body.learningGoalCustom : null,
+      },
+      requestedBy
+    )
 
     if (clarification.verdict === 'block') {
       return Response.json({ verdict: 'block', message: clarification.message })
@@ -171,6 +175,25 @@ export async function POST(request: Request) {
   // Großzügiger Timeout: die Generierung kann mehrere LLM-Calls dauern.
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 120_000)
+  const startedAt = Date.now()
+
+  // Die eigentliche LLM-Generierung läuft im n8n-Workflow (außerhalb dieses Repos) —
+  // hier wird nur der Trigger + das Ergebnis dokumentiert, nicht der Prompt selbst.
+  async function logWebhookCall(status: 'success' | 'error', response: unknown, errorMessage?: string) {
+    await recordAiProcessLog({
+      source: 'game.generate.n8n',
+      actorId: requestedBy,
+      gameId: status === 'success' && response && typeof response === 'object' && 'gameId' in response
+        ? (response as { gameId?: string }).gameId ?? null
+        : null,
+      status,
+      durationMs: Date.now() - startedAt,
+      request: payload,
+      response,
+      errorMessage,
+      meta: { gameType, envKey },
+    })
+  }
 
   try {
     const res = await fetch(webhookUrl, {
@@ -181,8 +204,10 @@ export async function POST(request: Request) {
     })
 
     if (!res.ok) {
+      const message = `Webhook antwortete mit HTTP ${res.status}`
+      await logWebhookCall('error', null, message)
       return Response.json(
-        { ok: false, stage: 'generation', errors: [`Webhook antwortete mit HTTP ${res.status}`] },
+        { ok: false, stage: 'generation', errors: [message] },
         { status: 502 }
       )
     }
@@ -192,13 +217,16 @@ export async function POST(request: Request) {
       | null
 
     if (data && data.ok === true && data.gameId) {
+      await logWebhookCall('success', data)
       return Response.json({ ok: true, gameId: data.gameId })
     }
 
     const webhookErrors = data?.errors ?? ['Generierung fehlgeschlagen']
+    await logWebhookCall('error', data, JSON.stringify(webhookErrors))
     return Response.json({ ok: false, stage: 'generation', errors: webhookErrors }, { status: 502 })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Netzwerk-/Timeout-Fehler'
+    await logWebhookCall('error', null, message)
     return Response.json(
       { ok: false, stage: 'generation', errors: [message] },
       { status: 502 }

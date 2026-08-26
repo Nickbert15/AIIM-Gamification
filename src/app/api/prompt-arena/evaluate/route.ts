@@ -1,4 +1,5 @@
 import { callKiconnect, extractJson } from '@/lib/kiconnect'
+import { getSessionPlayerId } from '@/lib/auth'
 
 interface RequestBody {
   taskDescription: string
@@ -13,6 +14,7 @@ export async function POST(request: Request) {
   try {
     const { taskDescription, systemContext, userPrompt, ownAnswerText, bestReferenceText, bestReferenceNote } =
       (await request.json()) as RequestBody
+    const actorId = await getSessionPlayerId()
 
     const systemPrompt = `Du bist ein Prompt-Engineering-Coach für Finance-Mitarbeiter bei der Lufthansa Group, die neu im Umgang mit KI sind. Erkläre alles in einfacher Alltagssprache.
 
@@ -41,7 +43,8 @@ Antworte AUSSCHLIESSLICH mit validem JSON in diesem Format, ohne weiteren Text:
         { role: 'system', content: systemPrompt },
         { role: 'user', content: 'Bewerte die Antwort im vorgegebenen JSON-Format.' },
       ],
-      0.5
+      0.5,
+      { source: 'promptArena.evaluate', actorId, gameId: null, meta: { taskDescription } }
     )
 
     const parsed = JSON.parse(extractJson(raw)) as {

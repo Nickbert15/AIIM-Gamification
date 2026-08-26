@@ -1,4 +1,5 @@
 import { callKiconnect, extractJson } from '@/lib/kiconnect'
+import { getSessionPlayerId } from '@/lib/auth'
 
 interface RequestBody {
   learningObjective: string
@@ -11,6 +12,7 @@ const APPROACHES = ['vage', 'kontext', 'rolle', 'quellen', 'suggestiv'] as const
 export async function POST(request: Request) {
   try {
     const { learningObjective, topic, difficulty } = (await request.json()) as RequestBody
+    const actorId = await getSessionPlayerId()
 
     const systemPrompt = `Du hilfst dabei, ein "Hallucination Spotter"-Lernspiel für Finance & Controlling bei der Lufthansa Group zu entwickeln. Eine 60-jährige Mitarbeitende ohne KI-Erfahrung soll daraus lernen, wie Prompt-Formulierung die Zuverlässigkeit von KI-Antworten beeinflusst.
 
@@ -45,7 +47,8 @@ Antworte AUSSCHLIESSLICH mit validem JSON in diesem Format, ohne weiteren Text:
         { role: 'system', content: systemPrompt },
         { role: 'user', content: 'Generiere die Situation und die 5 Prompt-Vorschläge.' },
       ],
-      0.8
+      0.8,
+      { source: 'hallucination.prompts', actorId, gameId: null, meta: { learningObjective, topic, difficulty } }
     )
 
     const parsed = JSON.parse(extractJson(raw)) as {

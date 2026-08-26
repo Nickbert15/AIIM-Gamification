@@ -65,7 +65,8 @@ function matchesShape(format: string, original: GameJson, candidate: unknown): c
 }
 
 export async function POST(req: NextRequest) {
-  if (!(await getSessionAdmin())) return forbidden()
+  const admin = await getSessionAdmin()
+  if (!admin) return forbidden()
 
   const body = await req.json().catch(() => ({})) as { id?: string; additionalInstructions?: string }
   const { id, additionalInstructions } = body
@@ -119,7 +120,12 @@ export async function POST(req: NextRequest) {
     try {
       // Großzügiges Token-Limit: verzweigte Spiele (branching-Knoten, Arena-Runden)
       // können umfangreiches JSON produzieren, das sonst mitten im Array abreißt.
-      raw = await callKiconnect(messages, { temperature: 0.85, maxTokens: 8000 })
+      raw = await callKiconnect(messages, { temperature: 0.85, maxTokens: 8000 }, {
+        source: 'game.regenerate',
+        actorId: admin.id,
+        gameId: id,
+        meta: { attempt: i + 1, hasAdditionalInstructions: !!trimmedInstructions },
+      })
     } catch (err) {
       console.error(`[admin/games/regenerate] kiconnect-Fehler (Versuch ${i + 1}):`, err)
       continue

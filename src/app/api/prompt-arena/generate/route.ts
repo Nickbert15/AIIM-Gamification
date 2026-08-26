@@ -1,4 +1,5 @@
 import { callKiconnect } from '@/lib/kiconnect'
+import { getSessionPlayerId } from '@/lib/auth'
 
 interface RequestBody {
   taskDescription: string
@@ -9,6 +10,7 @@ interface RequestBody {
 export async function POST(request: Request) {
   try {
     const { taskDescription, systemContext, userPrompt } = (await request.json()) as RequestBody
+    const actorId = await getSessionPlayerId()
 
     if (!userPrompt?.trim()) {
       return Response.json({ error: 'Kein Prompt übergeben' }, { status: 400 })
@@ -21,7 +23,8 @@ export async function POST(request: Request) {
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt.trim() },
       ],
-      0.7
+      0.7,
+      { source: 'promptArena.generate', actorId, gameId: null, meta: { taskDescription } }
     )
 
     return Response.json({ response })

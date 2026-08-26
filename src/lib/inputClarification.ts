@@ -28,10 +28,13 @@ function normalizeVerdict(v: unknown): ClarifyVerdict {
   return v === 'warn' || v === 'block' ? v : 'ok'
 }
 
-export async function clarifyCustomInput(input: {
-  technologyCustom?: string | null
-  learningGoalCustom?: string | null
-}): Promise<ClarifyResult> {
+export async function clarifyCustomInput(
+  input: {
+    technologyCustom?: string | null
+    learningGoalCustom?: string | null
+  },
+  actorId?: string | null
+): Promise<ClarifyResult> {
   const fields: string[] = []
   if (input.technologyCustom) fields.push(`technologyCustom: "${input.technologyCustom}"`)
   if (input.learningGoalCustom) fields.push(`learningGoalCustom: "${input.learningGoalCustom}"`)
@@ -47,7 +50,8 @@ export async function clarifyCustomInput(input: {
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userPrompt },
       ],
-      { temperature: 0.2 }
+      { temperature: 0.2 },
+      { source: 'admin.inputClarification', actorId, gameId: null, meta: input }
     )
 
     const parsed = parseJsonResponse<Partial<ClarifyResult>>(raw)

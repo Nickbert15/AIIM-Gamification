@@ -73,7 +73,12 @@ export async function POST(request: Request) {
       try {
         // Großzügiges Token-Limit: die transformierte Tabelle (bis 60 Zeilen) muss
         // vollständig als JSON zurückkommen, sonst reißt das Array ab.
-        raw = await callKiconnect(messages, { temperature: 0.2, maxTokens: 8000 })
+        raw = await callKiconnect(messages, { temperature: 0.2, maxTokens: 8000 }, {
+          source: 'excel.execute',
+          actorId: playerId,
+          gameId,
+          meta: { prompt, attempt: i + 1 },
+        })
       } catch (err) {
         console.error(`[excel/execute] kiconnect-Fehler (Versuch ${i + 1}):`, err)
         continue
