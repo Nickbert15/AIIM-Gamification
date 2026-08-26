@@ -1,0 +1,480 @@
+{
+  "name": "1 - Research Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        256,
+        -112
+      ],
+      "id": "4acfd9d5-7a3a-4c8d-8050-99ade49431ea",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://venturebeat.com/feed/",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        432,
+        -416
+      ],
+      "id": "6fa768e2-5f87-4e79-bcf6-cbf3a8248163",
+      "name": "RSS VentureBeat"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.xml",
+      "typeVersion": 1,
+      "position": [
+        672,
+        -416
+      ],
+      "id": "cc1797b3-4794-4896-b9ed-c23479dd2535",
+      "name": "Parse RSS VentureBeat"
+    },
+    {
+      "parameters": {
+        "url": "https://www.technologyreview.com/feed/",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        432,
+        240
+      ],
+      "id": "2e116984-b16b-4af3-bf0d-fb776a658551",
+      "name": "RSS MIT Tech Review"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.xml",
+      "typeVersion": 1,
+      "position": [
+        672,
+        240
+      ],
+      "id": "93d076f6-8ea2-4afd-b640-5847e3df1968",
+      "name": "Parse RSS MIT"
+    },
+    {
+      "parameters": {
+        "url": "https://www.theverge.com/rss/index.xml",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        432,
+        -256
+      ],
+      "id": "4ff3cc68-3491-463f-8803-a1bc210ca0e3",
+      "name": "RSS The Verge AI"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.xml",
+      "typeVersion": 1,
+      "position": [
+        672,
+        -256
+      ],
+      "id": "53b63567-8c79-4ad6-a26f-56d17af99a14",
+      "name": "Parse RSS The Verge"
+    },
+    {
+      "parameters": {
+        "url": "https://www.wired.com/feed/rss",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        432,
+        -112
+      ],
+      "id": "115a1cee-cb6c-4113-8904-31e2e3a97d56",
+      "name": "RSS Wired AI"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.xml",
+      "typeVersion": 1,
+      "position": [
+        672,
+        -112
+      ],
+      "id": "90b0ed97-13ad-4574-ba45-359956d6662a",
+      "name": "Parse RSS Wired"
+    },
+    {
+      "parameters": {
+        "url": "https://importai.substack.com/feed",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        432,
+        48
+      ],
+      "id": "7c38795d-6592-4b59-a264-a686ae22a914",
+      "name": "RSS Import AI"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.xml",
+      "typeVersion": 1,
+      "position": [
+        672,
+        48
+      ],
+      "id": "ce075db5-fb30-4d9a-85c0-4f3d8a4da2e7",
+      "name": "Parse RSS Import AI"
+    },
+    {
+      "parameters": {
+        "numberInputs": 5
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        992,
+        -160
+      ],
+      "id": "5a9ed188-dcf4-4ab3-afb9-074696e36ede",
+      "name": "Merge RSS Feeds"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sammle Artikel aus allen 5 RSS Feeds\nconst sources = {\n  0: \"VentureBeat\",\n  1: \"The Verge AI\",\n  2: \"Wired AI\",\n  3: \"Import AI\",\n  4: \"MIT Tech Review\"\n};\n\nconst allArticles = [];\n\nfor (let i = 0; i < $input.all().length; i++) {\n  const item = $input.all()[i].json;\n  const sourceName = sources[i] || \"Unknown\";\n\n  let articles = [];\n  if (item.rss && item.rss.channel && item.rss.channel.item) {\n    articles = Array.isArray(item.rss.channel.item)\n      ? item.rss.channel.item\n      : [item.rss.channel.item];\n  }\n\n  for (const article of articles.slice(0, 5)) {\n    const title = typeof article.title === 'string'\n      ? article.title\n      : (article.title?._ || article.title?.['#text'] || 'No title');\n\n    const description = typeof article.description === 'string'\n      ? article.description\n      : (article.summary?._ || article.summary || article['content:encoded'] || '');\n\n    const link = typeof article.link === 'string'\n      ? article.link\n      : (article.link?.href || article.link?._ || '');\n\n    const cleanDescription = String(description)\n      .replace(/<[^>]*>/g, '')\n      .replace(/\\s+/g, ' ')\n      .trim()\n      .substring(0, 500);\n\n    allArticles.push({\n      title: String(title).trim(),\n      description: cleanDescription,\n      link: String(link),\n      source: sourceName\n    });\n  }\n}\n\nconst limitedArticles = allArticles.slice(0, 20);\nconst articlesAsString = JSON.stringify(limitedArticles, null, 2);\n\nconst systemPrompt = \"Du bist Research Agent fuer die Lufthansa Finance Training Academy. Deine Aufgabe: aus aktuellen AI-News konkrete, benennbare KI-TECHNOLOGIEN extrahieren, die spaeter in einem Dropdown zur Spiel-Erstellung ausgewaehlt werden.\\n\\nAUFGABE: Waehle aus den gelieferten Artikeln NUR echte, konkret benennbare KI-Technologien, -Faehigkeiten oder -Tools aus (z.B. \\\"AI Agents\\\", \\\"Agent Skills\\\", \\\"Copilot Connectors\\\", \\\"Model Context Protocol\\\"). Produktnamen sind hier ERWUENSCHT, wenn sie die Technologie eindeutig benennen.\\n\\nAUSSCHLUSS - ignoriere vollstaendig:\\n- Forschungsartikel, Benchmarks, akademische Papers\\n- Meinungsbeitraege, Spekulationen, AGI-Zukunftsdebatten\\n- reine Firmen-PR ohne konkrete neue Technologie\\n\\nEINSCHLUSS (mindestens eines muss zutreffen):\\n1. Neue, konkret benennbare KI-Technologie oder neues Tool\\n2. Neue KI-Faehigkeit, die Arbeitsablaeufe spuerbar veraendert\\n3. Technologie, die ein nicht-technischer Mensch konzeptuell verstehen kann\\n\\nWICHTIG: Verwende NUR die gelieferten Artikel. Erfinde nichts. Wenn weniger als 5 die Kriterien erfuellen, gib weniger zurueck.\\n\\nGib AUSSCHLIESSLICH valides JSON zurueck, KEINE Markdown-Code-Bloecke, in diesem Format:\\n{\\\"collected_at\\\":\\\"<datum>\\\",\\\"technologies\\\":[{\\\"label\\\":\\\"<kurzes Technologie-Label, max 6 Woerter, Produktname erlaubt>\\\",\\\"whats_new\\\":\\\"<ein deutscher Satz: was diese Technologie neu kann, sachlich, keine Marketing-Sprache>\\\",\\\"source_url\\\":\\\"<link>\\\",\\\"source_name\\\":\\\"<source>\\\"}]}\";\n\nconst userPrompt = \"Hier sind echte Artikel aus aktuellen AI-RSS-Feeds. Waehle die relevantesten Technologien aus:\\n\\n\" + articlesAsString;\n\nconst llmBody = {\n  model: \"OpenAI GPT OSS 120b KI:Inferenz.nrw\",\n  messages: [\n    { role: \"system\", content: systemPrompt },\n    { role: \"user\", content: userPrompt }\n  ],\n  temperature: 0.3\n};\n\nreturn [{\n  json: {\n    article_count: limitedArticles.length,\n    llm_body: llmBody\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        -112
+      ],
+      "id": "7392b7e8-e299-4e08-8a2a-51a75e84e785",
+      "name": "Build LLM Request"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://chat.kiconnect.nrw/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.llm_body) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1408,
+        -112
+      ],
+      "id": "5e041ad4-cd35-4375-bef5-4d33288a8c55",
+      "name": "LLM – kiconnect",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "Sm6OpcfukpuuOu01",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ef602fa2-132c-4416-b3fa-e075b0007328",
+              "name": "research_output",
+              "value": "={{ $json.choices[0].message.content }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1616,
+        -112
+      ],
+      "id": "fad5fff7-ea99-464b-a012-9b367f90686d",
+      "name": "Output – Research Agent"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse LLM JSON-Antwort und mappe Felder fuer Supabase-Tabelle \"technologies\"\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const raw = item.json.research_output || '';\n\n  let parsed;\n  try {\n    parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;\n  } catch (e) {\n    continue;\n  }\n\n  const techs = parsed.technologies || parsed || [];\n  const techArray = Array.isArray(techs) ? techs : [techs];\n\n  for (const t of techArray) {\n    if (!t || !t.label) continue;\n\n    results.push({\n      json: {\n        label: String(t.label || '').trim().substring(0, 100),\n        whats_new: String(t.whats_new || '').trim().substring(0, 500),\n        source_url: String(t.source_url || t.link || '').trim().substring(0, 500),\n        source_name: String(t.source_name || t.source || '').trim().substring(0, 100),\n        created_at: new Date().toISOString()\n      }\n    });\n  }\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1824,
+        -112
+      ],
+      "id": "02895388-9957-4d5b-b75a-d158c3b10408",
+      "name": "Parse Technologies für DB"
+    },
+    {
+      "parameters": {
+        "tableId": "technologies",
+        "dataToSend": "autoMapInputData"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2032,
+        -112
+      ],
+      "id": "e6bd594f-34a8-4711-95f8-999b581475d7",
+      "name": "Supabase – Insert technologies",
+      "credentials": {
+        "supabaseApi": {
+          "id": "uRjStYpV62kd5r0x",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "RSS VentureBeat",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RSS MIT Tech Review",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RSS The Verge AI",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RSS Wired AI",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RSS Import AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS VentureBeat": {
+      "main": [
+        [
+          {
+            "node": "Parse RSS VentureBeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS MIT Tech Review": {
+      "main": [
+        [
+          {
+            "node": "Parse RSS MIT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS The Verge AI": {
+      "main": [
+        [
+          {
+            "node": "Parse RSS The Verge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Wired AI": {
+      "main": [
+        [
+          {
+            "node": "Parse RSS Wired",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Import AI": {
+      "main": [
+        [
+          {
+            "node": "Parse RSS Import AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse RSS VentureBeat": {
+      "main": [
+        [
+          {
+            "node": "Merge RSS Feeds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse RSS The Verge": {
+      "main": [
+        [
+          {
+            "node": "Merge RSS Feeds",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Parse RSS Wired": {
+      "main": [
+        [
+          {
+            "node": "Merge RSS Feeds",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Parse RSS Import AI": {
+      "main": [
+        [
+          {
+            "node": "Merge RSS Feeds",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Parse RSS MIT": {
+      "main": [
+        [
+          {
+            "node": "Merge RSS Feeds",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Merge RSS Feeds": {
+      "main": [
+        [
+          {
+            "node": "Build LLM Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build LLM Request": {
+      "main": [
+        [
+          {
+            "node": "LLM – kiconnect",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM – kiconnect": {
+      "main": [
+        [
+          {
+            "node": "Output – Research Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Output – Research Agent": {
+      "main": [
+        [
+          {
+            "node": "Parse Technologies für DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Technologies für DB": {
+      "main": [
+        [
+          {
+            "node": "Supabase – Insert technologies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "56d6fe70-7255-451e-a948-db0a27c6cd48",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "febf70db6c210749809937ae80018f186718dbb1fd04a94fe3840d13114ae841"
+  },
+  "nodeGroups": [],
+  "id": "MBtBnVzqyXVvqHJO",
+  "tags": []
+}

@@ -1,0 +1,433 @@
+{
+  "name": "2 - Game Generator: Excel",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-excel",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1328,
+        144
+      ],
+      "id": "91156a20-4c20-46cc-b1c7-67d4b8d3a490",
+      "name": "Webhook",
+      "webhookId": "generate-excel-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Build Prompt (Versuch 1) ----\nconst payload = ($('Webhook').first().json.body) || $('Webhook').first().json || {};\n\nconst DIFFICULTY_CONFIG = {\n  easy:   { maxAttempts: 3, numericTolerance: 0.01, minRows: 5,  maxRows: 15, maxSteps: 1, complexity: \"einfache Ein-Schritt-Aufgabe\" },\n  medium: { maxAttempts: 3, numericTolerance: 0.01, minRows: 10, maxRows: 25, maxSteps: 2, complexity: \"zweistufige Aufgabe\" },\n  hard:   { maxAttempts: 2, numericTolerance: 0.01, minRows: 15, maxRows: 40, maxSteps: 3, complexity: \"mehrstufige Aufgabe\" }\n};\nconst difficulty = [\"easy\",\"medium\",\"hard\"].includes(payload.difficulty) ? payload.difficulty : \"easy\";\nconst config = DIFFICULTY_CONFIG[difficulty];\n\nconst LEARNING_GOALS = {\n  finanzabschluss: \"Finanzabschluss\", buchhaltung: \"Buchhaltung\", controlling: \"Controlling\",\n  reporting: \"Reporting\", kostenrechnung: \"Kostenrechnung\", konsolidierung: \"Konsolidierung\",\n  steuern: \"Steuern\", treasury: \"Treasury\"\n};\nconst learningGoal = payload.learningGoal === \"other\"\n  ? (payload.learningGoalCustom || \"Allgemeines Finance-Thema\")\n  : (LEARNING_GOALS[payload.learningGoal] || payload.learningGoal || \"Allgemeines Finance-Thema\");\n\nconst techLabel = payload.technologyLabel || payload.technologyCustom || \"KI-Technologie\";\nconst techContext = payload.technologyWhatsNew ? (\"Kontext zur Technologie: \" + payload.technologyWhatsNew) : \"\";\n\nconst systemPrompt = `Du bist Spiel-Generator fuer \"Excel-Prompt-Challenges\" der Lufthansa Finance Training Academy. Zielgruppe: eine Controllerin, nicht-technisch. Sie loest die Aufgabe AUSSCHLIESSLICH per KI-Prompt an ${techLabel} — sie tippt NICHT selbst in Zellen und bearbeitet die Tabelle NICHT manuell.\n\nErzeuge EINE realistische, finanznahe Tabellen-Aufgabe. Gib AUSSCHLIESSLICH valides JSON zurueck, KEINE Markdown-Code-Bloecke, exakt in diesem Format:\n{\n \"task\": \"<deutsche Aufgabenstellung, 2-4 Saetze. Beschreibt das gewuenschte ERGEBNIS der Tabelle und macht explizit klar, dass die Nutzerin dies erreicht, indem sie ${techLabel} einen Prompt gibt — NICHT durch manuelles Sortieren/Rechnen. Formuliere ergebnisorientiert (z.B. 'Am Ende soll die Tabelle ... sein'), nicht als direkte Handlungsanweisung an die Nutzerin.>\",\n \"initialData\": { \"headers\": [\"<Spalte>\", \"...\"], \"rows\": [[\"<zelle>\", 123], \"...\"] },\n \"transformSteps\": [ <1 bis N Schritte aus dem erlaubten Vokabular> ],\n \"evaluationCriteria\": [ { \"id\": \"<kurzer_slug>\", \"description\": \"<deutsch, wird im Ergebnis angezeigt>\", \"weight\": <zahl>, \"columns\": [\"<Header>\"] } ],\n \"samplePrompt\": \"<deutscher Beispiel-Prompt, der ${techLabel} DIREKT namentlich anspricht und die Aufgabe loest. Dies ist das zentrale Lern-Element: er zeigt der Nutzerin, wie ein guter Prompt an ${techLabel} aussieht.>\"\n}\n\nDIDAKTISCHES ZIEL (Lernziel: \"${learningGoal}\", Technologie: \"${techLabel}\"):\n- Der \"samplePrompt\" ist das wichtigste Lern-Artefakt. Er MUSS ${techLabel} beim Namen ansprechen und vormachen, wie die Nutzerin die Aufgabe per Prompt loest.\n- Die \"task\" muss das \"Ich schreibe einen Prompt statt selbst zu tippen\"-Prinzip vermitteln und ${techLabel} als das Werkzeug benennen, das die Arbeit ausfuehrt.\n- Ist \"${learningGoal}\" ein Finanz-Fachthema (z.B. Buchhaltung, Controlling), spiegle es zusaetzlich im Tabellen-Inhalt (Datenart, Spalten). Ist es ein Konzept-/Werkzeug-Ziel (z.B. \"was ist ein Prompt\", \"was ist ${techLabel}\"), nutze allgemeine, realistische Finance-Controlling-Daten und trage das Lernziel ueber task + samplePrompt.\n\nERLAUBTES transformSteps-Vokabular (NUR diese drei, nichts anderes):\n- { \"op\": \"sort\", \"column\": \"<Header>\", \"direction\": \"asc|desc\" }\n- { \"op\": \"filter\", \"column\": \"<Header>\", \"operator\": \"eq|gt|lt|contains\", \"value\": <wert> }\n- { \"op\": \"derived_column\", \"newColumn\": \"<neuer Header>\", \"operation\": \"add|subtract|multiply|divide\", \"operands\": [\"<Header>\", \"<Header>\"] }\n\nHARTE REGELN:\n- Berechne NIEMALS selbst das Ergebnis der Transformation. Liefere NUR initialData + transformSteps. Die Loesung (solutionData) wird deterministisch im Code berechnet, NICHT von dir.\n- Jede \"column\"/\"operands\" in transformSteps und jede \"columns\" in evaluationCriteria MUSS ein exakter Header aus initialData.headers sein. Ein Kriterium darf zusaetzlich eine per derived_column erzeugte newColumn referenzieren.\n- Der \"samplePrompt\" MUSS den Namen \"${techLabel}\" enthalten.\n- Die Summe aller \"weight\" MUSS exakt 1.0 ergeben.\n- initialData braucht zwischen ${config.minRows} und ${config.maxRows} Datenzeilen und maximal ${config.maxSteps} transformStep(s) (${config.complexity}).\n- Realistische deutsche Finanz-/Controlling-Daten (Betraege, Kostenstellen, Perioden, Belege).\n- Zahlen als echte JSON-Zahlen ausgeben, nicht als Strings.\n- Die Aufgabe muss durch die transformSteps eine SICHTBARE Veraenderung der Tabelle bewirken (keine triviale/leere Transformation).\n\nSchwierigkeit: ${difficulty}.`;\n\nconst userPrompt = `Erzeuge jetzt eine Excel-Prompt-Challenge fuer das Lernziel \"${learningGoal}\" mit der Technologie \"${techLabel}\", Schwierigkeit \"${difficulty}\".\n\nWichtig: \"${techLabel}\" muss im samplePrompt namentlich angesprochen werden, und die task muss klar machen, dass die Nutzerin die Aufgabe per Prompt an ${techLabel} loest (nicht manuell). Gib ausschliesslich das JSON im vorgegebenen Format zurueck.`;\n\nconst llm_body = {\n  model: \"OpenAI GPT OSS 120b KI:Inferenz.nrw\",\n  messages: [\n    { role: \"system\", content: systemPrompt },\n    { role: \"user\", content: userPrompt }\n  ],\n  temperature: 0.4\n};\n\nreturn [{ json: { llm_body, attempt: 1, difficulty, config, payload } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1104,
+        144
+      ],
+      "id": "211c42bb-d26a-4526-ba0d-09ec5171d0fa",
+      "name": "Build Prompt"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://chat.kiconnect.nrw/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.llm_body) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -880,
+        144
+      ],
+      "id": "15a32002-2500-4ae4-9612-9f79c81e5750",
+      "name": "LLM – kiconnect (1)",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "Sm6OpcfukpuuOu01",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Process & Validate ----\nconst resp = $json;\nconst bp = $('Build Prompt').first().json;\nconst payload = bp.payload;\nconst config = bp.config;\nconst attempt = bp.attempt;\n\nfunction fail(errors, raw) {\n  return [{ json: { valid: false, errors, game_json: null, payload, config,\n    meta: { attempt, model: bp.llm_body.model }, raw } }];\n}\n\n// --- parse LLM content ---\nlet content = \"\";\ntry { content = resp.choices[0].message.content; }\ncatch (e) { return fail([\"LLM-Antwort ohne choices/content\"], resp); }\nconst usage = resp.usage || null;\n\nlet data;\ntry {\n  const cleaned = String(content).replace(/```json/gi, \"\").replace(/```/g, \"\").trim();\n  data = JSON.parse(cleaned);\n} catch (e) { return fail([\"LLM-Ausgabe ist kein valides JSON: \" + e.message], content); }\n\n// --- structural checks ---\nlet errors = [];\nif (typeof data.task !== \"string\" || data.task.trim().length < 10) errors.push(\"task fehlt oder zu kurz\");\nconst initial = data.initialData;\nif (!initial || !Array.isArray(initial.headers) || !Array.isArray(initial.rows)) errors.push(\"initialData ungueltig\");\nif (!Array.isArray(data.transformSteps) || data.transformSteps.length < 1) errors.push(\"transformSteps fehlt/leer\");\nif (!Array.isArray(data.evaluationCriteria) || data.evaluationCriteria.length < 1) errors.push(\"evaluationCriteria fehlt/leer\");\nif (typeof data.samplePrompt !== \"string\" || data.samplePrompt.trim().length < 5) errors.push(\"samplePrompt fehlt\");\nif (errors.length) return fail(errors, data);\n\nconst nRows = initial.rows.length;\nif (nRows < config.minRows || nRows > config.maxRows) errors.push(\"Zeilenanzahl \" + nRows + \" ausserhalb \" + config.minRows + \"-\" + config.maxRows);\nif (data.transformSteps.length > config.maxSteps) errors.push(\"Zu viele transformSteps (\" + data.transformSteps.length + \" > \" + config.maxSteps + \")\");\n\n// --- helpers ---\nfunction colIndex(headers, name) {\n  const t = String(name).trim().toLowerCase();\n  return headers.findIndex(h => String(h).trim().toLowerCase() === t);\n}\nfunction toNum(v) {\n  if (v === null || v === undefined || v === \"\") return null;\n  const n = Number(String(v).replace(\",\", \".\"));\n  return isNaN(n) ? null : n;\n}\n\n// --- validate transform columns exist ---\nfor (const step of data.transformSteps) {\n  if (step.op === \"sort\" || step.op === \"filter\") {\n    if (colIndex(initial.headers, step.column) < 0) errors.push(\"Spalte '\" + step.column + \"' fuer \" + step.op + \" nicht vorhanden\");\n    if (step.op === \"sort\" && ![\"asc\",\"desc\"].includes(step.direction)) errors.push(\"sort ohne gueltige direction\");\n    if (step.op === \"filter\" && ![\"eq\",\"gt\",\"lt\",\"contains\"].includes(step.operator)) errors.push(\"filter ohne gueltigen operator\");\n  } else if (step.op === \"derived_column\") {\n    for (const oc of (step.operands || [])) if (colIndex(initial.headers, oc) < 0) errors.push(\"Operand-Spalte '\" + oc + \"' nicht vorhanden\");\n    if (!step.newColumn) errors.push(\"derived_column ohne newColumn\");\n    if (![\"add\",\"subtract\",\"multiply\",\"divide\"].includes(step.operation)) errors.push(\"derived_column ohne gueltige operation\");\n  } else {\n    errors.push(\"Unbekannte op '\" + step.op + \"'\");\n  }\n}\nif (errors.length) return fail(errors, data);\n\n// --- applyTransform (deterministische Loesungsberechnung) ---\nfunction applyTransform(table, steps) {\n  let headers = table.headers.slice();\n  let rows = table.rows.map(r => r.slice());\n  for (const step of steps) {\n    if (step.op === \"sort\") {\n      const ci = colIndex(headers, step.column);\n      const dir = step.direction === \"asc\" ? 1 : -1;\n      rows.sort((a, b) => {\n        const na = toNum(a[ci]), nb = toNum(b[ci]);\n        if (na !== null && nb !== null) return (na - nb) * dir;\n        return String(a[ci]).localeCompare(String(b[ci])) * dir;\n      });\n    } else if (step.op === \"filter\") {\n      const ci = colIndex(headers, step.column);\n      rows = rows.filter(r => {\n        const cell = r[ci];\n        const cn = toNum(cell), vn = toNum(step.value);\n        switch (step.operator) {\n          case \"eq\": return String(cell).trim().toLowerCase() === String(step.value).trim().toLowerCase();\n          case \"gt\": return cn !== null && vn !== null && cn > vn;\n          case \"lt\": return cn !== null && vn !== null && cn < vn;\n          case \"contains\": return String(cell).toLowerCase().includes(String(step.value).toLowerCase());\n          default: return true;\n        }\n      });\n    } else if (step.op === \"derived_column\") {\n      const ai = colIndex(headers, step.operands[0]);\n      const bi = colIndex(headers, step.operands[1]);\n      headers = headers.concat([step.newColumn]);\n      rows = rows.map(r => {\n        const x = toNum(r[ai]), y = toNum(r[bi]);\n        let v = null;\n        if (x !== null && y !== null) {\n          switch (step.operation) {\n            case \"add\": v = x + y; break;\n            case \"subtract\": v = x - y; break;\n            case \"multiply\": v = x * y; break;\n            case \"divide\": v = y !== 0 ? x / y : null; break;\n          }\n        }\n        return r.concat([v]);\n      });\n    }\n  }\n  return { headers, rows };\n}\n\nlet solutionData;\ntry { solutionData = applyTransform(initial, data.transformSteps); }\ncatch (e) { return fail([\"applyTransform fehlgeschlagen: \" + e.message], data); }\n\n// --- criteria checks (gegen solutionData.headers, da derived columns erlaubt) ---\nfor (const c of data.evaluationCriteria) {\n  if (!Array.isArray(c.columns) || c.columns.length === 0) { errors.push(\"Kriterium '\" + (c.id || \"?\") + \"' ohne columns\"); continue; }\n  for (const col of c.columns) if (colIndex(solutionData.headers, col) < 0) errors.push(\"Kriterium-Spalte '\" + col + \"' nicht in Loesung\");\n  if (typeof c.weight !== \"number\") errors.push(\"Kriterium '\" + (c.id || \"?\") + \"' ohne numerisches weight\");\n}\nconst wsum = data.evaluationCriteria.reduce((s, c) => s + (Number(c.weight) || 0), 0);\nif (Math.abs(wsum - 1) > 0.001) errors.push(\"Gewichtssumme \" + wsum + \" != 1.0\");\n\n// --- non-trivial: Loesung unterscheidet sich in gescorten Spalten ---\nconst rowOrderMatters = data.transformSteps.some(s => s.op === \"sort\");\nconst scoredCols = Array.from(new Set([].concat.apply([], data.evaluationCriteria.map(c => c.columns))));\nfunction project(tbl) {\n  return tbl.rows.map(r => scoredCols.map(col => {\n    const ci = colIndex(tbl.headers, col);\n    return ci >= 0 ? String(r[ci]) : \"\";\n  }).join(\"|\"));\n}\nconst pa = project(initial);\nconst pb = project(solutionData);\nconst differs = rowOrderMatters\n  ? JSON.stringify(pa) !== JSON.stringify(pb)\n  : JSON.stringify(pa.slice().sort()) !== JSON.stringify(pb.slice().sort());\nif (!differs) errors.push(\"solutionData unterscheidet sich nicht von initialData in gescorten Spalten (triviale/unloesbare Aufgabe)\");\n\nif (errors.length) return fail(errors, data);\n\n// --- assemble ExcelChallengeData ---\nconst game_json = {\n  task: data.task.trim(),\n  initialData: initial,\n  solutionData: solutionData,\n  evaluationCriteria: data.evaluationCriteria.map(c => ({\n    id: String(c.id || \"\"), description: String(c.description || \"\"),\n    weight: Number(c.weight), columns: c.columns\n  })),\n  evaluationConfig: { rowOrderMatters, columnOrderMatters: false, numericTolerance: config.numericTolerance },\n  maxAttempts: config.maxAttempts,\n  samplePrompt: data.samplePrompt.trim()\n};\n\nreturn [{ json: { valid: true, errors: [], game_json, payload, config,\n  meta: { attempt, model: bp.llm_body.model, tokens: usage, transformSteps: data.transformSteps }, raw: null } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -656,
+        144
+      ],
+      "id": "766f53f4-3245-4b6a-a933-c141a786663f",
+      "name": "Process & Validate 1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "if000000-0000-0000-0000-000000000005-c1",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -448,
+        144
+      ],
+      "id": "e93928b8-3943-4d70-94d6-6493f7b41b8b",
+      "name": "Valid? (1)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Build Repair Prompt (Versuch 2) ----\nconst prev = $('Process & Validate 1').first().json;\nconst bp = $('Build Prompt').first().json;\nconst errors = prev.errors || [];\nconst rawPrev = prev.raw;\n\nconst repairSystem = bp.llm_body.messages[0].content; // gleiche Spec\nconst repairUser = \"Dein vorheriger Versuch war UNGUELTIG. Behobene Fehler noetig:\\n- \"\n  + errors.join(\"\\n- \")\n  + \"\\n\\nDein vorheriger (fehlerhafter) Output:\\n\" + JSON.stringify(rawPrev)\n  + \"\\n\\nKorrigiere GENAU diese Fehler und gib erneut AUSSCHLIESSLICH das valide JSON im vorgegebenen Format zurueck.\";\n\nconst llm_body = {\n  model: bp.llm_body.model,\n  messages: [\n    { role: \"system\", content: repairSystem },\n    { role: \"user\", content: repairUser }\n  ],\n  temperature: 0.2\n};\n\nreturn [{ json: { llm_body, attempt: 2, difficulty: bp.difficulty, config: bp.config, payload: bp.payload } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -448,
+        368
+      ],
+      "id": "4a88785f-d20d-4015-83ba-60fd908ab290",
+      "name": "Build Repair Prompt"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://chat.kiconnect.nrw/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.llm_body) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -224,
+        368
+      ],
+      "id": "9343440a-adf1-4f90-b70d-07b1b1032b27",
+      "name": "LLM – kiconnect (2)",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "Sm6OpcfukpuuOu01",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Process & Validate ----\nconst resp = $json;\nconst bp = $('Build Repair Prompt').first().json;\nconst payload = bp.payload;\nconst config = bp.config;\nconst attempt = bp.attempt;\n\nfunction fail(errors, raw) {\n  return [{ json: { valid: false, errors, game_json: null, payload, config,\n    meta: { attempt, model: bp.llm_body.model }, raw } }];\n}\n\n// --- parse LLM content ---\nlet content = \"\";\ntry { content = resp.choices[0].message.content; }\ncatch (e) { return fail([\"LLM-Antwort ohne choices/content\"], resp); }\nconst usage = resp.usage || null;\n\nlet data;\ntry {\n  const cleaned = String(content).replace(/```json/gi, \"\").replace(/```/g, \"\").trim();\n  data = JSON.parse(cleaned);\n} catch (e) { return fail([\"LLM-Ausgabe ist kein valides JSON: \" + e.message], content); }\n\n// --- structural checks ---\nlet errors = [];\nif (typeof data.task !== \"string\" || data.task.trim().length < 10) errors.push(\"task fehlt oder zu kurz\");\nconst initial = data.initialData;\nif (!initial || !Array.isArray(initial.headers) || !Array.isArray(initial.rows)) errors.push(\"initialData ungueltig\");\nif (!Array.isArray(data.transformSteps) || data.transformSteps.length < 1) errors.push(\"transformSteps fehlt/leer\");\nif (!Array.isArray(data.evaluationCriteria) || data.evaluationCriteria.length < 1) errors.push(\"evaluationCriteria fehlt/leer\");\nif (typeof data.samplePrompt !== \"string\" || data.samplePrompt.trim().length < 5) errors.push(\"samplePrompt fehlt\");\nif (errors.length) return fail(errors, data);\n\nconst nRows = initial.rows.length;\nif (nRows < config.minRows || nRows > config.maxRows) errors.push(\"Zeilenanzahl \" + nRows + \" ausserhalb \" + config.minRows + \"-\" + config.maxRows);\nif (data.transformSteps.length > config.maxSteps) errors.push(\"Zu viele transformSteps (\" + data.transformSteps.length + \" > \" + config.maxSteps + \")\");\n\n// --- helpers ---\nfunction colIndex(headers, name) {\n  const t = String(name).trim().toLowerCase();\n  return headers.findIndex(h => String(h).trim().toLowerCase() === t);\n}\nfunction toNum(v) {\n  if (v === null || v === undefined || v === \"\") return null;\n  const n = Number(String(v).replace(\",\", \".\"));\n  return isNaN(n) ? null : n;\n}\n\n// --- validate transform columns exist ---\nfor (const step of data.transformSteps) {\n  if (step.op === \"sort\" || step.op === \"filter\") {\n    if (colIndex(initial.headers, step.column) < 0) errors.push(\"Spalte '\" + step.column + \"' fuer \" + step.op + \" nicht vorhanden\");\n    if (step.op === \"sort\" && ![\"asc\",\"desc\"].includes(step.direction)) errors.push(\"sort ohne gueltige direction\");\n    if (step.op === \"filter\" && ![\"eq\",\"gt\",\"lt\",\"contains\"].includes(step.operator)) errors.push(\"filter ohne gueltigen operator\");\n  } else if (step.op === \"derived_column\") {\n    for (const oc of (step.operands || [])) if (colIndex(initial.headers, oc) < 0) errors.push(\"Operand-Spalte '\" + oc + \"' nicht vorhanden\");\n    if (!step.newColumn) errors.push(\"derived_column ohne newColumn\");\n    if (![\"add\",\"subtract\",\"multiply\",\"divide\"].includes(step.operation)) errors.push(\"derived_column ohne gueltige operation\");\n  } else {\n    errors.push(\"Unbekannte op '\" + step.op + \"'\");\n  }\n}\nif (errors.length) return fail(errors, data);\n\n// --- applyTransform (deterministische Loesungsberechnung) ---\nfunction applyTransform(table, steps) {\n  let headers = table.headers.slice();\n  let rows = table.rows.map(r => r.slice());\n  for (const step of steps) {\n    if (step.op === \"sort\") {\n      const ci = colIndex(headers, step.column);\n      const dir = step.direction === \"asc\" ? 1 : -1;\n      rows.sort((a, b) => {\n        const na = toNum(a[ci]), nb = toNum(b[ci]);\n        if (na !== null && nb !== null) return (na - nb) * dir;\n        return String(a[ci]).localeCompare(String(b[ci])) * dir;\n      });\n    } else if (step.op === \"filter\") {\n      const ci = colIndex(headers, step.column);\n      rows = rows.filter(r => {\n        const cell = r[ci];\n        const cn = toNum(cell), vn = toNum(step.value);\n        switch (step.operator) {\n          case \"eq\": return String(cell).trim().toLowerCase() === String(step.value).trim().toLowerCase();\n          case \"gt\": return cn !== null && vn !== null && cn > vn;\n          case \"lt\": return cn !== null && vn !== null && cn < vn;\n          case \"contains\": return String(cell).toLowerCase().includes(String(step.value).toLowerCase());\n          default: return true;\n        }\n      });\n    } else if (step.op === \"derived_column\") {\n      const ai = colIndex(headers, step.operands[0]);\n      const bi = colIndex(headers, step.operands[1]);\n      headers = headers.concat([step.newColumn]);\n      rows = rows.map(r => {\n        const x = toNum(r[ai]), y = toNum(r[bi]);\n        let v = null;\n        if (x !== null && y !== null) {\n          switch (step.operation) {\n            case \"add\": v = x + y; break;\n            case \"subtract\": v = x - y; break;\n            case \"multiply\": v = x * y; break;\n            case \"divide\": v = y !== 0 ? x / y : null; break;\n          }\n        }\n        return r.concat([v]);\n      });\n    }\n  }\n  return { headers, rows };\n}\n\nlet solutionData;\ntry { solutionData = applyTransform(initial, data.transformSteps); }\ncatch (e) { return fail([\"applyTransform fehlgeschlagen: \" + e.message], data); }\n\n// --- criteria checks (gegen solutionData.headers, da derived columns erlaubt) ---\nfor (const c of data.evaluationCriteria) {\n  if (!Array.isArray(c.columns) || c.columns.length === 0) { errors.push(\"Kriterium '\" + (c.id || \"?\") + \"' ohne columns\"); continue; }\n  for (const col of c.columns) if (colIndex(solutionData.headers, col) < 0) errors.push(\"Kriterium-Spalte '\" + col + \"' nicht in Loesung\");\n  if (typeof c.weight !== \"number\") errors.push(\"Kriterium '\" + (c.id || \"?\") + \"' ohne numerisches weight\");\n}\nconst wsum = data.evaluationCriteria.reduce((s, c) => s + (Number(c.weight) || 0), 0);\nif (Math.abs(wsum - 1) > 0.001) errors.push(\"Gewichtssumme \" + wsum + \" != 1.0\");\n\n// --- non-trivial: Loesung unterscheidet sich in gescorten Spalten ---\nconst rowOrderMatters = data.transformSteps.some(s => s.op === \"sort\");\nconst scoredCols = Array.from(new Set([].concat.apply([], data.evaluationCriteria.map(c => c.columns))));\nfunction project(tbl) {\n  return tbl.rows.map(r => scoredCols.map(col => {\n    const ci = colIndex(tbl.headers, col);\n    return ci >= 0 ? String(r[ci]) : \"\";\n  }).join(\"|\"));\n}\nconst pa = project(initial);\nconst pb = project(solutionData);\nconst differs = rowOrderMatters\n  ? JSON.stringify(pa) !== JSON.stringify(pb)\n  : JSON.stringify(pa.slice().sort()) !== JSON.stringify(pb.slice().sort());\nif (!differs) errors.push(\"solutionData unterscheidet sich nicht von initialData in gescorten Spalten (triviale/unloesbare Aufgabe)\");\n\nif (errors.length) return fail(errors, data);\n\n// --- assemble ExcelChallengeData ---\nconst game_json = {\n  task: data.task.trim(),\n  initialData: initial,\n  solutionData: solutionData,\n  evaluationCriteria: data.evaluationCriteria.map(c => ({\n    id: String(c.id || \"\"), description: String(c.description || \"\"),\n    weight: Number(c.weight), columns: c.columns\n  })),\n  evaluationConfig: { rowOrderMatters, columnOrderMatters: false, numericTolerance: config.numericTolerance },\n  maxAttempts: config.maxAttempts,\n  samplePrompt: data.samplePrompt.trim()\n};\n\nreturn [{ json: { valid: true, errors: [], game_json, payload, config,\n  meta: { attempt, model: bp.llm_body.model, tokens: usage, transformSteps: data.transformSteps }, raw: null } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        368
+      ],
+      "id": "1fc549cf-de52-492f-94a1-847197ceb4be",
+      "name": "Process & Validate 2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "if000000-0000-0000-0000-000000000009-c1",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        368
+      ],
+      "id": "20ec9b1c-6677-4382-ba60-d2ec1b5dd015",
+      "name": "Valid? (2)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Build DB Row ----\nconst v = $json;\nconst p = v.payload || {};\n\n// Titel deterministisch bauen (title ist NOT NULL, LLM liefert keinen)\nconst techLabel = p.technologyLabel || p.technologyCustom || \"KI\";\nconst goalLabel = p.learningGoal === \"other\"\n  ? (p.learningGoalCustom || \"Finance\")\n  : (p.learningGoal || \"Finance\");\nconst title = `Excel-Challenge: ${goalLabel} – ${techLabel}`;\n\nreturn [{ json: {\n  title: title,                          // NOT NULL\n  format: p.gameType || \"excel_challenge\", // Spalte heißt 'format', nicht 'game_type'\n  difficulty: p.difficulty || \"easy\",\n  game_json: v.game_json,\n  status: \"draft\",\n  technology_id: (p.technologyId && p.technologyId !== \"other\") ? p.technologyId : null,\n  technology_custom: p.technologyId === \"other\" ? (p.technologyCustom || null) : null,\n  learning_goal: p.learningGoal !== \"other\" ? p.learningGoal : null,\n  learning_goal_custom: p.learningGoal === \"other\" ? (p.learningGoalCustom || null) : null,\n  requested_by: p.requestedBy || null,\n  generation_meta: v.meta || null,\n  created_at: new Date().toISOString()\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "9f1661af-e4bf-4a32-af69-386030f3762d",
+      "name": "Build DB Row"
+    },
+    {
+      "parameters": {
+        "tableId": "games",
+        "dataToSend": "autoMapInputData"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ],
+      "id": "5f16b8a5-78c0-411d-a2dc-4d5119e9845f",
+      "name": "Insert games (draft)",
+      "credentials": {
+        "supabaseApi": {
+          "id": "uRjStYpV62kd5r0x",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok: true, gameId: $json.id, status: 'draft' }) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        0
+      ],
+      "id": "bc4cd628-a9a7-4fd3-9a54-424897391019",
+      "name": "Respond Success"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok: false, errors: $json.errors }) }}",
+        "options": {
+          "responseCode": 422,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        368
+      ],
+      "id": "76ba0f47-dfff-4d9a-ab4e-4d66e018d48a",
+      "name": "Respond Fail"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Build Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Prompt": {
+      "main": [
+        [
+          {
+            "node": "LLM – kiconnect (1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM – kiconnect (1)": {
+      "main": [
+        [
+          {
+            "node": "Process & Validate 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process & Validate 1": {
+      "main": [
+        [
+          {
+            "node": "Valid? (1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid? (1)": {
+      "main": [
+        [
+          {
+            "node": "Build DB Row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Repair Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Repair Prompt": {
+      "main": [
+        [
+          {
+            "node": "LLM – kiconnect (2)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM – kiconnect (2)": {
+      "main": [
+        [
+          {
+            "node": "Process & Validate 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process & Validate 2": {
+      "main": [
+        [
+          {
+            "node": "Valid? (2)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid? (2)": {
+      "main": [
+        [
+          {
+            "node": "Build DB Row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Fail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build DB Row": {
+      "main": [
+        [
+          {
+            "node": "Insert games (draft)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert games (draft)": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "af598fa8-e39f-4c72-900d-72089f252f31",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "febf70db6c210749809937ae80018f186718dbb1fd04a94fe3840d13114ae841"
+  },
+  "nodeGroups": [],
+  "id": "SA3BP4kZkd8msw2a",
+  "tags": []
+}

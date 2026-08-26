@@ -1,0 +1,433 @@
+{
+  "name": "3 - Game Generator: Hallucination Spotter",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-hallucination",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "2a0f87eb-67fd-4e55-89b3-a2f0e61c038a",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        1792
+      ],
+      "webhookId": "939a552c-709e-4227-8aa3-abd9e8961f95"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Build Prompt (Versuch 1) ----\nconst payload = ($('Webhook').first().json.body) || $('Webhook').first().json || {};\n\nconst difficulty = [\"easy\",\"medium\",\"hard\"].includes(payload.difficulty) ? payload.difficulty : \"medium\";\nconst SUBTLETY = {\n  easy:   \"Die Halluzinationen duerfen relativ offensichtlich sein (klar erfundene Institutionen/Gesetze).\",\n  medium: \"Die Halluzinationen sollen plausibel klingen und leichtes Nachdenken erfordern.\",\n  hard:   \"Die Halluzinationen sollen sehr subtil sein (leicht falsche Zahlen, fast-korrekte Paragraphen).\"\n};\n\nconst learningGoal = payload.learningGoal === \"other\"\n  ? (payload.learningGoalCustom || \"Allgemeines Finance-Thema\")\n  : (payload.learningGoal || \"Allgemeines Finance-Thema\");\nconst techLabel   = payload.technologyLabel || payload.technologyCustom || \"KI-Technologie\";\nconst techContext = payload.technologyWhatsNew ? (\"Kontext zur Technologie: \" + payload.technologyWhatsNew) : \"\";\n\nconst systemPrompt = `Du bist Spiel-Generator fuer \"Halluzinationen erkennen\"-Challenges der Lufthansa Finance Training Academy. Zielgruppe: eine Controllerin ohne KI-Vorwissen. Sie lernt, erfundene Zahlen, Gesetze, Paragraphen, Institutionen und Fristen in KI-Antworten zu erkennen.\n\nGib AUSSCHLIESSLICH valides JSON zurueck, KEINE Markdown-Code-Bloecke, exakt in diesem FLACHEN Format:\n{\n \"title\": \"<kurzer deutscher Titel>\",\n \"topic\": \"<Themenschlagwort, 1-3 Woerter>\",\n \"situation\": \"<deutsche Arbeitssituation, 1-2 Saetze: jemand fragt die KI etwas>\",\n \"promptOptions\": [ 5 Objekte ],\n \"sentences\": [ 20 bis 30 Objekte ]\n}\n\npromptOptions: GENAU 5 Eintraege. Jeder Eintrag:\n { \"id\": 1..5, \"text\": \"<Prompt-Formulierung>\", \"approach\": \"<einer der Werte>\", \"quality\": <0-100>, \"isRecommended\": <bool>, \"feedback\": \"<2-3 Saetze warum gut/schlecht>\" }\n- approach MUSS jeden dieser Werte GENAU EINMAL verwenden: \"vage\", \"kontext\", \"rolle\", \"quellen\", \"suggestiv\".\n- GENAU EIN Eintrag hat isRecommended:true, und zwar der mit der HOECHSTEN quality.\n- quality: vage & suggestiv niedrig (<40), kontext & rolle mittel, quellen am hoechsten.\n- feedback nie leer. id luueckenlos 1..5.\n\nsentences: 20 bis 30 Saetze, die zusammen die (fiktive) KI-Antwort auf den EMPFOHLENEN Prompt bilden. Jeder Eintrag:\n { \"id\": 1..N, \"text\": \"<ein Satz>\", \"isHallucination\": <bool>, \"explanation\": \"<warum (nicht) halluziniert>\" }\n- GENAU 3 bis 6 Saetze haben isHallucination:true.\n- Halluzinationen = erfundene Zahlen, Gesetze, Paragraphen, Institutionen oder Fristen, die plausibel klingen aber faktisch falsch/nicht existent sind.\n- Nicht-Halluzinationen muessen sachlich korrekt sein.\n- explanation nie leer. id luueckenlos 1..N.\n\nHARTE REGELN:\n- Antworte nur mit dem JSON-Objekt, nichts davor/danach.\n- Zahlen als echte JSON-Zahlen, nicht als Strings.\n- ${SUBTLETY[difficulty]}\n\nSchwierigkeit: ${difficulty}. Lernziel: ${learningGoal}. Technologie-Bezug: ${techLabel}. ${techContext}`;\n\nconst userPrompt = `Erzeuge jetzt eine \"Halluzinationen erkennen\"-Challenge zum Lernziel \"${learningGoal}\" mit Bezug zur Technologie \"${techLabel}\", Schwierigkeit \"${difficulty}\". Gib ausschliesslich das JSON im vorgegebenen Format zurueck.`;\n\nconst llm_body = {\n  model: \"OpenAI GPT OSS 120b KI:Inferenz.nrw\",\n  messages: [\n    { role: \"system\", content: systemPrompt },\n    { role: \"user\",   content: userPrompt }\n  ],\n  temperature: 0.7,\n  max_tokens: 4000\n};\n\nreturn [{ json: { llm_body, attempt: 1, difficulty, payload } }];\n"
+      },
+      "id": "b20b553d-970e-4c05-910c-abdd0d53b3c2",
+      "name": "Build Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2464,
+        1792
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://chat.kiconnect.nrw/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.llm_body) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "f04c4aa0-c1ae-48a0-88c2-e84f7c037954",
+      "name": "LLM – kiconnect (1)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2672,
+        1792
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "Sm6OpcfukpuuOu01",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Process & Validate (Versuch 1) ----\nconst resp = $json;\nconst bp = $('Build Prompt').first().json;\nconst payload = bp.payload;\nconst attempt = 1;\n\nfunction fail(errors, raw) {\n  return [{ json: { valid: false, errors, game_json: null, payload,\n    meta: { attempt, model: bp.llm_body.model }, raw } }];\n}\n\nlet content = \"\";\ntry { content = resp.choices[0].message.content; }\ncatch (e) { return fail([\"LLM-Antwort ohne choices/content\"], resp); }\nconst usage = resp.usage || null;\n\nlet data;\ntry {\n  const cleaned = String(content).replace(/```json/gi, \"\").replace(/```/g, \"\").trim();\n  const s = cleaned.indexOf(\"{\"), e = cleaned.lastIndexOf(\"}\");\n  data = JSON.parse(s !== -1 && e !== -1 ? cleaned.slice(s, e + 1) : cleaned);\n} catch (e) { return fail([\"LLM-Ausgabe ist kein valides JSON (evtl. abgeschnitten -> max_tokens): \" + e.message], content); }\n\nfunction contiguousFrom1(ids) {\n  if (!ids.length) return false;\n  const sorted = ids.map(Number).sort((a,b)=>a-b);\n  return sorted.every((v,i)=>v===i+1);\n}\n\nconst errors = [];\nconst APPROACHES = [\"vage\",\"kontext\",\"rolle\",\"quellen\",\"suggestiv\"];\n\nif (typeof data.title !== \"string\" || !data.title.trim()) errors.push('Feld \"title\" fehlt/leer');\nif (typeof data.situation !== \"string\" || !data.situation.trim()) errors.push('Feld \"situation\" fehlt/leer');\n\nconst opts = Array.isArray(data.promptOptions) ? data.promptOptions : [];\nif (opts.length !== 5) errors.push(\"promptOptions: erwartet 5, erhalten \" + opts.length);\nAPPROACHES.forEach(a => {\n  const c = opts.filter(o => o && o.approach === a).length;\n  if (c !== 1) errors.push('approach \"' + a + '\": erwartet genau 1, erhalten ' + c);\n});\nconst rec = opts.filter(o => o && o.isRecommended === true);\nif (rec.length !== 1) {\n  errors.push(\"isRecommended: erwartet genau 1 (true), erhalten \" + rec.length);\n} else {\n  const maxQ = Math.max.apply(null, opts.map(o => Number(o && o.quality) || 0));\n  if ((Number(rec[0].quality) || 0) !== maxQ) errors.push(\"isRecommended nicht auf hoechster quality (\" + rec[0].quality + \" vs max \" + maxQ + \")\");\n}\nopts.forEach((o,i) => {\n  if (!o || typeof o.quality !== \"number\") errors.push(\"promptOption #\" + (i+1) + \": quality keine Zahl\");\n  if (!o || !o.feedback || !String(o.feedback).trim()) errors.push(\"promptOption #\" + (i+1) + \": feedback leer\");\n  if (!o || !o.text || !String(o.text).trim()) errors.push(\"promptOption #\" + (i+1) + \": text leer\");\n});\nif (!contiguousFrom1(opts.map(o => o && o.id))) errors.push(\"promptOptions: ids nicht lueckenlos ab 1\");\n\nconst sents = Array.isArray(data.sentences) ? data.sentences : [];\nif (sents.length < 20 || sents.length > 30) errors.push(\"sentences: erwartet 20-30, erhalten \" + sents.length);\nconst hallu = sents.filter(s => s && s.isHallucination === true).length;\nif (hallu < 3 || hallu > 6) errors.push(\"Halluzinationen: erwartet 3-6, erhalten \" + hallu);\nsents.forEach((s,i) => {\n  if (!s || typeof s.isHallucination !== \"boolean\") errors.push(\"Satz #\" + (i+1) + \": isHallucination kein boolean\");\n  if (!s || !s.text || !String(s.text).trim()) errors.push(\"Satz #\" + (i+1) + \": text leer\");\n  if (!s || !s.explanation || !String(s.explanation).trim()) errors.push(\"Satz #\" + (i+1) + \": explanation leer\");\n});\nif (!contiguousFrom1(sents.map(s => s && s.id))) errors.push(\"sentences: ids nicht lueckenlos ab 1\");\n\nif (errors.length) return fail(errors, content);\n\n// --- assemble game_json (Code baut die Huelle, LLM lieferte flach) ---\nconst game_json = {\n  format: \"hallucination_spotter_v2\",\n  halluRound: {\n    situation: String(data.situation).trim(),\n    promptOptions: opts.map(o => ({\n      id: Number(o.id), text: String(o.text).trim(), approach: String(o.approach),\n      quality: Number(o.quality), isRecommended: o.isRecommended === true, feedback: String(o.feedback).trim()\n    })),\n    answer: { sentences: sents.map(s => ({\n      id: Number(s.id), text: String(s.text).trim(),\n      isHallucination: s.isHallucination === true, explanation: String(s.explanation).trim()\n    })) }\n  }\n};\n\nreturn [{ json: { valid: true, errors: [], game_json, payload,\n  llm_title: String(data.title).trim(),\n  llm_topic: data.topic ? String(data.topic).trim() : null,\n  meta: { attempt, model: bp.llm_body.model, tokens: usage, halluCount: hallu, sentenceCount: sents.length },\n  raw: null } }];\n"
+      },
+      "id": "503baf77-a193-429b-960b-01b943f46ea6",
+      "name": "Process & Validate 1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2896,
+        1792
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9fc7cd58-04cd-435b-9e8d-27cf4c76db4d",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cf8cf7a7-ef9d-4893-9680-c738da3ca5bc",
+      "name": "Valid? (1)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3120,
+        1792
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Build Repair Prompt (Versuch 2) ----\nconst prev = $('Process & Validate 1').first().json;\nconst bp = $('Build Prompt').first().json;\nconst errors = prev.errors || [];\nconst rawPrev = prev.raw;\n\nconst repairSystem = bp.llm_body.messages[0].content;\nconst repairUser = \"Dein vorheriger Versuch war UNGUELTIG. Zu behebende Fehler:\\n- \"\n  + errors.join(\"\\n- \")\n  + \"\\n\\nDein vorheriger (fehlerhafter) Output:\\n\" + JSON.stringify(rawPrev)\n  + \"\\n\\nKorrigiere GENAU diese Fehler und gib erneut AUSSCHLIESSLICH das valide JSON im vorgegebenen Format zurueck.\";\n\nconst llm_body = {\n  model: bp.llm_body.model,\n  messages: [\n    { role: \"system\", content: repairSystem },\n    { role: \"user\",   content: repairUser }\n  ],\n  temperature: 0.2,\n  max_tokens: 4000\n};\n\nreturn [{ json: { llm_body, attempt: 2, difficulty: bp.difficulty, payload: bp.payload } }];\n"
+      },
+      "id": "8714a447-640c-4ed4-bea2-ca4c8a20b8bf",
+      "name": "Build Repair Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3120,
+        2016
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://chat.kiconnect.nrw/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.llm_body) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "17bfa72f-ce4d-43cd-98a4-5f973c2674a3",
+      "name": "LLM – kiconnect (2)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3344,
+        2016
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "Sm6OpcfukpuuOu01",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Process & Validate (Versuch 2) ----\nconst resp = $json;\nconst bp = $('Build Prompt').first().json;\nconst payload = bp.payload;\nconst attempt = 2;\n\nfunction fail(errors, raw) {\n  return [{ json: { valid: false, errors, game_json: null, payload,\n    meta: { attempt, model: bp.llm_body.model }, raw } }];\n}\n\nlet content = \"\";\ntry { content = resp.choices[0].message.content; }\ncatch (e) { return fail([\"LLM-Antwort ohne choices/content\"], resp); }\nconst usage = resp.usage || null;\n\nlet data;\ntry {\n  const cleaned = String(content).replace(/```json/gi, \"\").replace(/```/g, \"\").trim();\n  const s = cleaned.indexOf(\"{\"), e = cleaned.lastIndexOf(\"}\");\n  data = JSON.parse(s !== -1 && e !== -1 ? cleaned.slice(s, e + 1) : cleaned);\n} catch (e) { return fail([\"LLM-Ausgabe ist kein valides JSON (evtl. abgeschnitten -> max_tokens): \" + e.message], content); }\n\nfunction contiguousFrom1(ids) {\n  if (!ids.length) return false;\n  const sorted = ids.map(Number).sort((a,b)=>a-b);\n  return sorted.every((v,i)=>v===i+1);\n}\n\nconst errors = [];\nconst APPROACHES = [\"vage\",\"kontext\",\"rolle\",\"quellen\",\"suggestiv\"];\n\nif (typeof data.title !== \"string\" || !data.title.trim()) errors.push('Feld \"title\" fehlt/leer');\nif (typeof data.situation !== \"string\" || !data.situation.trim()) errors.push('Feld \"situation\" fehlt/leer');\n\nconst opts = Array.isArray(data.promptOptions) ? data.promptOptions : [];\nif (opts.length !== 5) errors.push(\"promptOptions: erwartet 5, erhalten \" + opts.length);\nAPPROACHES.forEach(a => {\n  const c = opts.filter(o => o && o.approach === a).length;\n  if (c !== 1) errors.push('approach \"' + a + '\": erwartet genau 1, erhalten ' + c);\n});\nconst rec = opts.filter(o => o && o.isRecommended === true);\nif (rec.length !== 1) {\n  errors.push(\"isRecommended: erwartet genau 1 (true), erhalten \" + rec.length);\n} else {\n  const maxQ = Math.max.apply(null, opts.map(o => Number(o && o.quality) || 0));\n  if ((Number(rec[0].quality) || 0) !== maxQ) errors.push(\"isRecommended nicht auf hoechster quality (\" + rec[0].quality + \" vs max \" + maxQ + \")\");\n}\nopts.forEach((o,i) => {\n  if (!o || typeof o.quality !== \"number\") errors.push(\"promptOption #\" + (i+1) + \": quality keine Zahl\");\n  if (!o || !o.feedback || !String(o.feedback).trim()) errors.push(\"promptOption #\" + (i+1) + \": feedback leer\");\n  if (!o || !o.text || !String(o.text).trim()) errors.push(\"promptOption #\" + (i+1) + \": text leer\");\n});\nif (!contiguousFrom1(opts.map(o => o && o.id))) errors.push(\"promptOptions: ids nicht lueckenlos ab 1\");\n\nconst sents = Array.isArray(data.sentences) ? data.sentences : [];\nif (sents.length < 20 || sents.length > 30) errors.push(\"sentences: erwartet 20-30, erhalten \" + sents.length);\nconst hallu = sents.filter(s => s && s.isHallucination === true).length;\nif (hallu < 3 || hallu > 6) errors.push(\"Halluzinationen: erwartet 3-6, erhalten \" + hallu);\nsents.forEach((s,i) => {\n  if (!s || typeof s.isHallucination !== \"boolean\") errors.push(\"Satz #\" + (i+1) + \": isHallucination kein boolean\");\n  if (!s || !s.text || !String(s.text).trim()) errors.push(\"Satz #\" + (i+1) + \": text leer\");\n  if (!s || !s.explanation || !String(s.explanation).trim()) errors.push(\"Satz #\" + (i+1) + \": explanation leer\");\n});\nif (!contiguousFrom1(sents.map(s => s && s.id))) errors.push(\"sentences: ids nicht lueckenlos ab 1\");\n\nif (errors.length) return fail(errors, content);\n\n// --- assemble game_json (Code baut die Huelle, LLM lieferte flach) ---\nconst game_json = {\n  format: \"hallucination_spotter_v2\",\n  halluRound: {\n    situation: String(data.situation).trim(),\n    promptOptions: opts.map(o => ({\n      id: Number(o.id), text: String(o.text).trim(), approach: String(o.approach),\n      quality: Number(o.quality), isRecommended: o.isRecommended === true, feedback: String(o.feedback).trim()\n    })),\n    answer: { sentences: sents.map(s => ({\n      id: Number(s.id), text: String(s.text).trim(),\n      isHallucination: s.isHallucination === true, explanation: String(s.explanation).trim()\n    })) }\n  }\n};\n\nreturn [{ json: { valid: true, errors: [], game_json, payload,\n  llm_title: String(data.title).trim(),\n  llm_topic: data.topic ? String(data.topic).trim() : null,\n  meta: { attempt, model: bp.llm_body.model, tokens: usage, halluCount: hallu, sentenceCount: sents.length },\n  raw: null } }];\n"
+      },
+      "id": "50d95041-f581-460e-9eda-65242ab116f7",
+      "name": "Process & Validate 2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3552,
+        2016
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5a57b2b6-f771-4ba2-be34-e181924f8aae",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "6179e356-776d-4467-9b0d-4331ea840b27",
+      "name": "Valid? (2)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3776,
+        2016
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Build DB Row ----\nconst v = $json;\nconst p = v.payload || {};\n\nconst techLabel = p.technologyLabel || p.technologyCustom || \"KI\";\nconst goalLabel = p.learningGoal === \"other\" ? (p.learningGoalCustom || \"Finance\") : (p.learningGoal || \"Finance\");\nconst title = (v.llm_title && v.llm_title.trim()) ? v.llm_title : `Halluzinationen erkennen: ${goalLabel} – ${techLabel}`;\n\n// Lernziel-Anzeige: UI liest learning_objective (GameReviewModal/game.ts)\nconst goalDisplay = p.learningGoal === \"other\" ? (p.learningGoalCustom || null) : (p.learningGoal || null);\n\nreturn [{ json: {\n  title: title,                                  // NOT NULL\n  format: p.gameType || \"hallucination_spotter_v2\", // Discriminant = Spalte 'format'\n  difficulty: p.difficulty || \"medium\",\n  language: \"de\",\n  topic: v.llm_topic || null,\n  learning_objective: goalDisplay,               // <-- das rendert die UI\n  game_json: v.game_json,                         // jsonb (Code-gebaute Huelle)\n  status: \"draft\",\n  technology_id: (p.technologyId && p.technologyId !== \"other\") ? p.technologyId : null,\n  technology_custom: p.technologyId === \"other\" ? (p.technologyCustom || null) : null,\n  learning_goal: p.learningGoal !== \"other\" ? p.learningGoal : null,\n  learning_goal_custom: p.learningGoal === \"other\" ? (p.learningGoalCustom || null) : null,\n  requested_by: p.requestedBy || null,\n  generation_meta: v.meta || null,\n  created_at: new Date().toISOString()\n}}];\n"
+      },
+      "id": "cc003edd-407c-407c-b67f-1f03989a0947",
+      "name": "Build DB Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3552,
+        1664
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "games",
+        "dataToSend": "autoMapInputData"
+      },
+      "id": "ee2404f3-0c1f-464e-98c8-4eb8579b2cc0",
+      "name": "Insert games (draft)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3776,
+        1664
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "uRjStYpV62kd5r0x",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok: true, gameId: $json.id, status: 'draft' }) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "856131ef-0b29-49e3-8ea1-7c18a473eaa9",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        4000,
+        1664
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok: false, errors: $json.errors }) }}",
+        "options": {
+          "responseCode": 422,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "f6ca680e-fbd4-4ed5-a7a8-fdc8b7506996",
+      "name": "Respond Fail",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        4000,
+        2016
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Build Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Prompt": {
+      "main": [
+        [
+          {
+            "node": "LLM – kiconnect (1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM – kiconnect (1)": {
+      "main": [
+        [
+          {
+            "node": "Process & Validate 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process & Validate 1": {
+      "main": [
+        [
+          {
+            "node": "Valid? (1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid? (1)": {
+      "main": [
+        [
+          {
+            "node": "Build DB Row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Repair Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Repair Prompt": {
+      "main": [
+        [
+          {
+            "node": "LLM – kiconnect (2)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM – kiconnect (2)": {
+      "main": [
+        [
+          {
+            "node": "Process & Validate 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process & Validate 2": {
+      "main": [
+        [
+          {
+            "node": "Valid? (2)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid? (2)": {
+      "main": [
+        [
+          {
+            "node": "Build DB Row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Fail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build DB Row": {
+      "main": [
+        [
+          {
+            "node": "Insert games (draft)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert games (draft)": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "3d098daf-825d-46a3-85bc-8c9d77043b9b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "febf70db6c210749809937ae80018f186718dbb1fd04a94fe3840d13114ae841"
+  },
+  "nodeGroups": [],
+  "id": "WVIWo0jWEs9NTjGc",
+  "tags": []
+}

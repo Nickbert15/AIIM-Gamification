@@ -1,0 +1,495 @@
+{
+  "name": "4 - Game Generator: Prompt Arena",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-arena",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "c1dff305-359d-4c9f-90bd-455f2a64e728",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        784
+      ],
+      "webhookId": "fa29ad2d-d078-4f68-8148-b9f03ca26c61"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Build Prompt (Versuch 1) ----\nconst payload = ($('Webhook').first().json.body) || $('Webhook').first().json || {};\nconst difficulty = [\"easy\",\"medium\",\"hard\"].includes(payload.difficulty) ? payload.difficulty : \"medium\";\nconst ROUNDS = 2; // fix, unabhaengig von Schwierigkeit\n\nconst SUBTLETY = {\n  easy:   \"Der Unterschied zwischen starker und schwacher Antwort darf deutlich sein.\",\n  medium: \"Die schwache Antwort soll auf den ersten Blick brauchbar wirken.\",\n  hard:   \"Die schwache Antwort soll sehr ueberzeugend klingen und nur bei genauem Hinsehen als inhaltsleer auffallen.\"\n};\nconst learningGoal = payload.learningGoal === \"other\"\n  ? (payload.learningGoalCustom || \"Allgemeines Finance-Thema\")\n  : (payload.learningGoal || \"Allgemeines Finance-Thema\");\nconst techLabel   = payload.technologyLabel || payload.technologyCustom || \"KI-Technologie\";\nconst techContext = payload.technologyWhatsNew ? (\"Kontext zur Technologie: \" + payload.technologyWhatsNew) : \"\";\n\nconst systemPrompt = `Du bist Spiel-Generator fuer \"Prompt Arena\"-Challenges der Lufthansa Finance Training Academy. Zielgruppe: eine Controllerin ohne KI-Vorwissen. Sie soll lernen, eine substanzielle KI-Antwort von einer plausibel klingenden, aber inhaltsleeren zu unterscheiden.\n\nGib AUSSCHLIESSLICH valides JSON zurueck, KEINE Markdown-Code-Bloecke, exakt in diesem Format:\n{ \"rounds\": [ ${ROUNDS} Runden-Objekte ] }\n\nJede Runde:\n{\n \"taskDescription\": \"<deutsche Aufgabe/Frage, 1-2 Saetze, die jemand an eine KI stellt>\",\n \"systemContext\": \"<deutscher Kontext MIT konkreten Fakten: Betraege, Ziele, Perioden, Kennzahlen. Dagegen wird geantwortet.>\",\n \"strong\": { \"text\": \"<die inhaltlich STARKE Antwort>\", \"note\": \"<warum stark>\" },\n \"weak\":   { \"text\": \"<die plausible, aber INHALTSLEERE Antwort>\", \"note\": \"<warum schwach>\" }\n}\n\nHARTE REGELN:\n- systemContext MUSS mindestens eine konkrete Zahl/Kennzahl enthalten (der Grounding-Traeger).\n- strong.text nutzt die Fakten aus systemContext konkret (nennt Zahlen, Ziel, Kontextfaktor) und beantwortet die Aufgabe substanziell.\n- weak.text ist pauschal und nichtssagend (keine Zahlen, kein Faktenbezug), aber NICHT sachlich falsch und NICHT erfunden. Der Unterschied ist SUBSTANZ, nicht Korrektheit. (Sonst waere es ein Halluzinations-Spiel.)\n- strong und weak beziehen sich auf DIESELBE Aufgabe und duerfen sich inhaltlich nicht widersprechen.\n- strong.text und weak.text duerfen NICHT identisch sein.\n- Beide note-Felder nicht leer.\n- Antworte nur mit dem JSON-Objekt.\n- ${SUBTLETY[difficulty]}\n\nSchwierigkeit: ${difficulty}. Lernziel: ${learningGoal}. Technologie-Bezug: ${techLabel}. ${techContext}`;\n\nconst userPrompt = `Erzeuge jetzt ${ROUNDS} Prompt-Arena-Runden zum Lernziel \"${learningGoal}\" mit Bezug zur Technologie \"${techLabel}\", Schwierigkeit \"${difficulty}\". Gib ausschliesslich das JSON im vorgegebenen Format zurueck.`;\n\nconst llm_body = {\n  model: \"OpenAI GPT OSS 120b KI:Inferenz.nrw\",\n  messages: [{ role:\"system\", content: systemPrompt }, { role:\"user\", content: userPrompt }],\n  temperature: 0.6,\n  max_tokens: 3000\n};\nreturn [{ json: { llm_body, attempt: 1, difficulty, rounds_expected: ROUNDS, payload } }];\n"
+      },
+      "id": "6b12cc0f-cb4c-48b4-88dd-1f3e580ff356",
+      "name": "Build Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        48,
+        784
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://chat.kiconnect.nrw/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.llm_body) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "c3795d00-2918-4bd1-bec6-b95530690d43",
+      "name": "LLM – kiconnect (1)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        240,
+        784
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "Sm6OpcfukpuuOu01",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Process & Validate (Versuch 1) ----\nconst resp = $json;\nconst bp = $('Build Prompt').first().json;\nconst payload = bp.payload;\nconst expected = bp.rounds_expected || 2;\nconst attempt = 1;\n\nfunction fail(errors, raw){ return [{ json:{ valid:false, errors, rounds:null, payload,\n  meta:{ attempt, model: bp.llm_body.model }, raw } }]; }\n\nlet content = \"\";\ntry { content = resp.choices[0].message.content; }\ncatch(e){ return fail([\"LLM-Antwort ohne choices/content\"], resp); }\nconst usage = resp.usage || null;\n\nlet data;\ntry {\n  const cleaned = String(content).replace(/```json/gi,\"\").replace(/```/g,\"\").trim();\n  const s = cleaned.indexOf(\"{\"), e = cleaned.lastIndexOf(\"}\");\n  data = JSON.parse(s!==-1 && e!==-1 ? cleaned.slice(s,e+1) : cleaned);\n} catch(e){ return fail([\"LLM-Ausgabe ist kein valides JSON (evtl. abgeschnitten -> max_tokens): \" + e.message], content); }\n\nconst errors = [];\nconst rounds = Array.isArray(data.rounds) ? data.rounds : [];\nif (rounds.length !== expected) errors.push(\"rounds: erwartet \" + expected + \", erhalten \" + rounds.length);\n\nrounds.forEach((r,i)=>{\n  const n = \"Runde \" + (i+1) + \": \";\n  if (!r || typeof r !== \"object\"){ errors.push(n + \"kein Objekt\"); return; }\n  if (!r.taskDescription || !String(r.taskDescription).trim()) errors.push(n + \"taskDescription leer\");\n  if (!r.systemContext   || !String(r.systemContext).trim())   errors.push(n + \"systemContext leer\");\n  else if (!/\\d/.test(String(r.systemContext)))                errors.push(n + \"systemContext ohne konkrete Zahl (kein Grounding)\");\n  const st = r.strong || {}, wk = r.weak || {};\n  if (!st.text || !String(st.text).trim()) errors.push(n + \"strong.text leer\");\n  if (!wk.text || !String(wk.text).trim()) errors.push(n + \"weak.text leer\");\n  if (!st.note || !String(st.note).trim()) errors.push(n + \"strong.note leer\");\n  if (!wk.note || !String(wk.note).trim()) errors.push(n + \"weak.note leer\");\n  if (st.text && wk.text && String(st.text).trim() === String(wk.text).trim()) errors.push(n + \"strong und weak identisch\");\n});\n\nif (errors.length) return fail(errors, content);\n\nconst clean = rounds.map(r => ({\n  taskDescription: String(r.taskDescription).trim(),\n  systemContext:   String(r.systemContext).trim(),\n  strong: { text: String(r.strong.text).trim(), note: String(r.strong.note).trim() },\n  weak:   { text: String(r.weak.text).trim(),   note: String(r.weak.note).trim() }\n}));\n\nreturn [{ json: { valid:true, errors:[], rounds: clean, payload,\n  meta:{ attempt, model: bp.llm_body.model, tokens: usage }, raw:null } }];\n"
+      },
+      "id": "60ec9a36-db87-4bd7-ac81-0473931b11d0",
+      "name": "Process & Validate 1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        784
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "23863357-b716-41ff-a782-7c7b2fbf3f8c",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "158c7a99-a1fa-4bcb-a386-c60c47e52be7",
+      "name": "Valid? (1)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        640,
+        784
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Build Repair Prompt (Versuch 2) ----\nconst prev = $('Process & Validate 1').first().json;\nconst bp = $('Build Prompt').first().json;\nconst errors = prev.errors || [];\n\nconst repairSystem = bp.llm_body.messages[0].content;\nconst repairUser = \"Dein vorheriger Versuch war UNGUELTIG. Zu behebende Fehler:\\n- \"\n  + errors.join(\"\\n- \")\n  + \"\\n\\nDein vorheriger (fehlerhafter) Output:\\n\" + JSON.stringify(prev.raw)\n  + \"\\n\\nKorrigiere GENAU diese Fehler und gib erneut AUSSCHLIESSLICH das valide JSON im vorgegebenen Format zurueck.\";\n\nconst llm_body = {\n  model: bp.llm_body.model,\n  messages: [{ role:\"system\", content: repairSystem }, { role:\"user\", content: repairUser }],\n  temperature: 0.2,\n  max_tokens: 3000\n};\nreturn [{ json: { llm_body, attempt:2, difficulty: bp.difficulty, rounds_expected: bp.rounds_expected, payload: bp.payload } }];\n"
+      },
+      "id": "95bcd37c-5f1c-42a6-8fbd-005cb632374f",
+      "name": "Build Repair Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        1008
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://chat.kiconnect.nrw/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.llm_body) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "3fd0f80a-2731-4139-8962-c239681f3aea",
+      "name": "LLM – kiconnect (2)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        848,
+        1008
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "Sm6OpcfukpuuOu01",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Process & Validate (Versuch 2) ----\nconst resp = $json;\nconst bp = $('Build Prompt').first().json;\nconst payload = bp.payload;\nconst expected = bp.rounds_expected || 2;\nconst attempt = 2;\n\nfunction fail(errors, raw){ return [{ json:{ valid:false, errors, rounds:null, payload,\n  meta:{ attempt, model: bp.llm_body.model }, raw } }]; }\n\nlet content = \"\";\ntry { content = resp.choices[0].message.content; }\ncatch(e){ return fail([\"LLM-Antwort ohne choices/content\"], resp); }\nconst usage = resp.usage || null;\n\nlet data;\ntry {\n  const cleaned = String(content).replace(/```json/gi,\"\").replace(/```/g,\"\").trim();\n  const s = cleaned.indexOf(\"{\"), e = cleaned.lastIndexOf(\"}\");\n  data = JSON.parse(s!==-1 && e!==-1 ? cleaned.slice(s,e+1) : cleaned);\n} catch(e){ return fail([\"LLM-Ausgabe ist kein valides JSON (evtl. abgeschnitten -> max_tokens): \" + e.message], content); }\n\nconst errors = [];\nconst rounds = Array.isArray(data.rounds) ? data.rounds : [];\nif (rounds.length !== expected) errors.push(\"rounds: erwartet \" + expected + \", erhalten \" + rounds.length);\n\nrounds.forEach((r,i)=>{\n  const n = \"Runde \" + (i+1) + \": \";\n  if (!r || typeof r !== \"object\"){ errors.push(n + \"kein Objekt\"); return; }\n  if (!r.taskDescription || !String(r.taskDescription).trim()) errors.push(n + \"taskDescription leer\");\n  if (!r.systemContext   || !String(r.systemContext).trim())   errors.push(n + \"systemContext leer\");\n  else if (!/\\d/.test(String(r.systemContext)))                errors.push(n + \"systemContext ohne konkrete Zahl (kein Grounding)\");\n  const st = r.strong || {}, wk = r.weak || {};\n  if (!st.text || !String(st.text).trim()) errors.push(n + \"strong.text leer\");\n  if (!wk.text || !String(wk.text).trim()) errors.push(n + \"weak.text leer\");\n  if (!st.note || !String(st.note).trim()) errors.push(n + \"strong.note leer\");\n  if (!wk.note || !String(wk.note).trim()) errors.push(n + \"weak.note leer\");\n  if (st.text && wk.text && String(st.text).trim() === String(wk.text).trim()) errors.push(n + \"strong und weak identisch\");\n});\n\nif (errors.length) return fail(errors, content);\n\nconst clean = rounds.map(r => ({\n  taskDescription: String(r.taskDescription).trim(),\n  systemContext:   String(r.systemContext).trim(),\n  strong: { text: String(r.strong.text).trim(), note: String(r.strong.note).trim() },\n  weak:   { text: String(r.weak.text).trim(),   note: String(r.weak.note).trim() }\n}));\n\nreturn [{ json: { valid:true, errors:[], rounds: clean, payload,\n  meta:{ attempt, model: bp.llm_body.model, tokens: usage }, raw:null } }];\n"
+      },
+      "id": "56544ce1-8418-4be4-b313-dd0af8914421",
+      "name": "Process & Validate 2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        1008
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "37a99190-e090-454c-91a5-88499e506c81",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "5ab4b277-34ca-4521-967d-ddb0e791e283",
+      "name": "Valid? (2)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1248,
+        1008
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok:false, errors: $json.errors }) }}",
+        "options": {
+          "responseCode": 422,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "2418662d-72b9-4c39-bb23-05d1c9725fb1",
+      "name": "Respond Fail",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1440,
+        1008
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Build Blind Prompt (Inversions-Check, Generierungs-Zeit) ----\nconst v = $json;                 // valide PV-Ausgabe (aus PV1 ODER PV2)\nconst rounds = v.rounds;\n\n// pro Runde strong/weak zufaellig auf A/B legen -> Judge sieht keine Labels\nconst blindRounds = rounds.map((r,i) => {\n  const strongIsA = Math.random() < 0.5;\n  return {\n    round: i+1,\n    A: strongIsA ? r.strong.text : r.weak.text,\n    B: strongIsA ? r.weak.text : r.strong.text,\n    strongLabel: strongIsA ? \"A\" : \"B\"     // NUR fuer den Code, NICHT im Prompt\n  };\n});\n\nconst blocks = blindRounds.map(br =>\n  `Runde ${br.round}:\\nAntwort A: ${br.A}\\nAntwort B: ${br.B}`\n).join(\"\\n\\n\");\n\nconst system = `Du bist ein strenger Finance-Reviewer. Dir werden pro Runde zwei KI-Antworten (A und B) auf dieselbe Aufgabe gezeigt. Waehle jeweils die inhaltlich FUNDIERTERE Antwort: die, die konkrete Zahlen/Fakten nutzt und die Frage substanziell beantwortet - nicht die pauschalere. Antworte AUSSCHLIESSLICH mit JSON: {\"verdicts\":[{\"round\":1,\"stronger\":\"A\"}]}`;\nconst user = `Bewerte diese Runden. Fuer jede Runde: welche Antwort ist staerker?\\n\\n${blocks}`;\n\nconst llm_body = {\n  model: v.meta.model || \"OpenAI GPT OSS 120b KI:Inferenz.nrw\",\n  messages: [{ role:\"system\", content: system }, { role:\"user\", content: user }],\n  temperature: 0,\n  max_tokens: 400\n};\nreturn [{ json: { llm_body, blindRounds, carry: v } }];\n"
+      },
+      "id": "222bca72-85dd-40d3-a080-af09b9ea2071",
+      "name": "Build Blind Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://chat.kiconnect.nrw/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.llm_body) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "5132f743-7df7-4088-8e5b-bf21c48e3c1e",
+      "name": "LLM – kiconnect (blind)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1248,
+        656
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "Sm6OpcfukpuuOu01",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Process Blind + Assemble DB Row ----\nconst resp = $json;\nconst bb = $('Build Blind Prompt').first().json;\nconst v = bb.carry;\nconst rounds = v.rounds;\nconst p = v.payload || {};\n\n// --- Blind-Verdikte parsen (fail-soft: darf NIE den Insert blockieren) ---\nlet verdicts = [];\ntry {\n  const c = resp.choices[0].message.content;\n  const cl = String(c).replace(/```json/gi,\"\").replace(/```/g,\"\").trim();\n  const s = cl.indexOf(\"{\"), e = cl.lastIndexOf(\"}\");\n  const parsed = JSON.parse(s!==-1 && e!==-1 ? cl.slice(s,e+1) : cl);\n  verdicts = Array.isArray(parsed.verdicts) ? parsed.verdicts : [];\n} catch(e) { verdicts = []; }\n\nlet blindPassed = null;            // null = nicht durchfuehrbar (fail-soft -> baseline)\nconst disagreements = [];\nif (verdicts.length === bb.blindRounds.length && verdicts.length > 0) {\n  bb.blindRounds.forEach(br => {\n    const vd = verdicts.find(x => Number(x.round) === br.round);\n    if (!vd || String(vd.stronger).toUpperCase() !== br.strongLabel) disagreements.push(br.round);\n  });\n  blindPassed = disagreements.length === 0;\n}\n\n// --- game_json assemblen: Code vergibt id + qualityRank (strong->1, weak->2) ---\nconst arenaRounds = rounds.map((r,i) => ({\n  id: i+1,\n  taskDescription: r.taskDescription,\n  systemContext: r.systemContext,\n  referenceOutputs: [\n    { id:1, text: r.strong.text, qualityRank:1, note: r.strong.note },\n    { id:2, text: r.weak.text,   qualityRank:2, note: r.weak.note }\n  ]\n}));\nconst game_json = {\n  format: \"prompt_arena\",\n  arenaRounds,\n  scoring: { maxPoints: arenaRounds.length, passingScore: arenaRounds.length }\n};\n\n// Blind-Ergebnis aendert NICHT den Status (kein needs_review-Wert im System) -\n// es lebt nur in generation_meta.blindCheck. Status ist immer 'draft', Mensch reviewt eh.\nconst status = \"draft\";\n\nconst techLabel = p.technologyLabel || p.technologyCustom || \"KI\";\nconst goalLabel = p.learningGoal === \"other\" ? (p.learningGoalCustom || \"Finance\") : (p.learningGoal || \"Finance\");\nconst goalDisplay = p.learningGoal === \"other\" ? (p.learningGoalCustom || null) : (p.learningGoal || null);\n\nreturn [{ json: {\n  title: `Prompt Arena: ${goalLabel} – ${techLabel}`,\n  format: p.gameType || \"prompt_arena\",\n  difficulty: p.difficulty || \"medium\",\n  language: \"de\",\n  learning_objective: goalDisplay,\n  game_json,\n  status,\n  technology_id: (p.technologyId && p.technologyId !== \"other\") ? p.technologyId : null,\n  technology_custom: p.technologyId === \"other\" ? (p.technologyCustom || null) : null,\n  learning_goal: p.learningGoal !== \"other\" ? p.learningGoal : null,\n  learning_goal_custom: p.learningGoal === \"other\" ? (p.learningGoalCustom || null) : null,\n  requested_by: p.requestedBy || null,\n  generation_meta: Object.assign({}, v.meta || {}, { blindCheck: { passed: blindPassed, disagreements } }),\n  created_at: new Date().toISOString()\n}}];\n"
+      },
+      "id": "a298dd22-b1e3-43b2-a5ca-f7b1aaa9f320",
+      "name": "Process Blind + Assemble",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "games",
+        "dataToSend": "autoMapInputData"
+      },
+      "id": "c1c28c55-5027-44a6-a742-ecb78f3dc4ef",
+      "name": "Insert games",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1648,
+        656
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "uRjStYpV62kd5r0x",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok:true, gameId: $json.id, status: $json.status }) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "fc66ee33-1cdf-4e98-a77b-b0e157b14575",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1840,
+        656
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Build Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Prompt": {
+      "main": [
+        [
+          {
+            "node": "LLM – kiconnect (1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM – kiconnect (1)": {
+      "main": [
+        [
+          {
+            "node": "Process & Validate 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process & Validate 1": {
+      "main": [
+        [
+          {
+            "node": "Valid? (1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid? (1)": {
+      "main": [
+        [
+          {
+            "node": "Build Blind Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Repair Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Repair Prompt": {
+      "main": [
+        [
+          {
+            "node": "LLM – kiconnect (2)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM – kiconnect (2)": {
+      "main": [
+        [
+          {
+            "node": "Process & Validate 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process & Validate 2": {
+      "main": [
+        [
+          {
+            "node": "Valid? (2)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid? (2)": {
+      "main": [
+        [
+          {
+            "node": "Build Blind Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Fail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Blind Prompt": {
+      "main": [
+        [
+          {
+            "node": "LLM – kiconnect (blind)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM – kiconnect (blind)": {
+      "main": [
+        [
+          {
+            "node": "Process Blind + Assemble",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Blind + Assemble": {
+      "main": [
+        [
+          {
+            "node": "Insert games",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert games": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "cc223084-56d9-4113-901c-74298527cce9",
+  "meta": {
+    "instanceId": "febf70db6c210749809937ae80018f186718dbb1fd04a94fe3840d13114ae841"
+  },
+  "nodeGroups": [],
+  "id": "983V6GVZLpCwBk2o",
+  "tags": []
+}

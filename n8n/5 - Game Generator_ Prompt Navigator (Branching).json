@@ -1,0 +1,495 @@
+{
+  "name": "5 - Game Generator: Prompt Navigator (Branching)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-branching",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "72b06d02-7928-48ac-a1fe-7a5d5cd98627",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1200,
+        128
+      ],
+      "webhookId": "b8993a99-900b-4944-ad4e-3ca0506e952c"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Build Prompt (Versuch 1) ----\nconst payload = ($('Webhook').first().json.body) || $('Webhook').first().json || {};\nconst difficulty = [\"easy\",\"medium\",\"hard\"].includes(payload.difficulty) ? payload.difficulty : \"medium\";\n\nconst SUBTLETY = {\n  easy:   \"Die Qualitaetsunterschiede zwischen den fuenf Prompts duerfen deutlich sein; die Halluzination im strong_but_trap-Output darf leicht auffallen.\",\n  medium: \"Die schwachen Prompts sollen auf den ersten Blick brauchbar wirken; die Halluzination im strong_but_trap-Output soll plausibel klingen und erst beim Abgleich mit der Datenbasis auffallen.\",\n  hard:   \"Alle fuenf Prompts sollen professionell klingen und sich nur in Nuancen unterscheiden; die Halluzination im strong_but_trap-Output soll sehr ueberzeugend sein und nur durch genauen Abgleich mit der Datenbasis erkennbar sein.\"\n};\nconst learningGoal = payload.learningGoal === \"other\"\n  ? (payload.learningGoalCustom || \"Allgemeines Finance-Thema\")\n  : (payload.learningGoal || \"Allgemeines Finance-Thema\");\nconst techLabel   = payload.technologyLabel || payload.technologyCustom || \"KI-Technologie\";\nconst techContext = payload.technologyWhatsNew ? (\"Kontext zur Technologie: \" + payload.technologyWhatsNew) : \"\";\n\nconst systemPrompt = `Du bist Spiel-Generator fuer \"Prompt Navigator\"-Challenges der Lufthansa Finance Training Academy. Zielgruppe: eine Controllerin ohne KI-Vorwissen. Sie soll lernen: gute Prompts erkennen (CRAFT: Context, Role, Action, Format, Tone), simulierte KI-Outputs kritisch pruefen (v.a. Halluzinationen erkennen) und gezielt nachsteuern.\n\nGib AUSSCHLIESSLICH valides JSON zurueck, KEINE Markdown-Code-Bloecke, exakt in diesem Format:\n{\n \"scenario\": {\n   \"intro\": \"<Situation + Aufgabe + DATENBASIS: mindestens 3 konkrete Zahlen (Betraege, Perioden, Kennzahlen). Alles, was eine KI wissen duerfte, steht ausschliesslich HIER.>\",\n   \"personaNote\": \"<1 Satz Einordnung fuer die Spielerin>\"\n },\n \"startQuestion\": \"<1 Satz: welche der fuenf Prompt-Karten schickt sie ab?>\",\n \"prompts\": [ genau 5 Objekte, jeder qualityTier genau einmal: \"perfect\", \"strong_but_trap\", \"weak_no_data\", \"weak_no_context\", \"weak_vague\" ],\n \"lessons\": [ 5 Objekte { \"craftElement\": \"<CRAFT-Element, z.B. Context>\", \"text\": \"<Lektion, 1-2 Saetze>\" } ],\n \"recapIntro\": \"<2-3 Saetze Abschluss-Fazit>\"\n}\n\nJedes prompts-Objekt:\n{\n \"qualityTier\": \"<einer der 5 Werte>\",\n \"label\": \"<Karten-Titel, 3-6 Woerter, beschreibt den STIL des Prompts, verraet NICHT seine Qualitaet>\",\n \"promptText\": \"<der vollstaendige Prompt im Wortlaut, wie ihn die Spielerin abschicken wuerde>\",\n \"aiOutput\": \"<die simulierte KI-Antwort auf genau diesen Prompt, 60-120 Woerter>\",\n \"ratingLabel\": \"<kurzes Qualitaetsurteil>\",\n \"explanation\": \"<2-3 Saetze: warum fiel der Output so aus, mit Bezug auf den Prompt>\",\n \"diagnosis\": { \"question\": \"<Was war das Kernproblem dieses Prompts?>\", \"options\": [ genau 3 Objekte { \"text\": \"...\", \"isCorrect\": true|false, \"feedback\": \"<Lernfeedback>\" } ] },\n \"correction\": { \"question\": \"<Wie steuerst du jetzt nach?>\", \"good\": { \"label\": \"...\", \"promptText\": \"...\", \"aiOutput\": \"...\", \"ratingLabel\": \"...\", \"explanation\": \"...\" }, \"meh\": { \"label\": \"...\", \"promptText\": \"...\", \"aiOutput\": \"...\", \"ratingLabel\": \"...\", \"explanation\": \"...\" } }\n}\nBeim qualityTier \"perfect\" entfallen \"diagnosis\" und \"correction\" komplett (Felder weglassen).\n\nHARTE REGELN:\n- Tier-Semantik: \"perfect\" = CRAFT-vollstaendiger Prompt MIT Anti-Halluzinations-Klausel (z.B. \"nutze ausschliesslich die genannten Zahlen, erfinde nichts\"); sein aiOutput nutzt NUR Zahlen aus der Datenbasis und ist fehlerfrei. \"strong_but_trap\" = fast identisch guter Prompt, aber OHNE Anti-Halluzinations-Klausel; sein aiOutput ist stark, enthaelt aber GENAU EINE plausible erfundene Behauptung oder Zahl, die NICHT in der Datenbasis steht (die Halluzination). \"weak_no_data\" = Prompt uebergibt die Datenbasis nicht; sein aiOutput erfindet durchgehend plausible Zahlen. \"weak_no_context\" = Prompt ohne Geschaeftskontext und Rolle; sein aiOutput ist generisch und geht am Ziel vorbei. \"weak_vague\" = vager Einzeiler; sein aiOutput ist pauschal und ohne Zahlen.\n- In diagnosis hat GENAU EINE Option isCorrect true. Die korrekte Diagnose-Option bei strong_but_trap MUSS die erfundene Behauptung konkret benennen. Distraktoren klingen plausibel; feedback erklaert, warum richtig bzw. falsch.\n- correction.good behebt exakt den Kerndefekt des jeweiligen Prompts (fehlende Daten nachliefern, Kontext ergaenzen, Halluzination adressieren); sein aiOutput ist stark und NUR datenbasiert; sein ratingLabel enthaelt das Wort \"Ausgezeichnet\". correction.meh ist eine vage Nachbesserung; sein aiOutput bleibt schwach.\n- perfect.ratingLabel enthaelt \"Ausgezeichnet\" oder \"Perfekt\".\n- Die aiOutputs von perfect, strong_but_trap und allen correction.good enthalten konkrete Zahlen.\n- Alle 5 promptText beziehen sich auf DIESELBE Aufgabe aus scenario.intro.\n- Alle Texte auf Deutsch. Antworte nur mit dem JSON-Objekt.\n- ${SUBTLETY[difficulty]}\n\nSchwierigkeit: ${difficulty}. Lernziel: ${learningGoal}. Technologie-Bezug: ${techLabel}. ${techContext}`;\n\nconst userPrompt = `Erzeuge jetzt eine Prompt-Navigator-Challenge zum Lernziel \"${learningGoal}\" mit Bezug zur Technologie \"${techLabel}\", Schwierigkeit \"${difficulty}\". Gib ausschliesslich das JSON im vorgegebenen Format zurueck.`;\n\nconst llm_body = {\n  model: \"OpenAI GPT OSS 120b KI:Inferenz.nrw\",\n  messages: [{ role:\"system\", content: systemPrompt }, { role:\"user\", content: userPrompt }],\n  temperature: 0.7,\n  max_tokens: 8000\n};\nreturn [{ json: { llm_body, attempt: 1, difficulty, payload } }];\n"
+      },
+      "id": "f547cc31-7aa1-44e7-aab3-20cb199b9482",
+      "name": "Build Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1008,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://chat.kiconnect.nrw/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.llm_body) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "45eb484f-2165-448f-ad8f-89ae38993386",
+      "name": "LLM – kiconnect (1)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -800,
+        128
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "Sm6OpcfukpuuOu01",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Process & Validate (Versuch 1) ----\nconst resp = $json;\nconst bp = $('Build Prompt').first().json;\nconst payload = bp.payload;\nconst attempt = 1;\n\nconst TIERS = [\"perfect\",\"strong_but_trap\",\"weak_no_data\",\"weak_no_context\",\"weak_vague\"];\nconst nonEmpty = (x) => x != null && String(x).trim().length > 0;\nconst T = (x) => String(x).trim();\n\nfunction fail(errors, raw){ return [{ json:{ valid:false, errors, data:null, payload,\n  meta:{ attempt, model: bp.llm_body.model }, raw } }]; }\n\nlet content = \"\";\ntry { content = resp.choices[0].message.content; }\ncatch(e){ return fail([\"LLM-Antwort ohne choices/content\"], resp); }\nconst usage = resp.usage || null;\n\nlet data;\ntry {\n  const cleaned = String(content).replace(/```json/gi,\"\").replace(/```/g,\"\").trim();\n  const s = cleaned.indexOf(\"{\"), e = cleaned.lastIndexOf(\"}\");\n  data = JSON.parse(s!==-1 && e!==-1 ? cleaned.slice(s,e+1) : cleaned);\n} catch(e){ return fail([\"LLM-Ausgabe ist kein valides JSON (evtl. abgeschnitten -> max_tokens): \" + e.message], content); }\n\nconst errors = [];\n\nconst sc = data.scenario || {};\nif (!nonEmpty(sc.intro)) errors.push(\"scenario.intro leer\");\nelse if (!/\\d/.test(String(sc.intro))) errors.push(\"scenario.intro ohne konkrete Zahl (keine Datenbasis)\");\nif (!nonEmpty(data.startQuestion)) errors.push(\"startQuestion leer\");\n\nconst prompts = Array.isArray(data.prompts) ? data.prompts : [];\nif (prompts.length !== 5) errors.push(\"prompts: erwartet 5, erhalten \" + prompts.length);\n\nconst seen = {};\nprompts.forEach((pr,i)=>{\n  const n = \"Prompt \" + (i+1) + \": \";\n  if (!pr || typeof pr !== \"object\"){ errors.push(n + \"kein Objekt\"); return; }\n  if (!TIERS.includes(pr.qualityTier)) errors.push(n + \"qualityTier ungueltig: \" + JSON.stringify(pr.qualityTier));\n  else { if (seen[pr.qualityTier]) errors.push(n + \"qualityTier doppelt: \" + pr.qualityTier); seen[pr.qualityTier] = true; }\n\n  [\"label\",\"promptText\",\"aiOutput\",\"ratingLabel\",\"explanation\"].forEach(f=>{\n    if (!nonEmpty(pr[f])) errors.push(n + f + \" leer\");\n  });\n  if ((pr.qualityTier === \"perfect\" || pr.qualityTier === \"strong_but_trap\") && nonEmpty(pr.aiOutput) && !/\\d/.test(String(pr.aiOutput)))\n    errors.push(n + \"aiOutput (\" + pr.qualityTier + \") ohne konkrete Zahl\");\n\n  if (pr.qualityTier && pr.qualityTier !== \"perfect\") {\n    const dg = pr.diagnosis || {};\n    if (!nonEmpty(dg.question)) errors.push(n + \"diagnosis.question leer\");\n    const dOpts = Array.isArray(dg.options) ? dg.options : [];\n    if (dOpts.length < 2 || dOpts.length > 4) errors.push(n + \"diagnosis.options: erwartet 2-4, erhalten \" + dOpts.length);\n    let correct = 0;\n    dOpts.forEach((o,j)=>{\n      if (!nonEmpty((o||{}).text)) errors.push(n + \"diagnosis.options[\" + (j+1) + \"].text leer\");\n      if (!nonEmpty((o||{}).feedback)) errors.push(n + \"diagnosis.options[\" + (j+1) + \"].feedback leer\");\n      if ((o||{}).isCorrect === true) correct++;\n    });\n    if (dOpts.length && correct !== 1) errors.push(n + \"diagnosis: genau 1 Option mit isCorrect=true erwartet, erhalten \" + correct);\n\n    const co = pr.correction || {};\n    if (!nonEmpty(co.question)) errors.push(n + \"correction.question leer\");\n    [\"good\",\"meh\"].forEach(k=>{\n      const c = co[k] || {};\n      [\"label\",\"promptText\",\"aiOutput\",\"ratingLabel\",\"explanation\"].forEach(f=>{\n        if (!nonEmpty(c[f])) errors.push(n + \"correction.\" + k + \".\" + f + \" leer\");\n      });\n    });\n    const g = (co.good||{}).aiOutput, m = (co.meh||{}).aiOutput;\n    if (nonEmpty(g) && nonEmpty(m) && T(g) === T(m)) errors.push(n + \"correction: good.aiOutput und meh.aiOutput identisch\");\n    if (nonEmpty(g) && !/\\d/.test(String(g))) errors.push(n + \"correction.good.aiOutput ohne konkrete Zahl\");\n  }\n});\nif (prompts.length === 5) TIERS.forEach(t=>{ if (!seen[t]) errors.push(\"qualityTier fehlt: \" + t); });\n\nconst lessons = Array.isArray(data.lessons) ? data.lessons : [];\nif (lessons.length < 3) errors.push(\"lessons: mindestens 3 erwartet, erhalten \" + lessons.length);\nlessons.forEach((l,i)=>{\n  if (!nonEmpty((l||{}).craftElement)) errors.push(\"lessons[\" + (i+1) + \"].craftElement leer\");\n  if (!nonEmpty((l||{}).text)) errors.push(\"lessons[\" + (i+1) + \"].text leer\");\n});\nif (!nonEmpty(data.recapIntro)) errors.push(\"recapIntro leer\");\n\nif (errors.length) return fail(errors, content);\n\n// ---- Clean copy (getrimmt, nur erwartete Felder) ----\nconst clean = {\n  scenario: Object.assign({ intro: T(sc.intro) }, nonEmpty(sc.personaNote) ? { personaNote: T(sc.personaNote) } : {}),\n  startQuestion: T(data.startQuestion),\n  prompts: prompts.map(pr => {\n    const base = {\n      qualityTier: pr.qualityTier, label: T(pr.label), promptText: T(pr.promptText),\n      aiOutput: T(pr.aiOutput), ratingLabel: T(pr.ratingLabel), explanation: T(pr.explanation)\n    };\n    if (pr.qualityTier !== \"perfect\") {\n      base.diagnosis = {\n        question: T(pr.diagnosis.question),\n        options: pr.diagnosis.options.map(o => ({ text: T(o.text), isCorrect: o.isCorrect === true, feedback: T(o.feedback) }))\n      };\n      const mk = (c) => ({ label: T(c.label), promptText: T(c.promptText), aiOutput: T(c.aiOutput), ratingLabel: T(c.ratingLabel), explanation: T(c.explanation) });\n      base.correction = { question: T(pr.correction.question), good: mk(pr.correction.good), meh: mk(pr.correction.meh) };\n    }\n    return base;\n  }),\n  lessons: lessons.map(l => ({ craftElement: T(l.craftElement), text: T(l.text) })),\n  recapIntro: T(data.recapIntro)\n};\n\nreturn [{ json: { valid:true, errors:[], data: clean, payload,\n  meta:{ attempt, model: bp.llm_body.model, tokens: usage }, raw:null } }];\n"
+      },
+      "id": "c4ed4882-2f33-4a0d-b512-8c7027ce95e9",
+      "name": "Process & Validate 1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -608,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f97bdcf1-7356-4759-8fe1-7377fa851cbb",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ecc9b32d-cb0e-4b4a-b026-c0f2c2361f6c",
+      "name": "Valid? (1)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -400,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Build Repair Prompt (Versuch 2) ----\nconst prev = $('Process & Validate 1').first().json;\nconst bp = $('Build Prompt').first().json;\nconst errors = prev.errors || [];\n\nconst repairSystem = bp.llm_body.messages[0].content;\nconst repairUser = \"Dein vorheriger Versuch war UNGUELTIG. Zu behebende Fehler:\\n- \"\n  + errors.join(\"\\n- \")\n  + \"\\n\\nDein vorheriger (fehlerhafter) Output:\\n\" + JSON.stringify(prev.raw)\n  + \"\\n\\nKorrigiere GENAU diese Fehler und gib erneut AUSSCHLIESSLICH das valide JSON im vorgegebenen Format zurueck.\";\n\nconst llm_body = {\n  model: bp.llm_body.model,\n  messages: [{ role:\"system\", content: repairSystem }, { role:\"user\", content: repairUser }],\n  temperature: 0.2,\n  max_tokens: 8000\n};\nreturn [{ json: { llm_body, attempt:2, difficulty: bp.difficulty, payload: bp.payload } }];\n"
+      },
+      "id": "82e29cd0-1498-4721-b601-eecd102ad0bb",
+      "name": "Build Repair Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://chat.kiconnect.nrw/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.llm_body) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "5c385566-c2ce-4c8b-a387-25dcd17781ef",
+      "name": "LLM – kiconnect (2)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -208,
+        352
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "Sm6OpcfukpuuOu01",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Process & Validate (Versuch 2) ----\nconst resp = $json;\nconst bp = $('Build Prompt').first().json;\nconst payload = bp.payload;\nconst attempt = 2;\n\nconst TIERS = [\"perfect\",\"strong_but_trap\",\"weak_no_data\",\"weak_no_context\",\"weak_vague\"];\nconst nonEmpty = (x) => x != null && String(x).trim().length > 0;\nconst T = (x) => String(x).trim();\n\nfunction fail(errors, raw){ return [{ json:{ valid:false, errors, data:null, payload,\n  meta:{ attempt, model: bp.llm_body.model }, raw } }]; }\n\nlet content = \"\";\ntry { content = resp.choices[0].message.content; }\ncatch(e){ return fail([\"LLM-Antwort ohne choices/content\"], resp); }\nconst usage = resp.usage || null;\n\nlet data;\ntry {\n  const cleaned = String(content).replace(/```json/gi,\"\").replace(/```/g,\"\").trim();\n  const s = cleaned.indexOf(\"{\"), e = cleaned.lastIndexOf(\"}\");\n  data = JSON.parse(s!==-1 && e!==-1 ? cleaned.slice(s,e+1) : cleaned);\n} catch(e){ return fail([\"LLM-Ausgabe ist kein valides JSON (evtl. abgeschnitten -> max_tokens): \" + e.message], content); }\n\nconst errors = [];\n\nconst sc = data.scenario || {};\nif (!nonEmpty(sc.intro)) errors.push(\"scenario.intro leer\");\nelse if (!/\\d/.test(String(sc.intro))) errors.push(\"scenario.intro ohne konkrete Zahl (keine Datenbasis)\");\nif (!nonEmpty(data.startQuestion)) errors.push(\"startQuestion leer\");\n\nconst prompts = Array.isArray(data.prompts) ? data.prompts : [];\nif (prompts.length !== 5) errors.push(\"prompts: erwartet 5, erhalten \" + prompts.length);\n\nconst seen = {};\nprompts.forEach((pr,i)=>{\n  const n = \"Prompt \" + (i+1) + \": \";\n  if (!pr || typeof pr !== \"object\"){ errors.push(n + \"kein Objekt\"); return; }\n  if (!TIERS.includes(pr.qualityTier)) errors.push(n + \"qualityTier ungueltig: \" + JSON.stringify(pr.qualityTier));\n  else { if (seen[pr.qualityTier]) errors.push(n + \"qualityTier doppelt: \" + pr.qualityTier); seen[pr.qualityTier] = true; }\n\n  [\"label\",\"promptText\",\"aiOutput\",\"ratingLabel\",\"explanation\"].forEach(f=>{\n    if (!nonEmpty(pr[f])) errors.push(n + f + \" leer\");\n  });\n  if ((pr.qualityTier === \"perfect\" || pr.qualityTier === \"strong_but_trap\") && nonEmpty(pr.aiOutput) && !/\\d/.test(String(pr.aiOutput)))\n    errors.push(n + \"aiOutput (\" + pr.qualityTier + \") ohne konkrete Zahl\");\n\n  if (pr.qualityTier && pr.qualityTier !== \"perfect\") {\n    const dg = pr.diagnosis || {};\n    if (!nonEmpty(dg.question)) errors.push(n + \"diagnosis.question leer\");\n    const dOpts = Array.isArray(dg.options) ? dg.options : [];\n    if (dOpts.length < 2 || dOpts.length > 4) errors.push(n + \"diagnosis.options: erwartet 2-4, erhalten \" + dOpts.length);\n    let correct = 0;\n    dOpts.forEach((o,j)=>{\n      if (!nonEmpty((o||{}).text)) errors.push(n + \"diagnosis.options[\" + (j+1) + \"].text leer\");\n      if (!nonEmpty((o||{}).feedback)) errors.push(n + \"diagnosis.options[\" + (j+1) + \"].feedback leer\");\n      if ((o||{}).isCorrect === true) correct++;\n    });\n    if (dOpts.length && correct !== 1) errors.push(n + \"diagnosis: genau 1 Option mit isCorrect=true erwartet, erhalten \" + correct);\n\n    const co = pr.correction || {};\n    if (!nonEmpty(co.question)) errors.push(n + \"correction.question leer\");\n    [\"good\",\"meh\"].forEach(k=>{\n      const c = co[k] || {};\n      [\"label\",\"promptText\",\"aiOutput\",\"ratingLabel\",\"explanation\"].forEach(f=>{\n        if (!nonEmpty(c[f])) errors.push(n + \"correction.\" + k + \".\" + f + \" leer\");\n      });\n    });\n    const g = (co.good||{}).aiOutput, m = (co.meh||{}).aiOutput;\n    if (nonEmpty(g) && nonEmpty(m) && T(g) === T(m)) errors.push(n + \"correction: good.aiOutput und meh.aiOutput identisch\");\n    if (nonEmpty(g) && !/\\d/.test(String(g))) errors.push(n + \"correction.good.aiOutput ohne konkrete Zahl\");\n  }\n});\nif (prompts.length === 5) TIERS.forEach(t=>{ if (!seen[t]) errors.push(\"qualityTier fehlt: \" + t); });\n\nconst lessons = Array.isArray(data.lessons) ? data.lessons : [];\nif (lessons.length < 3) errors.push(\"lessons: mindestens 3 erwartet, erhalten \" + lessons.length);\nlessons.forEach((l,i)=>{\n  if (!nonEmpty((l||{}).craftElement)) errors.push(\"lessons[\" + (i+1) + \"].craftElement leer\");\n  if (!nonEmpty((l||{}).text)) errors.push(\"lessons[\" + (i+1) + \"].text leer\");\n});\nif (!nonEmpty(data.recapIntro)) errors.push(\"recapIntro leer\");\n\nif (errors.length) return fail(errors, content);\n\n// ---- Clean copy (getrimmt, nur erwartete Felder) ----\nconst clean = {\n  scenario: Object.assign({ intro: T(sc.intro) }, nonEmpty(sc.personaNote) ? { personaNote: T(sc.personaNote) } : {}),\n  startQuestion: T(data.startQuestion),\n  prompts: prompts.map(pr => {\n    const base = {\n      qualityTier: pr.qualityTier, label: T(pr.label), promptText: T(pr.promptText),\n      aiOutput: T(pr.aiOutput), ratingLabel: T(pr.ratingLabel), explanation: T(pr.explanation)\n    };\n    if (pr.qualityTier !== \"perfect\") {\n      base.diagnosis = {\n        question: T(pr.diagnosis.question),\n        options: pr.diagnosis.options.map(o => ({ text: T(o.text), isCorrect: o.isCorrect === true, feedback: T(o.feedback) }))\n      };\n      const mk = (c) => ({ label: T(c.label), promptText: T(c.promptText), aiOutput: T(c.aiOutput), ratingLabel: T(c.ratingLabel), explanation: T(c.explanation) });\n      base.correction = { question: T(pr.correction.question), good: mk(pr.correction.good), meh: mk(pr.correction.meh) };\n    }\n    return base;\n  }),\n  lessons: lessons.map(l => ({ craftElement: T(l.craftElement), text: T(l.text) })),\n  recapIntro: T(data.recapIntro)\n};\n\nreturn [{ json: { valid:true, errors:[], data: clean, payload,\n  meta:{ attempt, model: bp.llm_body.model, tokens: usage }, raw:null } }];\n"
+      },
+      "id": "0b93f1fd-48ea-4683-b7c0-84f1a31c0d29",
+      "name": "Process & Validate 2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c16bd09b-dbbf-4eec-b0fb-8628b524b966",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "00f3b3a3-a348-472b-a1a0-be03aba1ea07",
+      "name": "Valid? (2)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        208,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok:false, errors: $json.errors }) }}",
+        "options": {
+          "responseCode": 422,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "ce3eab7f-c80d-423a-b62e-cf02db0aea0f",
+      "name": "Respond Fail",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        400,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Build Blind Prompt (Faktencheck, Generierungs-Zeit) ----\nconst v = $json;                 // valide PV-Ausgabe (aus PV1 ODER PV2)\nconst d = v.data;\nconst perfect = d.prompts.find(p => p.qualityTier === \"perfect\");\nconst trap    = d.prompts.find(p => p.qualityTier === \"strong_but_trap\");\n\n// Judge sieht nicht, welcher Output der Trap ist -> zufaellig A/B\nconst trapIsA = Math.random() < 0.5;\nconst A = trapIsA ? trap.aiOutput : perfect.aiOutput;\nconst B = trapIsA ? perfect.aiOutput : trap.aiOutput;\nconst trapLabel = trapIsA ? \"A\" : \"B\";   // NUR fuer den Code, NICHT im Prompt\n\nconst system = `Du bist ein strenger Finance-Fakten-Pruefer. Du erhaeltst eine DATENBASIS und zwei KI-Antworten (A und B) auf dieselbe Aufgabe. Pruefe fuer JEDE Antwort einzeln und unabhaengig: Enthaelt sie mindestens eine konkrete Behauptung oder Zahl, die NICHT durch die Datenbasis gedeckt ist? Antworte AUSSCHLIESSLICH mit JSON: {\"A\":{\"unsupportedClaim\":true},\"B\":{\"unsupportedClaim\":false}}`;\nconst user = `DATENBASIS:\\n${d.scenario.intro}\\n\\nAntwort A:\\n${A}\\n\\nAntwort B:\\n${B}`;\n\nconst llm_body = {\n  model: v.meta.model || \"OpenAI GPT OSS 120b KI:Inferenz.nrw\",\n  messages: [{ role:\"system\", content: system }, { role:\"user\", content: user }],\n  temperature: 0,\n  max_tokens: 200\n};\nreturn [{ json: { llm_body, trapLabel, carry: v } }];\n"
+      },
+      "id": "f51c0d94-6590-4d74-a4fa-0c69d2fee6a6",
+      "name": "Build Blind Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://chat.kiconnect.nrw/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.llm_body) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "e8503e5a-a8d6-4938-a9c8-1911b4f7ffa7",
+      "name": "LLM – kiconnect (blind)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        0
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "Sm6OpcfukpuuOu01",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Process Blind + Assemble DB Row (deterministische Graph-Assembly) ----\nconst resp = $json;\nconst bb = $('Build Blind Prompt').first().json;\nconst v = bb.carry;\nconst d = v.data;\nconst p = v.payload || {};\n\n// --- Blind-Verdikt parsen (fail-soft: darf NIE den Insert blockieren) ---\nlet blindPassed = null;            // null = nicht durchfuehrbar -> Curator entscheidet\nconst disagreements = [];\ntry {\n  const c = resp.choices[0].message.content;\n  const cl = String(c).replace(/```json/gi,\"\").replace(/```/g,\"\").trim();\n  const s = cl.indexOf(\"{\"), e = cl.lastIndexOf(\"}\");\n  const parsed = JSON.parse(s!==-1 && e!==-1 ? cl.slice(s,e+1) : cl);\n  const perfLabel = bb.trapLabel === \"A\" ? \"B\" : \"A\";\n  const trapV = parsed[bb.trapLabel], perfV = parsed[perfLabel];\n  if (trapV && perfV && typeof trapV.unsupportedClaim === \"boolean\" && typeof perfV.unsupportedClaim === \"boolean\") {\n    if (trapV.unsupportedClaim !== true)  disagreements.push(\"trap_output_ohne_erkennbare_halluzination\");\n    if (perfV.unsupportedClaim !== false) disagreements.push(\"perfect_output_mit_ungestuetzter_behauptung\");\n    blindPassed = disagreements.length === 0;\n  }\n} catch(e) { blindPassed = null; }\n\n// --- Punkte: deterministisch aus qualityTier (LLM erfindet, Code rechnet) ---\nconst TIER_POINTS = { perfect: 6, strong_but_trap: 2, weak_no_data: 0, weak_no_context: 0, weak_vague: 0 };\nconst DIAG_POINTS = 2, FIX_POINTS = 2;\n\n// perfect deterministisch auf Index 3 (= Option 'prompt_d') -> Player-Badge-Kopplung\nconst arranged = d.prompts.slice();\nconst pi = arranged.findIndex(x => x.qualityTier === \"perfect\");\nif (pi !== 3) { const tmp = arranged[3]; arranged[3] = arranged[pi]; arranged[pi] = tmp; }\n\nconst letters = [\"a\",\"b\",\"c\",\"d\",\"e\"];\n// Celebration-Kopplung im Player: ratingLabel muss 'Ausgezeichnet'/'Perfekt' enthalten\nconst forceExcellent = (lbl) => /ausgezeichnet|perfekt/i.test(lbl) ? lbl : \"Ausgezeichnet\";\n\nconst nodes = {};\nnodes[\"start\"] = {\n  type: \"prompt_choice\",\n  text: d.startQuestion,\n  options: arranged.map((pr,i) => ({\n    id: \"prompt_\" + letters[i], label: pr.label, promptText: pr.promptText,\n    points: TIER_POINTS[pr.qualityTier], nextNode: letters[i] + \"_result\"\n  }))\n};\n\narranged.forEach((pr,i) => {\n  const x = letters[i];\n  const isPerfect = pr.qualityTier === \"perfect\";\n\n  nodes[x + \"_result\"] = {\n    type: \"output_review\",\n    aiOutput: pr.aiOutput,\n    ratingLabel: isPerfect ? forceExcellent(pr.ratingLabel) : pr.ratingLabel,\n    explanation: pr.explanation,\n    nextNode: isPerfect ? \"end_recap\" : x + \"_diagnosis\"\n  };\n  if (isPerfect) return;\n\n  nodes[x + \"_diagnosis\"] = {\n    type: \"diagnosis\",\n    text: pr.diagnosis.question,\n    options: pr.diagnosis.options.map((o,j) => ({\n      id: x + \"_diag_\" + (j+1), label: o.text,\n      points: o.isCorrect ? DIAG_POINTS : 0, feedback: o.feedback,\n      nextNode: x + \"_correction\"\n    }))\n  };\n\n  const goodOpt = { id: x + \"_fix_good\", label: pr.correction.good.label, promptText: pr.correction.good.promptText,\n    points: FIX_POINTS, nextNode: x + \"_correction_result_good\" };\n  const mehOpt  = { id: x + \"_fix_meh\",  label: pr.correction.meh.label,  promptText: pr.correction.meh.promptText,\n    points: 0, nextNode: x + \"_correction_result_meh\" };\n  nodes[x + \"_correction\"] = {\n    type: \"prompt_choice\",\n    text: pr.correction.question,\n    options: Math.random() < 0.5 ? [goodOpt, mehOpt] : [mehOpt, goodOpt]   // good nicht immer zuerst\n  };\n\n  nodes[x + \"_correction_result_good\"] = {\n    type: \"output_review\", aiOutput: pr.correction.good.aiOutput,\n    ratingLabel: forceExcellent(pr.correction.good.ratingLabel),\n    explanation: pr.correction.good.explanation, nextNode: \"end_recap\"\n  };\n  nodes[x + \"_correction_result_meh\"] = {\n    type: \"output_review\", aiOutput: pr.correction.meh.aiOutput,\n    ratingLabel: pr.correction.meh.ratingLabel,\n    explanation: pr.correction.meh.explanation, nextNode: \"end_recap\"\n  };\n});\n\nnodes[\"end_recap\"] = { type: \"end\", recapIntro: d.recapIntro, lessons: d.lessons };\n\n// --- Scoring deterministisch aus der Pfadstruktur ---\n// bester Spielverlauf je Ast: Erstwahl + (falls nicht perfect) korrekte Diagnose + gute Korrektur\nconst pathTotals = arranged.map(pr => pr.qualityTier === \"perfect\"\n  ? TIER_POINTS.perfect\n  : TIER_POINTS[pr.qualityTier] + DIAG_POINTS + FIX_POINTS);\nconst maxPoints = Math.max.apply(null, pathTotals);      // global bester Pfad\nconst passingScore = Math.min.apply(null, pathTotals);   // schwaechster Start + volle Recovery besteht noch\n\n// --- Struktur-Assertions (muessen per Konstruktion halten; werfen = Bug im Assemble) ---\nObject.keys(nodes).forEach(k => {\n  const nd = nodes[k];\n  const targets = [];\n  if (nd.nextNode) targets.push(nd.nextNode);\n  (nd.options || []).forEach(o => { if (o.nextNode) targets.push(o.nextNode); else throw new Error(\"Option ohne nextNode in \" + k); });\n  targets.forEach(t => { if (!nodes[t]) throw new Error(\"Dangling Edge: \" + k + \" -> \" + t); });\n});\nif (!nodes[\"start\"]) throw new Error(\"startNode fehlt\");\nif (maxPoints <= 0 || passingScore > maxPoints) throw new Error(\"Scoring inkonsistent\");\n\nconst game_json = {\n  format: \"prompt_branching\",\n  branching: {\n    scenario: d.scenario,\n    startNode: \"start\",\n    nodes,\n    scoring: { maxPoints, passingScore }\n  }\n};\n\n// Blind-Ergebnis aendert NICHT den Status - lebt nur in generation_meta.blindCheck.\nconst status = \"draft\";\n\nconst techLabel = p.technologyLabel || p.technologyCustom || \"KI\";\nconst goalLabel = p.learningGoal === \"other\" ? (p.learningGoalCustom || \"Finance\") : (p.learningGoal || \"Finance\");\nconst goalDisplay = p.learningGoal === \"other\" ? (p.learningGoalCustom || null) : (p.learningGoal || null);\n\nreturn [{ json: {\n  title: `Prompt Navigator: ${goalLabel} \\u2013 ${techLabel}`,\n  format: p.gameType || \"prompt_branching\",\n  difficulty: p.difficulty || \"medium\",\n  language: \"de\",\n  learning_objective: goalDisplay,\n  game_json,\n  status,\n  technology_id: (p.technologyId && p.technologyId !== \"other\") ? p.technologyId : null,\n  technology_custom: p.technologyId === \"other\" ? (p.technologyCustom || null) : null,\n  learning_goal: p.learningGoal !== \"other\" ? p.learningGoal : null,\n  learning_goal_custom: p.learningGoal === \"other\" ? (p.learningGoalCustom || null) : null,\n  requested_by: p.requestedBy || null,\n  generation_meta: Object.assign({}, v.meta || {}, { blindCheck: { passed: blindPassed, disagreements } }),\n  created_at: new Date().toISOString()\n}}];\n"
+      },
+      "id": "b1548fd4-4154-415c-afb4-b085f602dcec",
+      "name": "Process Blind + Assemble",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "games",
+        "dataToSend": "autoMapInputData"
+      },
+      "id": "df263985-57d5-43ae-8e36-87354606f4f9",
+      "name": "Insert games",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        608,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "uRjStYpV62kd5r0x",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok:true, gameId: $json.id, status: $json.status }) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "b47afe23-2c09-4d35-b24c-3a4bf4ddba2f",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        800,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Build Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Prompt": {
+      "main": [
+        [
+          {
+            "node": "LLM – kiconnect (1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM – kiconnect (1)": {
+      "main": [
+        [
+          {
+            "node": "Process & Validate 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process & Validate 1": {
+      "main": [
+        [
+          {
+            "node": "Valid? (1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid? (1)": {
+      "main": [
+        [
+          {
+            "node": "Build Blind Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Repair Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Repair Prompt": {
+      "main": [
+        [
+          {
+            "node": "LLM – kiconnect (2)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM – kiconnect (2)": {
+      "main": [
+        [
+          {
+            "node": "Process & Validate 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process & Validate 2": {
+      "main": [
+        [
+          {
+            "node": "Valid? (2)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid? (2)": {
+      "main": [
+        [
+          {
+            "node": "Build Blind Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Fail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Blind Prompt": {
+      "main": [
+        [
+          {
+            "node": "LLM – kiconnect (blind)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM – kiconnect (blind)": {
+      "main": [
+        [
+          {
+            "node": "Process Blind + Assemble",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Blind + Assemble": {
+      "main": [
+        [
+          {
+            "node": "Insert games",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert games": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "a1d4e76c-3781-4fd2-a333-f8828914adfd",
+  "meta": {
+    "instanceId": "febf70db6c210749809937ae80018f186718dbb1fd04a94fe3840d13114ae841"
+  },
+  "nodeGroups": [],
+  "id": "oIRtObjUONydcT4j",
+  "tags": []
+}

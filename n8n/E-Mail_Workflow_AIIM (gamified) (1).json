@@ -1,0 +1,319 @@
+{
+  "name": "E-Mail_Workflow_AIIM (gamified)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "fe577f1e-504b-4f7b-80f3-19b4d8c347f7",
+      "name": "Weekly Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "games",
+        "returnAll": true
+      },
+      "id": "d51f2305-447d-4b00-a894-e5969171b0d2",
+      "name": "Fetch Available Games",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "uRjStYpV62kd5r0x",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const seen = new Set();\nconst games = [];\n\nfor (const item of $input.all()) {\n  const g = item.json;\n  if (!g || g.id === undefined || g.id === null) continue;\n  if (g.status !== 'approved') continue;   // Dead-Link-Schutz: nur approved Games sind über /api/games erreichbar\n  if (seen.has(g.id)) continue;\n  seen.add(g.id);\n  games.push({\n    id: g.id,\n    title: g.title,\n    difficulty: g.difficulty,\n    topic: g.topic,\n    target_role: g.target_role,\n    learning_objective: g.learning_objective,\n  });\n}\n\nreturn [{ json: { games } }];"
+      },
+      "id": "e319769f-fb1a-45cc-9272-f899f70d5468",
+      "name": "Collect & Dedupe Games",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "scores",
+        "returnAll": true
+      },
+      "id": "7d113c85-0d38-4c52-bc2e-86d7667ecb37",
+      "name": "Fetch Scores",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        448,
+        224
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "uRjStYpV62kd5r0x",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregiert die Tabelle \"scores\" pro Spieler:\n//  - total_score   = Summe aller score-Werte\n//  - games_played  = Anzahl abgeschlossener Spiel-Durchläufe\n//  - unique_games  = Anzahl unterschiedlicher game_id\n//  - streak        = aufeinanderfolgende Kalenderwochen mit mind. 1 gespieltem Game\n\nfunction weekStart(dateLike) {\n  const d = new Date(dateLike);\n  if (isNaN(d.getTime())) return null;\n  const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));\n  const dow = (t.getUTCDay() + 6) % 7;          // Montag = 0\n  t.setUTCDate(t.getUTCDate() - dow);\n  return t.toISOString().slice(0, 10);\n}\n\nconst rows = $input.all().map(i => i.json).filter(r => r && r.player_id);\n\nconst acc = {};\nfor (const r of rows) {\n  const pid = String(r.player_id);\n  if (!acc[pid]) acc[pid] = { total_score: 0, games_played: 0, gameIds: {}, weeks: {} };\n  const a = acc[pid];\n  a.total_score += Number(r.score) || 0;\n  a.games_played += 1;\n  if (r.game_id) a.gameIds[String(r.game_id)] = true;\n  const wk = r.completed_at ? weekStart(r.completed_at) : null;\n  if (wk) a.weeks[wk] = true;\n}\n\n// aktuelle Woche (Montag) als Ausgangspunkt\nconst nowWeek = weekStart(new Date());\nconst MS_WEEK = 7 * 24 * 60 * 60 * 1000;\n\nconst stats = {};\nfor (const [pid, a] of Object.entries(acc)) {\n  let cursor = new Date(nowWeek + 'T00:00:00Z');\n  // Kulanz: wurde diese Woche noch nicht gespielt, zaehlt der Streak ab letzter Woche\n  if (!a.weeks[cursor.toISOString().slice(0, 10)]) {\n    cursor = new Date(cursor.getTime() - MS_WEEK);\n  }\n  let streak = 0;\n  while (a.weeks[cursor.toISOString().slice(0, 10)]) {\n    streak += 1;\n    cursor = new Date(cursor.getTime() - MS_WEEK);\n  }\n  stats[pid] = {\n    total_score: a.total_score,\n    games_played: a.games_played,\n    unique_games: Object.keys(a.gameIds).length,\n    streak,\n  };\n}\n\nreturn [{ json: { stats } }];"
+      },
+      "id": "034e1a18-bba1-4775-adbb-8f85344b4e75",
+      "name": "Aggregate Player Stats",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "players",
+        "returnAll": true,
+        "orderBy": "created_at.asc"
+      },
+      "id": "6c6d5feb-c628-43fb-8b68-7f270299998f",
+      "name": "Fetch Users",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        688,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "uRjStYpV62kd5r0x",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const user = $json;\nconst allGames = $('Collect & Dedupe Games').first().json.games || [];\nconst allStats = $('Aggregate Player Stats').first().json.stats || {};\nconst role = (user.role || '').toString().toLowerCase().trim();\n\nconst PLATFORM_URL = 'https://aiim-gamification.vercel.app';\n\nconst scored = allGames.map((g, idx) => {\n  const tr = (g.target_role || '').toString().toLowerCase();\n  const match = role && tr && (tr.includes(role) || role.includes(tr)) ? 1 : 0;\n  return { g, match, idx };\n});\nscored.sort((a, b) => (b.match - a.match) || (a.idx - b.idx));\nconst featured = scored.length ? scored[0].g : null;\n\n// Werte kommen jetzt aus der scores-Tabelle (players hat keine streak/score-Spalten)\nconst s = allStats[String(user.id)] || { total_score: 0, games_played: 0, unique_games: 0, streak: 0 };\n\nconst streak = Number(s.streak) || 0;\nconst score = Number(s.total_score) || 0;\nconst gamesPlayed = Number(s.games_played) || 0;\nconst uniqueGames = Number(s.unique_games) || 0;\n\n// noch nicht gespielte Games\nconst moreGames = Math.max(allGames.length - uniqueGames, 0);\n\nconst playUrl = featured\n  ? `${PLATFORM_URL}/player-dashboard?game=${featured.id}`\n  : `${PLATFORM_URL}/player-dashboard`;\n\nreturn [{\n  json: {\n    user_id: user.id,\n    user_name: user.display_name,\n    user_role: user.role,\n    user_email: user.email,\n    featured_game: featured,\n    streak,\n    score,\n    games_played: gamesPlayed,\n    unique_games: uniqueGames,\n    more_games_count: moreGames,\n    play_url: playUrl,\n    dashboard_url: `${PLATFORM_URL}/player-dashboard`,\n  }\n}];"
+      },
+      "id": "cacb0c04-87e2-4e15-b49f-bd08fc9c7300",
+      "name": "Build User Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are generating a single game recommendation for a finance professional.\n\nUser Role: {{ $json.user_role }}\nFeatured Game (JSON): {{ JSON.stringify($json.featured_game) }}\n\nGenerate exactly two plain-text sentences using ONLY the real data fields (title, topic, learning_objective, target_role, difficulty):\n- Sentence 1: What the game teaches, stated factually from the topic or learning_objective field. No invented scenarios. No exclamation marks. No emojis.\n- Sentence 2: Why it is relevant to this user's role ({{ $json.user_role }}), referencing a concrete daily task (e.g. month-end closing, accrual bookings, correction postings, financial reporting, variance analysis). No generic statements.\n\nDo not use motivational filler (\"exciting\", \"level up\", \"dive in\", \"ready to\", \"boost your skills\"). Professional tone only.\n\nOutput valid HTML only, exactly this block (no subject line, greeting, sign-off, or markdown):\n\n<div style=\"padding:18px;border:1px solid #DCE1E9;border-top:3px solid #FFB81C;border-radius:10px;background:#ffffff;\">\n  <div style=\"font-size:17px;font-weight:700;color:#05164D;margin-bottom:6px;\">{game title}</div>\n  <div style=\"font-size:13px;color:#8A94A6;margin:4px 0;\">{difficulty} &middot; {topic}</div>\n  <div style=\"font-size:14px;color:#55617A;margin-top:10px;line-height:1.6;\">{Sentence 1}</div>\n  <div style=\"font-size:13px;color:#8A94A6;margin-top:8px;line-height:1.6;font-style:italic;\">{Sentence 2}</div>\n</div>",
+        "options": {
+          "systemMessage": "You are a professional learning recommendation system for finance professionals. Generate one concise, factual recommendation based strictly on the provided data fields. Use professional language without motivational phrases or emojis."
+        }
+      },
+      "id": "75bf0a5f-2c7c-4d5d-8eae-f80414fc5dbc",
+      "name": "Generate Game Recommendations",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1136,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "OpenAI GPT OSS 120b KI:Inferenz.nrw",
+          "mode": "list",
+          "cachedResultName": "OpenAI GPT OSS 120b KI:Inferenz.nrw"
+        },
+        "responsesApiEnabled": false,
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "b3836484-4c27-4525-bbbc-9f4c67f97f46",
+      "name": "OpenAI Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1216,
+        224
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "BMP1uFeZqOyMfN1P",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "REPLACE_WITH_YOUR_GMAIL_ADDRESS",
+        "toEmail": "={{ $('Build User Payload').item.json.user_email }}",
+        "subject": "=Weekly Learning Recommendations - {{ $now.toFormat(\"MMMM d, yyyy\") }}",
+        "html": "=<div style=\"max-width:600px;margin:0 auto;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#F4F6F9;padding:24px;\">\n  <div style=\"background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #DCE1E9;\">\n    <!-- Header -->\n    <table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#05164D;border-bottom:3px solid #FFB81C;\">\n      <tr>\n        <td style=\"padding:28px 32px;text-align:center;\">\n          <div style=\"width:32px;height:32px;border-radius:50%;background:#FFB81C;color:#05164D;font-weight:800;font-size:13px;line-height:32px;text-align:center;margin:0 auto 12px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;\">F&amp;C</div>\n          <h1 style=\"margin:0;font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-0.3px;\">Deine Challenge der Woche</h1>\n          <p style=\"margin:8px 0 0;font-size:14px;color:rgba(255,255,255,.75);\">Hi {{ $('Build User Payload').item.json.user_name }} — eine Empfehlung für deine Rolle als {{ $('Build User Payload').item.json.user_role }}</p>\n        </td>\n      </tr>\n    </table>\n\n    <!-- Stats bar -->\n    <table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"border-collapse:collapse;background:#F4F6F9;border-bottom:1px solid #DCE1E9;\">\n      <tr>\n        <td style=\"width:33%;text-align:center;padding:18px;border-right:1px solid #DCE1E9;\">\n          <div style=\"font-size:24px;font-weight:800;color:#05164D;\">{{ $('Build User Payload').item.json.streak }}</div>\n          <div style=\"font-size:11px;color:#8A94A6;text-transform:uppercase;letter-spacing:0.6px;margin-top:2px;\">Wochen-Streak</div>\n        </td>\n        <td style=\"width:34%;text-align:center;padding:18px;border-right:1px solid #DCE1E9;\">\n          <div style=\"font-size:24px;font-weight:800;color:#05164D;\">{{ $('Build User Payload').item.json.games_played }}</div>\n          <div style=\"font-size:11px;color:#8A94A6;text-transform:uppercase;letter-spacing:0.6px;margin-top:2px;\">Games gespielt</div>\n        </td>\n        <td style=\"width:33%;text-align:center;padding:18px;\">\n          <div style=\"font-size:24px;font-weight:800;color:#05164D;\">{{ $('Build User Payload').item.json.score }}</div>\n          <div style=\"font-size:11px;color:#8A94A6;text-transform:uppercase;letter-spacing:0.6px;margin-top:2px;\">Punkte</div>\n        </td>\n      </tr>\n    </table>\n\n    <!-- Featured game card -->\n    <div style=\"padding:24px 32px 8px;\">\n      {{ $json.output }}\n    </div>\n\n    <!-- Primary CTA -->\n    <div style=\"padding:8px 32px 4px;\">\n      <a href=\"{{ $('Build User Payload').item.json.play_url }}\" style=\"display:block;text-align:center;background:#05164D;color:#ffffff;padding:14px;border-radius:6px;font-size:15px;font-weight:700;text-decoration:none;\">Challenge jetzt spielen &rarr;</a>\n    </div>\n\n    <!-- More games -->\n    <div style=\"padding:16px 32px 8px;text-align:center;\">\n      <p style=\"margin:0 0 6px;font-size:14px;color:#374151;\">Es warten noch {{ $('Build User Payload').item.json.more_games_count }} weitere Challenges auf dich.</p>\n      <a href=\"{{ $('Build User Payload').item.json.dashboard_url }}\" style=\"font-size:14px;color:#05164D;text-decoration:none;font-weight:600;\">Alle Games ansehen &rarr;</a>\n    </div>\n\n    <!-- Footer -->\n    <div style=\"border-top:1px solid #DCE1E9;padding:20px 32px;text-align:center;background:#F4F6F9;margin-top:12px;\">\n      <p style=\"margin:0;font-size:12px;color:#8A94A6;\">Bleib am Ball — spiele mindestens eine Challenge pro Woche, um deinen Streak zu halten.</p>\n    </div>\n  </div>\n</div>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "61968468-4009-42a1-9b55-8cdc957a70e3",
+      "name": "Send Recommendation Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1504,
+        0
+      ],
+      "webhookId": "56aa9c7f-9d54-4579-9f8d-93161cef3e66",
+      "credentials": {
+        "smtp": {
+          "id": "d8YppzIemLeLvrzi",
+          "name": "SMTP account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Weekly Schedule": {
+      "main": [
+        [
+          {
+            "node": "Fetch Available Games",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Available Games": {
+      "main": [
+        [
+          {
+            "node": "Collect & Dedupe Games",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect & Dedupe Games": {
+      "main": [
+        [
+          {
+            "node": "Fetch Scores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Users": {
+      "main": [
+        [
+          {
+            "node": "Build User Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build User Payload": {
+      "main": [
+        [
+          {
+            "node": "Generate Game Recommendations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Game Recommendations",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Game Recommendations": {
+      "main": [
+        [
+          {
+            "node": "Send Recommendation Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Scores": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Player Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Player Stats": {
+      "main": [
+        [
+          {
+            "node": "Fetch Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "f731609a-d156-4f56-a4df-f5b6aba9e515",
+  "meta": {
+    "instanceId": "febf70db6c210749809937ae80018f186718dbb1fd04a94fe3840d13114ae841"
+  },
+  "nodeGroups": [],
+  "id": "r45W05XbwnHTZbev",
+  "tags": []
+}
