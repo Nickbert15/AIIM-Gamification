@@ -30,6 +30,16 @@ npm run dev                        # → http://localhost:3000
 | `KICONNECT_API_URL` / `KICONNECT_API_KEY` | LLM gateway used for in-game AI calls and game-content regeneration. |
 | `N8N_EXCEL_WEBHOOK_URL`, `N8N_HALLUCINATION_WEBHOOK_URL`, `N8N_ARENA_WEBHOOK_URL`, `N8N_BRANCHING_WEBHOOK_URL` | One generation webhook per game type. Only needed to generate *new* games. |
 
+## Demo login
+
+There's no self-registration — players are created by an admin (`/admin/players`). Use this
+account to log in and try the app:
+
+```
+Email:    sabrinakaufmann769@gmail.com
+Password: AIIM2026xBCG
+```
+
 ## Database
 
 Two SQL files need to be run once in the Supabase SQL Editor — there's no migration pipeline yet:
