@@ -15,5 +15,6 @@ build/
 
 # Misc
 .DS_Store
+desktop.ini
 *.pem
 npm-debug.log*
